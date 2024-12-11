@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件处理系统</title>
+    <style>
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        h2 {
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        input[type="file"], input[type="text"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fff;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input[type="file"]:hover, input[type="text"]:hover, select:hover, textarea:hover {
+            border-color: #4CAF50;
+        }
+        input[type="file"]:focus, input[type="text"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76,175,80,0.2);
+        }
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        .error {
+            background-color: #fdecea;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        .processing {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        
+        /* 历史记录样式 */
+        .history-container {
+            margin-top: 30px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .history-table th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        .history-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        .download-link {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .download-link:hover {
+            text-decoration: underline;
+        }
+        .refresh-button {
+            background-color: #2196F3;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .refresh-button:hover {
+            background-color: #1976D2;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-completed {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-failed {
+            background-color: #fdecea;
+            color: #c62828;
+        }
+        .status-processing {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>文件处理系统</h1>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="templateSelect">选择模板：</label>
+                <select id="templateSelect" name="templateSelect" required>
+                    <option value="">请选择模板</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/叮铛卡航限时达.xlsx">叮铛卡航限时达</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/叮铛海运.xlsx">叮铛海运</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/宏川.xlsx">宏川</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/德邦空派.xlsx">德邦空派</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/德邦美森.xlsx">德邦美森</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/林道UPS红单.xlsx">林道UPS红单</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/林道日本.xlsx">林道日本</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/林道海运.xlsx">林道海运</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/欧UPS红单.xlsx">欧UPS红单</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/美UPS红单.xlsx">美UPS红单</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/递信.xlsx">递信</option>
+                    <option value="/Users/chenminghui/py/lingxing_request/project_run/发票项目/表格模版/顺丰海运.xlsx">顺丰海运</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="codeInput">编码：</label>
+                <input type="text" id="codeInput" name="codeInput" required placeholder="请输入编码">
+            </div>
+
+            <div class="form-group">
+                <label for="packing_list">领星装箱单（详细格式）：</label>
+                <input type="file" id="packing_list" name="packing_list" accept=".xlsx,.xls">
+                <div class="help-text">请上传领星导出的标准装箱单Excel文件</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="invoice_info">基础装箱单（简单格式）：</label>
+                <div class="help-text">支持QV票格式，包含箱规、重量和SKU数量信息</div>
+                <input type="file" id="invoice_info" name="invoice_info" accept=".xlsx,.xls">
+            </div>
+            
+            <button type="submit">开始处理</button>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <div class="container history-container">
+        <h2>处理历史</h2>
+        
+        <!-- 添加筛选控件 -->
+        <div class="filter-controls" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                    <label for="startDate">开始日期：</label>
+                    <input type="date" id="startDate" class="form-control">
+                </div>
+                <div style="flex: 1;">
+                    <label for="endDate">结束日期：</label>
+                    <input type="date" id="endDate" class="form-control">
+                </div>
+                <div style="flex: 1;">
+                    <label for="codeFilter">编码搜索：</label>
+                    <input type="text" id="codeFilter" class="form-control" placeholder="输入编码搜索">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn" onclick="applyFilters()">应用筛选</button>
+                <button type="button" class="btn" onclick="resetFilters()">重置筛选</button>
+                <button type="button" class="btn" onclick="showTodayOnly()">仅显示今天</button>
+            </div>
+        </div>
+        
+        <button class="refresh-button" onclick="loadHistory()">刷新历史记录</button>
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>编码</th>
+                    <th>模板</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+            statusDiv.style.display = 'block';
+        }
+
+        function formatDateTime(timestamp) {
+            return timestamp.substring(0, 4) + '-' +
+                   timestamp.substring(4, 6) + '-' +
+                   timestamp.substring(6, 8) + ' ' +
+                   timestamp.substring(9, 11) + ':' +
+                   timestamp.substring(11, 13) + ':' +
+                   timestamp.substring(13, 15);
+        }
+
+        function loadHistory(filters = {}) {
+            let url = '/history';
+            const queryParams = new URLSearchParams();
+            
+            if (filters.startDate) queryParams.append('start_date', filters.startDate);
+            if (filters.endDate) queryParams.append('end_date', filters.endDate);
+            if (filters.code) queryParams.append('code', filters.code);
+            
+            if (queryParams.toString()) {
+                url += '?' + queryParams.toString();
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('historyTableBody');
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${formatDateTime(item.timestamp)}</td>
+                            <td>${item.code_input || ''}</td>
+                            <td>${item.template_name || ''}</td>
+                            <td><span class="status-badge status-${item.status}">${
+                                item.status === 'completed' ? '完成' : 
+                                item.status === 'failed' ? '失败' : '处理中'
+                            }</span></td>
+                            <td>${
+                                item.status === 'completed' 
+                                ? `<a href="/download/${item.result_file}" class="download-link">下载</a>`
+                                : item.status === 'failed'
+                                ? `<span style="color: #c62828;">${item.error || '处理失败'}</span>`
+                                : '<span>处理中...</span>'
+                            }</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+        
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const code = document.getElementById('codeFilter').value;
+            
+            loadHistory({
+                startDate: startDate,
+                endDate: endDate,
+                code: code
+            });
+        }
+        
+        function resetFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('codeFilter').value = '';
+            loadHistory();
+        }
+        
+        function showTodayOnly() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = today;
+            applyFilters();
+        }
+        
+        // 页面加载时默认显示当天记录
+        document.addEventListener('DOMContentLoaded', () => {
+            showTodayOnly();
+        });
+
+        // 处理文件上传
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const packingList = document.getElementById('packing_list').files[0];
+            const invoiceInfo = document.getElementById('invoice_info').files[0];
+            const templateType = document.getElementById('templateSelect').value;
+            const code = document.getElementById('codeInput').value;
+            
+            // 检查是否选择了模板
+            if (!templateType) {
+                updateStatus('请选择模板', 'error');
+                return;
+            }
+            
+            // 检查文件上传情况
+            if (!packingList && !invoiceInfo) {
+                updateStatus('请上传装箱单文件', 'error');
+                return;
+            }
+            
+            if (packingList && invoiceInfo) {
+                updateStatus('请只上传一个装箱单文件', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            // 根据上传的文件类型设置不同的处理标识
+            if (packingList) {
+                formData.append('file', packingList);
+                formData.append('file_type', 'packing_list');
+            } else {
+                formData.append('file', invoiceInfo);
+                formData.append('file_type', 'invoice_info');
+            }
+            
+            // 提取模板名称（去掉路径）
+            const templateName = templateType.split('/').pop().replace('.xlsx', '');
+            formData.append('template_type', templateName);
+            
+            if (code) {
+                formData.append('code', code);
+            }
+            
+            updateStatus('正在上传文件...', 'processing');
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStatus('文件已上传，正在处理...', 'processing');
+                    checkStatus(data.task_id);
+                } else {
+                    throw new Error(data.error || '上传失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                updateStatus(error.message || '上传失败', 'error');
+            });
+        });
+
+        function checkStatus(taskId) {
+            fetch(`/status/${taskId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'completed') {
+                    updateStatus('处理完成', 'success');
+                    // 先更新状态和历史记录
+                    loadHistory();
+                    // 然后触发下载
+                    setTimeout(() => {
+                        window.location.href = data.download_url;
+                    }, 500);
+                    // 不再继续轮询
+                    return;
+                } else if (data.status === 'failed') {
+                    updateStatus(`处理失败：${data.error}`, 'error');
+                    loadHistory();
+                    // 失败时也停止轮询
+                    return;
+                } else {
+                    updateStatus('正在处理中...', 'processing');
+                    // 继续轮询
+                    setTimeout(() => checkStatus(taskId), 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                updateStatus('检查状态失败：' + error.message, 'error');
+                // 发生错误时也停止轮询
+                return;
+            });
+        }
+    </script>
+</body>
+</html>
