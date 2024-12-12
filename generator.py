@@ -85,46 +85,71 @@ class InvoiceGenerator:
         print(f"合并单元格解除完成")
 
         # 填充数据
-        row_num = 1  # 从第一行开始填充
+        row_num = 18  # 从第18行开始填充
+        index = 1    # 添加序号计数器，从1开始
+        
+        # 遍历每个箱子
         for box_number, box in box_data.items():
             print(f"处理箱子 {box_number}")
-
-            # 填充箱子信息
+            
+            # 遍历箱子中的每个产品
             for item in box.items:
-                # 序号
+                # 货箱编号 (A列)
                 cell = sheet.cell(row=row_num, column=1)
-                cell.value = row_num
+                cell.value = box_number
                 cell.font = style_info['font']
                 cell.border = style_info['border']
                 cell.alignment = style_info['alignment']
-
-                # MSKU
+                
+                # 重量 (B列)
                 cell = sheet.cell(row=row_num, column=2)
-                cell.value = item.msku
+                cell.value = box.weight if box.weight is not None else ""
                 cell.font = style_info['font']
                 cell.border = style_info['border']
                 cell.alignment = style_info['alignment']
-
-                # 品名
-                cell = sheet.cell(row=row_num, column=3)
+                
+                # 品名 (C列)
+                cell = sheet.cell(row=row_num, column=4)
                 cell.value = item.product_name
                 cell.font = style_info['font']
                 cell.border = style_info['border']
                 cell.alignment = style_info['alignment']
-
-                # 数量
-                cell = sheet.cell(row=row_num, column=4)
+                
+                # 数量 (F列)
+                cell = sheet.cell(row=row_num, column=6)
                 cell.value = item.box_quantities.get(box_number, 0)
                 cell.font = style_info['font']
                 cell.border = style_info['border']
                 cell.alignment = style_info['alignment']
-
+                
+                # 长度 (Q列)
+                cell = sheet.cell(row=row_num, column=17)  # Q是第17列
+                cell.value = box.length if box.length is not None else ""
+                cell.font = style_info['font']
+                cell.border = style_info['border']
+                cell.alignment = style_info['alignment']
+                
+                # 宽度 (R列)
+                cell = sheet.cell(row=row_num, column=18)  # R是第18列
+                cell.value = box.width if box.width is not None else ""
+                cell.font = style_info['font']
+                cell.border = style_info['border']
+                cell.alignment = style_info['alignment']
+                
+                # 高度 (S列)
+                cell = sheet.cell(row=row_num, column=19)  # S是第19列
+                cell.value = box.height if box.height is not None else ""
+                cell.font = style_info['font']
+                cell.border = style_info['border']
+                cell.alignment = style_info['alignment']
+                
                 row_num += 1
-
-            # 在每个箱子后面添加一个空行
+            
+            # 在每个箱子的产品列表后添加一个空行
             row_num += 1
 
         return row_num
+    
 
     def _fill_germany_template(self, wb, box_data):
         """填充德国模板"""

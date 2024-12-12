@@ -22,5 +22,6 @@ ENV/
 logs/
 output/
 uploads/
-*.xlsx
-!template*.xlsx  # 保留模板文件
+# 允许所有Excel文件
+# *.xlsx
+# !template*.xlsx
