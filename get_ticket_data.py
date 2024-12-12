@@ -52,114 +52,136 @@ class PackingListProcessor:
 
     def process(self):
         """处理装箱单"""
-        # 读取Excel文件
-        print(f"Reading Excel file: {self.file_path}")
-        df = pd.read_excel(self.file_path)
+        try:
+            # 读取Excel文件
+            print(f"Reading Excel file: {self.file_path}")
+            df = pd.read_excel(self.file_path)
 
-        # 获取Shipment ID
-        self.shipment_id = df.iloc[0, 1]  # 第一行第二列
-        print(f"Found Shipment ID: {self.shipment_id}")
+            if df.empty:
+                raise ValueError("Excel file is empty")
 
-        # 找到最后一个产品的行号
-        last_product_row = None
-        for idx, row in df.iterrows():
-            if not pd.isna(row[0]) and str(row[0]).isdigit():  # 如果第一列是数字（序号）
-                last_product_row = idx
+            # 获取Shipment ID
+            try:
+                self.shipment_id = str(df.iloc[0, 1])  # 第一行第二列
+                if pd.isna(self.shipment_id):
+                    raise ValueError("Shipment ID is empty")
+            except Exception as e:
+                raise ValueError(f"Invalid Shipment ID: {str(e)}")
 
-        if last_product_row is None:
-            raise ValueError("No product data found")
+            print(f"Found Shipment ID: {self.shipment_id}")
 
-        print(f"Last product row: {last_product_row}")
+            # 找到最后一个产品的行号
+            last_product_row = None
+            for i in range(len(df)):
+                try:
+                    first_col_value = df.iloc[i, 0]  # 使用 iloc 直接获取第一列的值
+                    # 尝试将第一列转换为浮点数，然后检查是否为正数
+                    if pd.isna(first_col_value):
+                        continue
+                    value = float(first_col_value)
+                    if value > 0:
+                        last_product_row = i  # 直接使用循环索引
+                except (ValueError, TypeError):
+                    continue
 
-        # 处理商品信息（从第三行开始）
-        row_count = 0
-        for _, row in df.iloc[2:last_product_row + 1].iterrows():
-            if pd.isna(row[0]):  # 如果序号为空，跳过
-                continue
+            if last_product_row is None:
+                raise ValueError("No product data found")
 
-            row_count += 1
-            msku = row[1]  # 第二列是MSKU
-            fnsku = row[2]  # 第三列是FNSKU
-            product_name = row[3]  # 第四列是品名
-            sku = row[4]  # 第五列是SKU
-            total_quantity = row[5]  # 第六列是发货总数量
+            print(f"Last product row: {last_product_row}")
 
-            if pd.isna(msku) or pd.isna(total_quantity):
-                continue
+            # 处理商品信息（从第三行开始）
+            row_count = 0
+            for _, row in df.iloc[2:last_product_row + 1].iterrows():
+                if pd.isna(row[0]):  # 如果序号为空，跳过
+                    continue
 
-            print(f"Processing row {row_count}: SKU={sku}, Total Quantity={total_quantity}")
+                row_count += 1
+                msku = row[1]  # 第二列是MSKU
+                fnsku = row[2]  # 第三列是FNSKU
+                product_name = row[3]  # 第四列是品名
+                sku = row[4]  # 第五列是SKU
+                total_quantity = row[5]  # 第六列是发货总数量
 
-            # 创建商品信息
-            item = PackingListItem(
-                sequence_no=int(row[0]),
-                msku=row[1],
-                fnsku=row[2],
-                product_name=row[3],
-                sku=row[4],
-                quantity=int(total_quantity),
-                box_quantities={}
-            )
+                if pd.isna(msku) or pd.isna(total_quantity):
+                    continue
 
-            # 处理每箱数量
-            for col_idx, col in enumerate(df.columns[6:], start=6):
-                quantity = row[col_idx]
-                if not pd.isna(quantity) and quantity > 0:
-                    box_number = col_idx - 5  # 箱号从1开始
-                    item.box_quantities[box_number] = int(quantity)
-                    print(f"  - Box {box_number}: {quantity} units")
+                print(f"Processing row {row_count}: SKU={sku}, Total Quantity={total_quantity}")
 
-                    # 确保箱子对象存在
-                    if box_number not in self.boxes:
-                        self.boxes[box_number] = PackingListBox(box_number)
-                        print(f"  Created new box: Box {box_number}")
-                    self.boxes[box_number].add_item(item)
+                # 创建商品信息
+                item = PackingListItem(
+                    sequence_no=int(row[0]),
+                    msku=row[1],
+                    fnsku=row[2],
+                    product_name=row[3],
+                    sku=row[4],
+                    quantity=int(total_quantity),
+                    box_quantities={}
+                )
 
-            self.items.append(item)
+                # 处理每箱数量
+                for col_idx, col in enumerate(df.columns[6:], start=6):
+                    quantity = row[col_idx]
+                    if not pd.isna(quantity) and quantity > 0:
+                        box_number = col_idx - 5  # 箱号从1开始
+                        item.box_quantities[box_number] = int(quantity)
+                        print(f"  - Box {box_number}: {quantity} units")
 
-        # 读取箱子尺寸信息
-        # 箱子信息在最后一个产品后两行开始
-        box_info_start = last_product_row + 2
+                        # 确保箱子对象存在
+                        if box_number not in self.boxes:
+                            self.boxes[box_number] = PackingListBox(box_number)
+                            print(f"  Created new box: Box {box_number}")
+                        self.boxes[box_number].add_item(item)
 
-        # 对每个箱子
-        for box_number in self.boxes:
-            box = self.boxes[box_number]
-            col_idx = 5 + box_number  # 箱子列索引（第1箱从第7列开始）
+                self.items.append(item)
 
-            # 获取箱子信息（按顺序：重量、长、宽、高）
-            # 重量
-            weight = df.iloc[box_info_start, col_idx]
-            if not pd.isna(weight):
-                box.weight = float(weight)
-                print(f"Box {box_number} weight: {box.weight} kg")
+            # 读取箱子尺寸信息
+            # 箱子信息在最后一个产品后两行开始
+            box_info_start = int(last_product_row) + 2  # 确保是整数运算
 
-            # 长度
-            length = df.iloc[box_info_start + 1, col_idx]
-            if not pd.isna(length):
-                box.length = float(length)
-                print(f"Box {box_number} length: {box.length} cm")
+            # 对每个箱子
+            for box_number in self.boxes:
+                box = self.boxes[box_number]
+                col_idx = 5 + box_number  # 箱子列索引（第1箱从第7列开始）
 
-            # 宽度
-            width = df.iloc[box_info_start + 2, col_idx]
-            if not pd.isna(width):
-                box.width = float(width)
-                print(f"Box {box_number} width: {box.width} cm")
+                # 获取箱子信息（按顺序：重量、长、宽、高）
+                # 重量
+                weight = df.iloc[box_info_start, col_idx]
+                if not pd.isna(weight):
+                    box.weight = float(weight)
+                    print(f"Box {box_number} weight: {box.weight} kg")
 
-            # 高度
-            height = df.iloc[box_info_start + 3, col_idx]
-            if not pd.isna(height):
-                box.height = float(height)
-                print(f"Box {box_number} height: {box.height} cm")
+                # 长度
+                length = df.iloc[box_info_start + 1, col_idx]
+                if not pd.isna(length):
+                    box.length = float(length)
+                    print(f"Box {box_number} length: {box.length} cm")
 
-        print(f"\nProcessing complete:")
-        print(f"- Total products: {len(self.items)}")
-        print(f"- Total boxes: {len(self.boxes)}")
-        for box_number, box in self.boxes.items():
-            print(f"Box {box_number}:")
-            print(f"  - Dimensions: {box.length}x{box.width}x{box.height} cm")
-            print(f"  - Weight: {box.weight} kg")
-            print(f"  - Items: {len(box.items)}")
+                # 宽度
+                width = df.iloc[box_info_start + 2, col_idx]
+                if not pd.isna(width):
+                    box.width = float(width)
+                    print(f"Box {box_number} width: {box.width} cm")
 
-        return self.boxes
+                # 高度
+                height = df.iloc[box_info_start + 3, col_idx]
+                if not pd.isna(height):
+                    box.height = float(height)
+                    print(f"Box {box_number} height: {box.height} cm")
+
+            print(f"\nProcessing complete:")
+            print(f"- Total products: {len(self.items)}")
+            print(f"- Total boxes: {len(self.boxes)}")
+            for box_number, box in self.boxes.items():
+                print(f"Box {box_number}:")
+                print(f"  - Dimensions: {box.length}x{box.width}x{box.height} cm")
+                print(f"  - Weight: {box.weight} kg")
+                print(f"  - Items: {len(box.items)}")
+
+            return self.boxes
+
+        except Exception as e:
+            print(f"Error processing file: {str(e)}")
+            return None
 
     def get_box_count(self) -> int:
         """获取箱子总数"""
