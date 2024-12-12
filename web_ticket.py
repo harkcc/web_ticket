@@ -18,7 +18,7 @@ app.config['OUTPUT_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__fil
 app.config['TEMPLATE_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), '表格模版')
 app.config['HISTORY_FILE'] = 'history.json'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['MAX_HISTORY_DAYS'] = 30  # 历史记录保留天数
+app.config['MAX_HISTORY_DAYS'] = 90  # 历史记录保留天数
 
 # 确保必要的目录存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

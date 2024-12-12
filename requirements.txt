@@ -4,3 +4,4 @@ python-dotenv==1.0.0
 Werkzeug==2.3.7
 pywin32==306; platform_system == "Windows"
 PyYAML==6.0.1
+pandas==2.1.4
