@@ -17,5 +17,70 @@
     "template_name": "叮铛卡航限时达",
     "status": "completed",
     "result_file": "20241212111445.xlsx"
+  },
+  {
+    "task_id": "20241212151215",
+    "type": "packing_list",
+    "timestamp": "20241212_151215",
+    "input_file": "20241212151215_FBA0000001.xlsx",
+    "output_file": "20241212151215.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241212151215.xlsx"
+  },
+  {
+    "task_id": "20241212151338",
+    "type": "packing_list",
+    "timestamp": "20241212_151338",
+    "input_file": "20241212151338_FBA0000001.xlsx",
+    "output_file": "20241212151338.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241212151338.xlsx"
+  },
+  {
+    "task_id": "20241212151430",
+    "type": "packing_list",
+    "timestamp": "20241212_151431",
+    "input_file": "20241212151430_FBA0000001.xlsx",
+    "output_file": "20241212151430.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241212151430.xlsx"
+  },
+  {
+    "task_id": "20241212152235",
+    "type": "packing_list",
+    "timestamp": "20241212_152235",
+    "input_file": "20241212152235_FBA0000001.xlsx",
+    "output_file": "20241212152235.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241212152235.xlsx"
+  },
+  {
+    "task_id": "20241212154105",
+    "type": "packing_list",
+    "timestamp": "20241212_154105",
+    "input_file": "20241212154105_FBA0000001.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "林道美森限时快船",
+    "status": "failed",
+    "error": "生成发票时发生错误: File contains no valid workbook part"
+  },
+  {
+    "task_id": "20241212154736",
+    "type": "packing_list",
+    "timestamp": "20241212_154736",
+    "input_file": "20241212154736_FBA0000001.xlsx",
+    "output_file": "20241212154736.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241212154736.xlsx"
   }
 ]

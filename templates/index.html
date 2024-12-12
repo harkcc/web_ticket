@@ -209,6 +209,7 @@
                     <option value="">请选择模板</option>
                     <option value="表格模版/叮铛卡航限时达.xlsx">叮铛卡航限时达</option>
                     <option value="表格模版/叮铛海运.xlsx">叮铛海运</option>
+                    <option value="表格模版/林道美森限时快船.xlsx">林道美森限时快船</option>
                     <option value="表格模版/宏川.xlsx">宏川</option>
                     <option value="表格模版/德邦空派.xlsx">德邦空派</option>
                     <option value="表格模版/德邦美森.xlsx">德邦美森</option>
@@ -464,12 +465,16 @@
                     updateStatus('文件已上传，正在处理...', 'processing');
                     checkStatus(data.task_id);
                 } else {
-                    throw new Error(data.error || '上传失败');
+                    const errorMsg = `编码 ${code}: ${data.error || '生成失败'}`;
+                    updateStatus(errorMsg, 'error');
+                    loadHistory();
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                updateStatus(error.message || '上传失败', 'error');
+                const errorMsg = `编码 ${code}: ${error.message || '生成失败'}`;
+                updateStatus(errorMsg, 'error');
+                loadHistory();
             });
         });
 
@@ -479,30 +484,25 @@
             .then(data => {
                 if (data.status === 'completed') {
                     updateStatus('处理完成', 'success');
-                    // 先更新状态和历史记录
                     loadHistory();
-                    // 然后触发下载
                     setTimeout(() => {
                         window.location.href = data.download_url;
                     }, 500);
-                    // 不再继续轮询
-                    return;
                 } else if (data.status === 'failed') {
-                    updateStatus(`处理失败：${data.error}`, 'error');
+                    const code = document.getElementById('codeInput').value;
+                    const errorMsg = `编码 ${code}: ${data.error || '生成失败'}`;
+                    updateStatus(errorMsg, 'error');
                     loadHistory();
-                    // 失败时也停止轮询
-                    return;
                 } else {
                     updateStatus('正在处理中...', 'processing');
-                    // 继续轮询
                     setTimeout(() => checkStatus(taskId), 1000);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                updateStatus('检查状态失败：' + error.message, 'error');
-                // 发生错误时也停止轮询
-                return;
+                const errorMsg = `编码 ${document.getElementById('codeInput').value}: ${error.message || '生成失败'}`;
+                updateStatus(errorMsg, 'error');
+                loadHistory();
             });
         }
     </script>
