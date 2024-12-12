@@ -8,58 +8,14 @@
     "status": "completed"
   },
   {
-    "task_id": "20241211164754",
+    "task_id": "20241212111445",
     "type": "packing_list",
-    "timestamp": "20241211_164754",
-    "input_file": "20241211164754_FBA0000001.xlsx",
-    "output_file": "20241211164754.xlsx",
+    "timestamp": "20241212_111445",
+    "input_file": "20241212111445_FBA0000001.xlsx",
+    "output_file": "20241212111445.xlsx",
     "code_input": "FBA0000001",
     "template_name": "叮铛卡航限时达",
     "status": "completed",
-    "result_file": "20241211164754.xlsx"
-  },
-  {
-    "task_id": "20241211171913",
-    "type": "packing_list",
-    "timestamp": "20241211_171913",
-    "input_file": "20241211171913_FBA0000001.xlsx",
-    "output_file": "20241211171913.xlsx",
-    "code_input": "FBA0000001",
-    "template_name": "叮铛卡航限时达",
-    "status": "completed",
-    "result_file": "20241211171913.xlsx"
-  },
-  {
-    "task_id": "20241211172535",
-    "type": "packing_list",
-    "timestamp": "20241211_172536",
-    "input_file": "20241211172535_FBA0000001.xlsx",
-    "output_file": "20241211172535.xlsx",
-    "code_input": "FBA0000001",
-    "template_name": "叮铛卡航限时达",
-    "status": "completed",
-    "result_file": "20241211172535.xlsx"
-  },
-  {
-    "task_id": "20241211174619",
-    "type": "packing_list",
-    "timestamp": "20241211_174619",
-    "input_file": "20241211174619_FBA0000001.xlsx",
-    "output_file": "20241211174619.xlsx",
-    "code_input": "FBA0000001",
-    "template_name": "叮铛卡航限时达",
-    "status": "completed",
-    "result_file": "20241211174619.xlsx"
-  },
-  {
-    "task_id": "20241211203542",
-    "type": "packing_list",
-    "timestamp": "20241211_203543",
-    "input_file": "20241211203542_FBA0000001.xlsx",
-    "output_file": "20241211203542.xlsx",
-    "code_input": "FBA0000001",
-    "template_name": "叮铛卡航限时达",
-    "status": "completed",
-    "result_file": "20241211203542.xlsx"
+    "result_file": "20241212111445.xlsx"
   }
 ]
