@@ -197,6 +197,66 @@
             background-color: #6c757d;
             color: white;
         }
+        
+        /* 新增通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            max-width: 400px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .notification.error {
+            background-color: #fdecea;
+            color: #c62828;
+            border-left: 4px solid #ef5350;
+        }
+
+        .notification .close-btn {
+            background: none;
+            border: none;
+            color: inherit;
+            padding: 0;
+            margin-left: 15px;
+            cursor: pointer;
+            font-size: 20px;
+            width: auto;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -302,6 +362,38 @@
             statusDiv.textContent = message;
             statusDiv.className = type;
             statusDiv.style.display = 'block';
+            
+            // 显示通知
+            if (type === 'success' || type === 'error') {
+                showNotification(message, type);
+            }
+        }
+
+        function showNotification(message, type) {
+            // 移除现有的通知
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // 创建新的通知
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <span>${message}</span>
+                <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+            `;
+
+            // 添加到页面
+            document.body.appendChild(notification);
+
+            // 3秒后自动关闭
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'fadeOut 0.3s ease-out';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 3000);
         }
 
         function formatDateToCustom(date) {
@@ -438,11 +530,9 @@
             const formData = new FormData();
             // 根据上传的文件类型设置不同的处理标识
             if (packingList) {
-                formData.append('file', packingList);
-                formData.append('file_type', 'packing_list');
+                formData.append('packing_list', packingList);
             } else {
-                formData.append('file', invoiceInfo);
-                formData.append('file_type', 'invoice_info');
+                formData.append('invoice_info', invoiceInfo);
             }
             
             // 提取模板名称（去掉路径）
@@ -459,7 +549,12 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     updateStatus('文件已上传，正在处理...', 'processing');
@@ -467,20 +562,33 @@
                 } else {
                     const errorMsg = `编码 ${code}: ${data.error || '生成失败'}`;
                     updateStatus(errorMsg, 'error');
+                    showNotification(errorMsg, 'error');
                     loadHistory();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 const errorMsg = `编码 ${code}: ${error.message || '生成失败'}`;
                 updateStatus(errorMsg, 'error');
+                showNotification(errorMsg, 'error');
                 loadHistory();
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
             });
         });
 
         function checkStatus(taskId) {
             fetch(`/status/${taskId}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'completed') {
                     updateStatus('处理完成', 'success');
@@ -488,21 +596,40 @@
                     setTimeout(() => {
                         window.location.href = data.download_url;
                     }, 500);
-                } else if (data.status === 'failed') {
+                } else if (data.status === 'failed' || data.status === 'error' || data.error) {
                     const code = document.getElementById('codeInput').value;
                     const errorMsg = `编码 ${code}: ${data.error || '生成失败'}`;
                     updateStatus(errorMsg, 'error');
+                    showNotification(errorMsg, 'error');
                     loadHistory();
-                } else {
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else if (data.status === 'processing') {
                     updateStatus('正在处理中...', 'processing');
                     setTimeout(() => checkStatus(taskId), 1000);
+                } else {
+                    // 未知状态，当作错误处理
+                    const code = document.getElementById('codeInput').value;
+                    const errorMsg = `编码 ${code}: 未知错误`;
+                    updateStatus(errorMsg, 'error');
+                    showNotification(errorMsg, 'error');
+                    loadHistory();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                const errorMsg = `编码 ${document.getElementById('codeInput').value}: ${error.message || '生成失败'}`;
+                const code = document.getElementById('codeInput').value;
+                const errorMsg = `编码 ${code}: ${error.message || '生成失败'}`;
                 updateStatus(errorMsg, 'error');
+                showNotification(errorMsg, 'error');
                 loadHistory();
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
             });
         }
     </script>

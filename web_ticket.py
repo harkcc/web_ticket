@@ -9,7 +9,7 @@ import json
 import shutil
 import pandas as pd
 from generator import InvoiceGenerator, ProcessingError
-from get_ticket_data import PackingListProcessor
+from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -104,9 +104,16 @@ def process_task(task_info):
             task_status[task_id]['status'] = 'processing'
             task_status[task_id]['message'] = 'Processing started'
         
-        # 处理装箱单处理任务
-        processor = PackingListProcessor(task_info['files'])
+        # 根据文件格式选择处理器
+        if task_info.get('is_simple_format', False):
+            processor = SimplePackingListProcessor(task_info['files'])
+        else:
+            processor = PackingListProcessor(task_info['files'])
+            
         box_data = processor.process()
+        
+        if not box_data:
+            raise ProcessingError("处理装箱单失败")
         
         # 生成发票
         template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f"{task_info['template_type']}.xlsx")
@@ -247,53 +254,40 @@ def upload():
         print(f"编码: {code}")
         
         # 检查是否有文件上传
-        if 'file' not in request.files:
-            print("错误：没有上传文件")
-            return jsonify({'error': '没有上传文件'}), 400
-            
-        file = request.files['file']
-        if not file or not file.filename:
-            print("错误：没有选择文件")
-            return jsonify({'error': '没有选择文件'}), 400
-            
-        print(f"上传的文件: {file.filename}")
-        print(f"文件类型: {file.content_type}")
+        packing_list = request.files.get('packing_list')
+        invoice_info = request.files.get('invoice_info')
         
-        # 获取文件扩展名
-        _, ext = os.path.splitext(file.filename)
-        if not ext:
-            ext = '.xlsx'  # 默认扩展名
-        
-        # 使用时间戳和编码生成新文件名
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"{timestamp}_{code if code else 'upload'}{ext}"
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print(f"将保存文件到: {file_path}")
-        
+        if not packing_list and not invoice_info:
+            print("错误：没有上传任何文件")
+            return jsonify({'error': '请至少上传一个文件'}), 400
+
         # 确保上传目录存在
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+        # 保存并处理文件
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_path = None
+        is_simple_format = False
+
+        if packing_list and packing_list.filename:
+            # 处理领星装箱单
+            _, ext = os.path.splitext(packing_list.filename)
+            if not ext:
+                ext = '.xlsx'
+            filename = f"{timestamp}_packing_list{ext}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            packing_list.save(file_path)
+            is_simple_format = False
+        elif invoice_info and invoice_info.filename:
+            # 处理简单格式装箱单
+            _, ext = os.path.splitext(invoice_info.filename)
+            if not ext:
+                ext = '.xlsx'
+            filename = f"{timestamp}_invoice_info{ext}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            invoice_info.save(file_path)
+            is_simple_format = True
         
-        # 保存上传的文件
-        file.save(file_path)
-        print(f"文件已保存，检查文件是否存在: {os.path.exists(file_path)}")
-        if os.path.exists(file_path):
-            print(f"文件大小: {os.path.getsize(file_path)} bytes")
-        else:
-            error_msg = "文件保存失败"
-            print(error_msg)
-            return jsonify({'error': error_msg}), 500
-        
-        # 根据模板类型选择模板文件
-        template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f'{template_type}.xlsx')
-        print(f"使用模板: {template_path}")
-        print(f"模板文件是否存在: {os.path.exists(template_path)}")
-        
-        # 验证模板文件是否存在
-        if not os.path.exists(template_path):
-            error_msg = f"模板文件不存在: {template_path}"
-            print(error_msg)
-            return jsonify({'error': error_msg}), 500
-            
         # 生成任务ID
         task_id = datetime.now().strftime("%Y%m%d%H%M%S")
         print(f"任务ID: {task_id}")
@@ -301,10 +295,11 @@ def upload():
         # 创建任务信息
         task_info = {
             'task_id': task_id,
-            'template_path': template_path,
+            'template_path': None,
             'files': file_path,
             'code': code,
-            'template_type': template_type
+            'template_type': template_type,
+            'is_simple_format': is_simple_format
         }
         print(f"任务信息: {task_info}")
         
@@ -400,16 +395,23 @@ def get_status(task_id):
                 'download_url': f'/download/{os.path.basename(output_file)}',
                 'message': '处理完成'
             })
-        elif task['status'] == 'failed':
+        elif task['status'] in ['failed', 'error']:
             return jsonify({
                 'status': 'failed',
                 'error': task.get('error', '处理失败'),
                 'message': '处理失败'
             })
-        else:
+        elif task['status'] == 'processing':
             return jsonify({
                 'status': 'processing',
                 'message': '正在处理中'
+            })
+        else:
+            # 未知状态当作失败处理
+            return jsonify({
+                'status': 'failed',
+                'error': '未知状态',
+                'message': '处理失败'
             })
 
 if __name__ == '__main__':

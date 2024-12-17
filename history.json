@@ -19,68 +19,99 @@
     "result_file": "20241212111445.xlsx"
   },
   {
-    "task_id": "20241212151215",
+    "task_id": "20241217100733",
     "type": "packing_list",
-    "timestamp": "20241212_151215",
-    "input_file": "20241212151215_FBA0000001.xlsx",
-    "output_file": "20241212151215.xlsx",
+    "timestamp": "20241217_100733",
+    "input_file": "20241217100733_invoice_info.xlsx",
+    "output_file": "20241217100733.xlsx",
     "code_input": "FBA0000001",
     "template_name": "叮铛卡航限时达",
     "status": "completed",
-    "result_file": "20241212151215.xlsx"
+    "result_file": "20241217100733.xlsx"
   },
   {
-    "task_id": "20241212151338",
+    "task_id": "20241217100843",
     "type": "packing_list",
-    "timestamp": "20241212_151338",
-    "input_file": "20241212151338_FBA0000001.xlsx",
-    "output_file": "20241212151338.xlsx",
+    "timestamp": "20241217_100843",
+    "input_file": "20241217100843_invoice_info.xlsx",
+    "output_file": "20241217100843.xlsx",
     "code_input": "FBA0000001",
     "template_name": "叮铛卡航限时达",
     "status": "completed",
-    "result_file": "20241212151338.xlsx"
+    "result_file": "20241217100843.xlsx"
   },
   {
-    "task_id": "20241212151430",
+    "task_id": "20241217100919",
     "type": "packing_list",
-    "timestamp": "20241212_151431",
-    "input_file": "20241212151430_FBA0000001.xlsx",
-    "output_file": "20241212151430.xlsx",
+    "timestamp": "20241217_100919",
+    "input_file": "20241217100919_invoice_info.xlsx",
+    "output_file": "20241217100919.xlsx",
     "code_input": "FBA0000001",
     "template_name": "叮铛卡航限时达",
     "status": "completed",
-    "result_file": "20241212151430.xlsx"
+    "result_file": "20241217100919.xlsx"
   },
   {
-    "task_id": "20241212152235",
+    "task_id": "20241217101024",
     "type": "packing_list",
-    "timestamp": "20241212_152235",
-    "input_file": "20241212152235_FBA0000001.xlsx",
-    "output_file": "20241212152235.xlsx",
+    "timestamp": "20241217_101024",
+    "input_file": "20241217101024_invoice_info.xlsx",
+    "output_file": "20241217101024.xlsx",
     "code_input": "FBA0000001",
     "template_name": "叮铛卡航限时达",
     "status": "completed",
-    "result_file": "20241212152235.xlsx"
+    "result_file": "20241217101024.xlsx"
   },
   {
-    "task_id": "20241212154105",
+    "task_id": "20241217101258",
     "type": "packing_list",
-    "timestamp": "20241212_154105",
-    "input_file": "20241212154105_FBA0000001.xlsx",
+    "timestamp": "20241217_101258",
+    "input_file": "20241217101258_invoice_info.xlsx",
+    "output_file": "20241217101258.xlsx",
     "code_input": "FBA0000001",
-    "template_name": "林道美森限时快船",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241217101258.xlsx"
+  },
+  {
+    "task_id": "20241217101904",
+    "type": "packing_list",
+    "timestamp": "20241217_101904",
+    "input_file": "20241217101904_invoice_info.xlsx",
+    "output_file": "20241217101904.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241217101904.xlsx"
+  },
+  {
+    "task_id": "20241217101919",
+    "type": "packing_list",
+    "timestamp": "20241217_101919",
+    "input_file": "20241217101919_invoice_info.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
     "status": "failed",
-    "error": "生成发票时发生错误: File contains no valid workbook part"
+    "error": "处理装箱单失败"
   },
   {
-    "task_id": "20241212154736",
+    "task_id": "20241217102830",
     "type": "packing_list",
-    "timestamp": "20241212_154736",
-    "input_file": "20241212154736_FBA0000001.xlsx",
-    "output_file": "20241212154736.xlsx",
+    "timestamp": "20241217_102830",
+    "input_file": "20241217102830_invoice_info.xlsx",
     "code_input": "FBA0000001",
     "template_name": "叮铛卡航限时达",
-    "status": "completed",
-    "result_file": "20241212154736.xlsx"
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20241217103258",
+    "type": "packing_list",
+    "timestamp": "20241217_103258",
+    "input_file": "20241217103258_invoice_info.xlsx",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "处理装箱单失败"
   }
 ]

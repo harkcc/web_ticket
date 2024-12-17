@@ -153,8 +153,8 @@ class InvoiceGenerator:
                 
                 row_num += 1
             
-            # 在每个箱子的产品列表后添加一个空行
-            row_num += 1
+            # 在每个箱子的产品列表后添加一个空行,暂时不用
+            # row_num += 1
 
         return row_num
     
