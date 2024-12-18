@@ -113,5 +113,15 @@
     "template_name": "叮铛卡航限时达",
     "status": "failed",
     "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20241218152937",
+    "type": "packing_list",
+    "timestamp": "20241218_152937",
+    "input_file": "20241218152937_packing_list.xls",
+    "code_input": "FBA0000001",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "处理装箱单失败"
   }
 ]
