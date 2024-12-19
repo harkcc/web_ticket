@@ -10,6 +10,7 @@ import shutil
 import pandas as pd
 from generator import InvoiceGenerator, ProcessingError
 from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
+from STA_data import get_address_info
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -115,10 +116,26 @@ def process_task(task_info):
         if not box_data:
             raise ProcessingError("处理装箱单失败")
         
+        # 如果有code，尝试获取地址信息
+        code = task_info.get('code')
+        address_info = None
+        if code:
+            try:
+                address_info = get_address_info(code)
+                if address_info:
+                    print(f"获取到地址信息: {address_info}")
+                else:
+                    print(f"未能获取到地址信息，将继续生成发票")
+            except Exception as e:
+                print(f"获取地址信息时发生错误: {str(e)}，将继续生成发票")
+                # 记录错误但不影响发票生成
+                pass
+        
         # 生成发票
         template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f"{task_info['template_type']}.xlsx")
         output_path = os.path.join(app.config['OUTPUT_FOLDER'], f"{task_id}.xlsx")
-        success, message = invoice_generator.generate_invoice(template_path, box_data, output_path, task_info.get('code'))
+        
+        success, message = invoice_generator.generate_invoice(template_path, box_data, output_path, code, address_info)
         
         if not success:
             raise ProcessingError(message)
@@ -131,17 +148,23 @@ def process_task(task_info):
             task_status[task_id]['output_file'] = os.path.basename(output_file)
         
         history = load_history()
-        history.append({
+        history_record = {
             'task_id': task_id,
             'type': 'packing_list',
             'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S"),
             'input_file': os.path.basename(task_info['files']),
             'output_file': os.path.basename(output_file),
-            'code_input': task_info.get('code', ''),  # 添加编码
-            'template_name': task_info.get('template_type', ''),  # 添加模板名称
-            'status': 'completed',  # 添加状态
-            'result_file': os.path.basename(output_file)  # 用于下载链接
-        })
+            'code_input': code,
+            'template_name': task_info.get('template_type', ''),
+            'status': 'completed',
+            'result_file': os.path.basename(output_file)
+        }
+        
+        # 如果获取地址信息失败，记录到历史记录中
+        if code and not address_info:
+            history_record['address_info_status'] = 'failed'
+        
+        history.append(history_record)
         save_history(history)
             
     except Exception as e:

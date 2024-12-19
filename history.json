@@ -123,5 +123,171 @@
     "template_name": "叮铛卡航限时达",
     "status": "failed",
     "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20241219114646",
+    "type": "packing_list",
+    "timestamp": "20241219_114647",
+    "input_file": "20241219114646_invoice_info.xlsx",
+    "output_file": "20241219114646.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219114646.xlsx"
+  },
+  {
+    "task_id": "20241219134150",
+    "type": "packing_list",
+    "timestamp": "20241219_134151",
+    "input_file": "20241219134150_invoice_info.xlsx",
+    "output_file": "20241219134150.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219134150.xlsx"
+  },
+  {
+    "task_id": "20241219135309",
+    "type": "packing_list",
+    "timestamp": "20241219_135314",
+    "input_file": "20241219135309_invoice_info.xlsx",
+    "output_file": "20241219135309.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219135309.xlsx",
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20241219135556",
+    "type": "packing_list",
+    "timestamp": "20241219_135557",
+    "input_file": "20241219135556_invoice_info.xlsx",
+    "output_file": "20241219135556.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219135556.xlsx"
+  },
+  {
+    "task_id": "20241219135839",
+    "type": "packing_list",
+    "timestamp": "20241219_135840",
+    "input_file": "20241219135839_invoice_info.xlsx",
+    "output_file": "20241219135839.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219135839.xlsx"
+  },
+  {
+    "task_id": "20241219135957",
+    "type": "packing_list",
+    "timestamp": "20241219_135958",
+    "input_file": "20241219135957_invoice_info.xlsx",
+    "output_file": "20241219135957.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219135957.xlsx"
+  },
+  {
+    "task_id": "20241219140459",
+    "type": "packing_list",
+    "timestamp": "20241219_140501",
+    "input_file": "20241219140459_invoice_info.xlsx",
+    "output_file": "20241219140459.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219140459.xlsx"
+  },
+  {
+    "task_id": "20241219140813",
+    "type": "packing_list",
+    "timestamp": "20241219_140814",
+    "input_file": "20241219140813_invoice_info.xlsx",
+    "output_file": "20241219140813.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219140813.xlsx"
+  },
+  {
+    "task_id": "20241219140936",
+    "type": "packing_list",
+    "timestamp": "20241219_140937",
+    "input_file": "20241219140936_invoice_info.xlsx",
+    "output_file": "20241219140936.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219140936.xlsx"
+  },
+  {
+    "task_id": "20241219141400",
+    "type": "packing_list",
+    "timestamp": "20241219_141401",
+    "input_file": "20241219141400_invoice_info.xlsx",
+    "output_file": "20241219141400.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219141400.xlsx"
+  },
+  {
+    "task_id": "20241219142140",
+    "type": "packing_list",
+    "timestamp": "20241219_142141",
+    "input_file": "20241219142140_invoice_info.xlsx",
+    "output_file": "20241219142140.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219142140.xlsx"
+  },
+  {
+    "task_id": "20241219143710",
+    "type": "packing_list",
+    "timestamp": "20241219_143711",
+    "input_file": "20241219143710_invoice_info.xlsx",
+    "output_file": "20241219143710.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219143710.xlsx"
+  },
+  {
+    "task_id": "20241219144830",
+    "type": "packing_list",
+    "timestamp": "20241219_144831",
+    "input_file": "20241219144830_invoice_info.xlsx",
+    "output_file": "20241219144830.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219144830.xlsx"
+  },
+  {
+    "task_id": "20241219144917",
+    "type": "packing_list",
+    "timestamp": "20241219_144919",
+    "input_file": "20241219144917_invoice_info.xlsx",
+    "output_file": "20241219144917.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219144917.xlsx"
+  },
+  {
+    "task_id": "20241219145959",
+    "type": "packing_list",
+    "timestamp": "20241219_150001",
+    "input_file": "20241219145959_invoice_info.xlsx",
+    "output_file": "20241219145959.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241219145959.xlsx"
   }
 ]
