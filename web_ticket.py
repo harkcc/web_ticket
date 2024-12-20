@@ -133,19 +133,23 @@ def process_task(task_info):
         
         # 生成发票
         template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f"{task_info['template_type']}.xlsx")
-        output_path = os.path.join(app.config['OUTPUT_FOLDER'], f"{task_id}.xlsx")
-        
-        success, message = invoice_generator.generate_invoice(template_path, box_data, output_path, code, address_info)
-        
-        if not success:
-            raise ProcessingError(message)
-        
-        output_file = output_path
-        
-        with task_lock:
-            task_status[task_id]['status'] = 'completed'
-            task_status[task_id]['message'] = 'Processing completed'
-            task_status[task_id]['output_file'] = os.path.basename(output_file)
+        try:
+            output_path = invoice_generator.generate_invoice(template_path, box_data, code, address_info)
+            if output_path:
+                print(f"发票生成成功: {output_path}")
+                with task_lock:
+                    task_status[task_id]['status'] = 'completed'
+                    task_status[task_id]['message'] = 'Processing completed'
+                    task_status[task_id]['output_file'] = os.path.basename(output_path)
+            else:
+                raise ProcessingError("发票生成失败")
+        except Exception as e:
+            error_msg = f"处理任务时发生错误: {str(e)}"
+            print(error_msg)
+            with task_lock:
+                task_status[task_id]['status'] = 'error'
+                task_status[task_id]['message'] = error_msg
+                task_status[task_id]['error'] = str(e)
         
         history = load_history()
         history_record = {
@@ -153,11 +157,11 @@ def process_task(task_info):
             'type': 'packing_list',
             'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S"),
             'input_file': os.path.basename(task_info['files']),
-            'output_file': os.path.basename(output_file),
+            'output_file': os.path.basename(output_path) if 'output_file' in task_status[task_id] else None,
             'code_input': code,
             'template_name': task_info.get('template_type', ''),
-            'status': 'completed',
-            'result_file': os.path.basename(output_file)
+            'status': task_status[task_id]['status'],
+            'result_file': os.path.basename(output_path) if 'output_file' in task_status[task_id] else None
         }
         
         # 如果获取地址信息失败，记录到历史记录中

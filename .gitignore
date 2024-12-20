@@ -22,6 +22,13 @@ ENV/
 logs/
 output/
 uploads/
+
+
+# 忽略特定文件，和文件夹
+test_mongo.py
+图片测试/
+
+
 # 允许所有Excel文件
 # *.xlsx
 # !template*.xlsx

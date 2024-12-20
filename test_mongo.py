@@ -37,9 +37,10 @@ def test_mongodb_connection():
             print(f"msku_info集合中的文档数量: {doc_count}")
             
             # 尝试获取一条数据作为示例
-            sample_doc = msku_collection.find_one({})
+            msku = "2410-Ae-Z-0456-5YZ-FBA-JPE"
+            sample_doc = msku_collection.find_one({'msku': msku})
             if sample_doc:
-                print("\n示例数据:")
+                print("\n示例查询:")
                 print(sample_doc)
             
             # 关闭连接

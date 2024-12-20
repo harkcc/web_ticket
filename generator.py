@@ -45,23 +45,49 @@ class InvoiceGenerator:
         else:
             return self._fill_default_template
 
-    def generate_invoice(self, template_path, box_data, output_path, code=None, address_info=None):
+    def generate_invoice(self, template_path, box_data,code=None, address_info=None):
         """
         生成发票
         :param template_path: 模板文件路径
         :param box_data: 箱子数据
-        :param output_path: 输出文件路径
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
-        :return: (success, message)
+        :return: 生成的发票文件路径
         """
         try:
-            print(f"\n=== 开始生成发票 ===")
-            print(f"模板文件: {template_path}")
-            print(f"输出路径: {output_path}")
-            print(f"编码: {code}")
-            print(f"箱子数据: {box_data}")
-            print(f"地址信息: {address_info}")
+            # 检查模板文件是否存在
+            if not os.path.exists(template_path):
+                raise ProcessingError(f"模板文件不存在: {template_path}")
+
+            # 获取当前时间戳
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            
+            # 检查产品的电磁属性
+            has_electric = False
+            has_magnetic = False
+            for box in box_data.values():
+                for item in box.items:
+                    product_info = self._get_product_info(item.msku, self.db_connector)
+                    if product_info:
+                        if product_info.get('electrified', '') == '是':
+                            has_electric = True
+                        if product_info.get('magnetic', '') == '是':
+                            has_magnetic = True
+                        if has_electric and has_magnetic:
+                            break
+                if has_electric and has_magnetic:
+                    break
+            
+            # 构建文件名后缀
+            suffix = ""
+            if has_electric:
+                suffix += "_带电"
+            if has_magnetic:
+                suffix += "_带磁"
+
+            # 构建输出文件路径
+            output_filename = f"{timestamp}{suffix}.xlsx"
+            output_path = os.path.join(self.output_folder, output_filename)
 
             # 使用openpyxl加载模板
             print(f"正在加载模板文件...")
@@ -70,25 +96,23 @@ class InvoiceGenerator:
 
             # 获取对应的模板处理方法
             template_handler = self._get_template_handler(template_path)
-            if template_handler:
-                # 调用模板处理方法
-                template_handler(wb, box_data, code, address_info)
-            else:
-                # 使用默认模板处理方法
-                self._fill_default_template(wb, box_data, code, address_info)
+            if template_handler is None:
+                raise ProcessingError(f"未找到对应的模板处理方法: {template_path}")
+
+            # 处理模板
+            template_handler(wb, box_data, code, address_info)
 
             # 保存文件
-            print(f"正在保存文件到: {output_path}")
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             wb.save(output_path)
-            print(f"文件保存成功")
+            print(f"发票已生成: {output_path}")
 
-            return True, "发票生成成功"
+            return output_path
 
         except Exception as e:
-            error_msg = f"生成发票时发生错误: {str(e)}\n{traceback.format_exc()}"
+            error_msg = f"生成发票时发生错误: {str(e)}"
             print(error_msg)
-            return False, error_msg
+            traceback.print_exc()
+            raise ProcessingError(error_msg)
 
     def _get_product_info(self, msku, db=None):
         """
@@ -117,7 +141,7 @@ class InvoiceGenerator:
                     'material_cn': product.get('materialZh', ''),
                     'hs_code': product.get('HS', ''),
                     'usage_en': product.get('useEn', ''),
-                    'usage_cn': product.get('useEn', ''),
+                    'usage_cn': product.get('useZh', ''),
                     'brand': product.get('brand', ''),
                     'model': product.get('model', ''),
                     'link': product.get('productLink', ''),
@@ -170,6 +194,7 @@ class InvoiceGenerator:
                     'alignment': Alignment(horizontal='center', vertical='center')
                 }
 
+
                 # 在第一行B列填充编码
                 if code:
                     cell = sheet.cell(row=1, column=2)  # B列是第2列
@@ -208,11 +233,6 @@ class InvoiceGenerator:
                             cell = sheet.cell(row=8, column=2)  # B4单元格
                             cell.value = address_info_detail['city']
 
-                        # 省
-                        if 'stateOrProvinceCode' in address_info_detail:
-                            cell = sheet.cell(row=5, column=2)  # B5单元格
-                            cell.value = address_info_detail['stateOrProvinceCode']
-
                         #邮政编码
                         if 'postalCode' in address_info_detail:
                             cell = sheet.cell(row=10, column=2)  # B6单元格
@@ -247,6 +267,33 @@ class InvoiceGenerator:
                         pass
                 print(f"合并单元格解除完成")
 
+                # 检查所有产品的电磁属性
+                has_electric = False
+                has_magnetic = False
+                for box in box_data.values():
+                    for item in box.items:
+                        product_info = self._get_product_info(item.msku, db)
+                        if product_info:
+                            if product_info.get('electrified', '') == '是':
+                                has_electric = True
+                            if product_info.get('magnetic', '') == '是':
+                                has_magnetic = True
+                            if has_electric and has_magnetic:
+                                break
+                    if has_electric and has_magnetic:
+                        break
+
+                # 在表格顶部添加电磁属性标记
+                if has_electric:
+                    cell = sheet.cell(row=1, column=6)  # F列第1行
+                    cell.value = "是"
+                    cell.font = Font(name='Arial', size=9)
+                
+                if has_magnetic:
+                    cell = sheet.cell(row=2, column=6)  # F列第2行
+                    cell.value = "是"
+                    cell.font = Font(name='Arial', size=9)
+
                 # 填充数据
                 row_num = 18  # 从第18行开始填充
                 index = 1    # 添加序号计数器，从1开始
@@ -259,11 +306,12 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
+                        print(f"产品信息：{product_info}")
                         price = product_info.get('price', 0)
                         total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                         if product_info:
                             item.product_name = product_info.get('cn_name', item.product_name)
-
+                        
                         # 设置单元格值和样式
                         cell_data = [
                             (1, box_number),                    # 货箱编号 (A列)
@@ -274,11 +322,11 @@ class InvoiceGenerator:
                             (6, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
                             (7, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
                             (8, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (9, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_ch', '' ))if product_info else ''),    # 用途 (H列)
+                            (9, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
                             (10, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (11, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (12, product_info.get('link', '') if product_info else ''),
-                            (13, ''),  # 图片列 (M列)
+                            (14, ''),  # 图片列 (N列)
                             (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
                             (17, box.length if box.length is not None else ""),  # 长度 (Q列)
                             (18, box.width if box.width is not None else ""),    # 宽度 (R列)
@@ -288,20 +336,20 @@ class InvoiceGenerator:
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
-                            
+
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"M{row_num}"  # 图片列（第13列）
+                                image_cell = f"N{row_num}"  # 图片列（第14列）
                                 self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
 
-            finally:
-                # 确保连接在最后关闭
-                pass
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                raise
 
     def _fill_ldmsxsd_template(self, wb, box_data, code=None, address_info=None):
         """填充林道美森限时快船模板"""

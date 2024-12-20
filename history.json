@@ -169,5 +169,36 @@
     "template_name": "叮铛卡航限时达",
     "status": "completed",
     "result_file": "20241220115947.xlsx"
+  },
+  {
+    "task_id": "20241220143430",
+    "type": "packing_list",
+    "timestamp": "20241220_143435",
+    "input_file": "20241220143430_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "InvoiceGenerator.generate_invoice() takes from 3 to 5 positional arguments but 6 were given"
+  },
+  {
+    "task_id": "20241220143508",
+    "type": "packing_list",
+    "timestamp": "20241220_143509",
+    "input_file": "20241220143508_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "InvoiceGenerator.generate_invoice() takes from 3 to 5 positional arguments but 6 were given"
+  },
+  {
+    "task_id": "20241220144358",
+    "type": "packing_list",
+    "timestamp": "20241220_144402",
+    "input_file": "20241220144358_invoice_info.xlsx",
+    "output_file": "20241220144359.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241220144359.xlsx"
   }
 ]
