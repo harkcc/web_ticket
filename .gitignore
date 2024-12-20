@@ -25,8 +25,8 @@ uploads/
 
 
 # 忽略特定文件，和文件夹
-test_mongo.py
-图片测试/
+test_mongo.py/
+图片文档/
 
 
 # 允许所有Excel文件

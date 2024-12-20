@@ -200,5 +200,16 @@
     "template_name": "叮铛卡航限时达",
     "status": "completed",
     "result_file": "20241220144359.xlsx"
+  },
+  {
+    "task_id": "20241220154057",
+    "type": "packing_list",
+    "timestamp": "20241220_154100",
+    "input_file": "20241220154057_packing_list.xlsx",
+    "output_file": "20241220154057.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241220154057.xlsx"
   }
 ]

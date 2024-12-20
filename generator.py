@@ -29,7 +29,7 @@ class InvoiceGenerator:
         self.output_folder = output_folder
         # 获取当前文件所在的目录
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.image_folder = os.path.join(current_dir, '图片测试')  # 图片文件夹路径
+        self.image_folder = os.path.join(current_dir, '图片文档')  # 图片文件夹路径
 
     def _get_template_handler(self, template_path):
         """根据模板文件名选择对应的处理方法"""
