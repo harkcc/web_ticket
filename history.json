@@ -96,5 +96,78 @@
     "status": "completed",
     "result_file": "20241220105328.xlsx",
     "address_info_status": "failed"
+  },
+  {
+    "task_id": "20241220113604",
+    "type": "packing_list",
+    "timestamp": "20241220_113605",
+    "input_file": "20241220113604_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "生成发票时发生错误: Cannot convert {'seller_info': {'sellerName': 'BT-US', 'sid': 505674, 'inboundPlanId': 'wfd649be2a-1983-43a6-a5dd-cd0061e25129'}, 'address_info': {'addressLine1': '1151 S GRAHAM RD', 'addressLine2': None, 'city': 'GREENWOOD', 'companyName': '', 'countryCode': 'US', 'name': 'IND9', 'postalCode': '46143-7830', 'stateOrProvinceCode': 'IN', 'phoneNumber': None, 'email': None}} to Excel\nTraceback (most recent call last):\n  File \"/Users/chenminghui/py/lingxing_request/web_ticket/generator.py\", line 69, in generate_invoice\n    template_handler(wb, box_data, code, address_info)\n  File \"/Users/chenminghui/py/lingxing_request/web_ticket/generator.py\", line 150, in _fill_dingdang_template\n    sheet['A2'] = address_info  # 地址信息\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/worksheet/worksheet.py\", line 318, in __setitem__\n    self[key].value = value\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/cell/cell.py\", line 218, in value\n    self._bind_value(value)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/cell/cell.py\", line 187, in _bind_value\n    raise ValueError(\"Cannot convert {0!r} to Excel\".format(value))\nValueError: Cannot convert {'seller_info': {'sellerName': 'BT-US', 'sid': 505674, 'inboundPlanId': 'wfd649be2a-1983-43a6-a5dd-cd0061e25129'}, 'address_info': {'addressLine1': '1151 S GRAHAM RD', 'addressLine2': None, 'city': 'GREENWOOD', 'companyName': '', 'countryCode': 'US', 'name': 'IND9', 'postalCode': '46143-7830', 'stateOrProvinceCode': 'IN', 'phoneNumber': None, 'email': None}} to Excel\n"
+  },
+  {
+    "task_id": "20241220114355",
+    "type": "packing_list",
+    "timestamp": "20241220_114356",
+    "input_file": "20241220114355_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "生成发票时发生错误: __enter__\nTraceback (most recent call last):\n  File \"/Users/chenminghui/py/lingxing_request/web_ticket/generator.py\", line 69, in generate_invoice\n    template_handler(wb, box_data, code, address_info)\n  File \"/Users/chenminghui/py/lingxing_request/web_ticket/generator.py\", line 151, in _fill_dingdang_template\n    with self.db_connector as db:\nAttributeError: __enter__\n"
+  },
+  {
+    "task_id": "20241220114641",
+    "type": "packing_list",
+    "timestamp": "20241220_114644",
+    "input_file": "20241220114641_invoice_info.xlsx",
+    "output_file": "20241220114641.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241220114641.xlsx"
+  },
+  {
+    "task_id": "20241220115541",
+    "type": "packing_list",
+    "timestamp": "20241220_115544",
+    "input_file": "20241220115541_invoice_info.xlsx",
+    "output_file": "20241220115541.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241220115541.xlsx"
+  },
+  {
+    "task_id": "20241220115726",
+    "type": "packing_list",
+    "timestamp": "20241220_115730",
+    "input_file": "20241220115726_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "生成发票时发生错误: [Errno 2] No such file or directory: '/Users/chenminghui/py/lingxing_request/web_ticket/图片测试/temp_2309-Id-Z-0004-10Bead-EMBT.jpg'\nTraceback (most recent call last):\n  File \"/Users/chenminghui/py/lingxing_request/web_ticket/generator.py\", line 81, in generate_invoice\n    wb.save(output_path)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/workbook/workbook.py\", line 386, in save\n    save_workbook(self, filename)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 294, in save_workbook\n    writer.save()\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 275, in save\n    self.write_data()\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 79, in write_data\n    self._write_images()\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 116, in _write_images\n    self._archive.writestr(img.path[1:], img._data())\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/drawing/image.py\", line 48, in _data\n    img = _import_image(self.ref)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/drawing/image.py\", line 16, in _import_image\n    img = PILImage.open(img)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/PIL/Image.py\", line 3469, in open\n    fp = builtins.open(filename, \"rb\")\nFileNotFoundError: [Errno 2] No such file or directory: '/Users/chenminghui/py/lingxing_request/web_ticket/图片测试/temp_2309-Id-Z-0004-10Bead-EMBT.jpg'\n"
+  },
+  {
+    "task_id": "20241220115841",
+    "type": "packing_list",
+    "timestamp": "20241220_115844",
+    "input_file": "20241220115841_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "failed",
+    "error": "生成发票时发生错误: 'Image' object has no attribute 'fp'\nTraceback (most recent call last):\n  File \"/Users/chenminghui/py/lingxing_request/web_ticket/generator.py\", line 81, in generate_invoice\n    wb.save(output_path)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/workbook/workbook.py\", line 386, in save\n    save_workbook(self, filename)\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 294, in save_workbook\n    writer.save()\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 275, in save\n    self.write_data()\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 79, in write_data\n    self._write_images()\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/writer/excel.py\", line 116, in _write_images\n    self._archive.writestr(img.path[1:], img._data())\n  File \"/Users/chenminghui/py/lingxing_request/venv/lib/python3.10/site-packages/openpyxl/drawing/image.py\", line 51, in _data\n    img.fp.seek(0)\nAttributeError: 'Image' object has no attribute 'fp'\n"
+  },
+  {
+    "task_id": "20241220115947",
+    "type": "packing_list",
+    "timestamp": "20241220_115950",
+    "input_file": "20241220115947_invoice_info.xlsx",
+    "output_file": "20241220115947.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241220115947.xlsx"
   }
 ]

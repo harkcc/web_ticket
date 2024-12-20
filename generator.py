@@ -1,20 +1,35 @@
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, Border, Side, Alignment
+from openpyxl.drawing.image import Image as XLImage
+from PIL import Image as PILImage
 import os
 import traceback
-from turtle import pen
-import openpyxl
-from openpyxl.styles import Font, Border, Side, Alignment
+import json
+from datetime import datetime
 from db_connector import MongoDBConnector
+from io import BytesIO
 
 
 class ProcessingError(Exception):
     """处理错误的自定义异常类"""
     pass
 
+
 class InvoiceGenerator:
-    def __init__(self, upload_folder, output_folder):
+    def __init__(self, upload_folder, output_folder, db_connector=None, image_folder=None):
+        """
+        初始化发票生成器
+        :param upload_folder: 上传文件夹路径
+        :param output_folder: 输出文件夹路径
+        :param db_connector: 数据库连接器（可选）
+        :param image_folder: 图片文件夹路径（可选）
+        """
+        self.db_connector = db_connector if db_connector else MongoDBConnector()
         self.upload_folder = upload_folder
         self.output_folder = output_folder
-        self.db_connector = MongoDBConnector()
+        # 获取当前文件所在的目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.image_folder = os.path.join(current_dir, '图片测试')  # 图片文件夹路径
 
     def _get_template_handler(self, template_path):
         """根据模板文件名选择对应的处理方法"""
@@ -50,7 +65,7 @@ class InvoiceGenerator:
 
             # 使用openpyxl加载模板
             print(f"正在加载模板文件...")
-            wb = openpyxl.load_workbook(template_path)
+            wb = load_workbook(template_path)
             print(f"成功加载模板文件，工作表: {wb.sheetnames}")
 
             # 获取对应的模板处理方法
@@ -248,16 +263,13 @@ class InvoiceGenerator:
                         total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                         if product_info:
                             item.product_name = product_info.get('cn_name', item.product_name)
-                            
-                            # 计算总价格
-                            
 
                         # 设置单元格值和样式
                         cell_data = [
                             (1, box_number),                    # 货箱编号 (A列)
                             (2, box.weight if box.weight is not None else ""),  # 重量 (B列)
-                            (3,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列),  # 链接 (D列)
-                            (4, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列),  # 链接 (D列)
+                            (3,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
+                            (4, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
                             (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (6, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
                             (7, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
@@ -266,6 +278,7 @@ class InvoiceGenerator:
                             (10, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (11, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (12, product_info.get('link', '') if product_info else ''),
+                            (13, ''),  # 图片列 (M列)
                             (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
                             (17, box.length if box.length is not None else ""),  # 长度 (Q列)
                             (18, box.width if box.width is not None else ""),    # 宽度 (R列)
@@ -275,11 +288,16 @@ class InvoiceGenerator:
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
+                            
+                        # 插入产品图片
+                        if item.msku and hasattr(self, 'image_folder'):
+                            try:
+                                image_cell = f"M{row_num}"  # 图片列（第13列）
+                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                            except Exception as e:
+                                print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
-
-                    # 在每个箱子的产品列表后添加一个空行,暂时不用
-                    # row_num += 1
 
             finally:
                 # 确保连接在最后关闭
@@ -589,3 +607,83 @@ class InvoiceGenerator:
                 row_num += 1
 
         return row_num
+
+    def insert_centered_image(self, worksheet, cell_address, image_path, fixed_width=None, fixed_height=None):
+        """
+        在指定的单元格中插入居中的图片
+        :param worksheet: 工作表对象
+        :param cell_address: 单元格地址（例如'A1'）
+        :param image_path: 图片文件路径
+        :param fixed_width: 固定宽度（可选）
+        :param fixed_height: 固定高度（可选）
+        :return: 是否成功插入图片
+        """
+        try:
+            # 读取图片
+            img = PILImage.open(image_path)
+            
+            # 获取单元格的宽度和高度（以像素为单位）
+            column_width = worksheet.column_dimensions[cell_address[0]].width
+            row_height = worksheet.row_dimensions[int(cell_address[1:])].height
+            
+            # 如果没有指定宽度和高度，使用单元格的大小
+            if fixed_width is None:
+                fixed_width = column_width * 7  # 转换为像素
+            if fixed_height is None:
+                fixed_height = row_height * 1.5  # 转换为像素
+                
+            # 获取原始图片尺寸
+            original_width, original_height = img.size
+            
+            # 计算缩放比例
+            width_ratio = fixed_width / original_width
+            height_ratio = fixed_height / original_height
+            scale = min(width_ratio, height_ratio)
+            
+            # 计算新的尺寸
+            new_width = int(original_width * scale)
+            new_height = int(original_height * scale)
+            
+            # 调整图片大小
+            img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+            
+            # 将图片保存到BytesIO对象
+            img_byte_arr = BytesIO()
+            img.save(img_byte_arr, format=img.format if img.format else 'PNG')
+            img_byte_arr.seek(0)
+            
+            # 创建Excel图片对象
+            xl_img = XLImage(img_byte_arr)
+            xl_img.anchor = cell_address
+            worksheet.add_image(xl_img)
+            
+            return True
+        except Exception as e:
+            print(f"插入图片时发生错误: {str(e)}")
+            return False
+
+    def insert_product_image(self, worksheet, cell_address, msku, image_folder, fixed_width=None, fixed_height=None):
+        """
+        在Excel工作表中插入产品图片
+        :param worksheet: openpyxl工作表对象
+        :param cell_address: 单元格地址
+        :param msku: 产品MSKU
+        :param image_folder: 图片文件夹路径
+        :param fixed_width: 固定宽度（可选）
+        :param fixed_height: 固定高度（可选）
+        """
+        try:
+            # 构建图片文件路径
+            image_path = os.path.join(image_folder, f"{msku}.jpg")
+            print(f"尝试加载图片: {image_path}")
+            
+            # 检查图片文件是否存在
+            if not os.path.exists(image_path):
+                print(f"图片文件不存在: {image_path}")
+                return False
+                
+            # 插入图片
+            return self.insert_centered_image(worksheet, cell_address, image_path, fixed_width, fixed_height)
+        except Exception as e:
+            print(f"处理产品图片时发生错误: {str(e)}")
+            return False
