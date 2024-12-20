@@ -10,7 +10,7 @@ SSH_CONFIG = {
     'remote_bind_address': '127.0.0.1',  # MongoDB所在服务器地址
     'remote_bind_port': 27017,     # MongoDB端口
     'local_bind_address': '127.0.0.1',  # 本地绑定地址
-    'local_bind_port': 27017       # 本地绑定端口
+    'local_bind_port': 27018       # 修改本地绑定端口为27018，避免与默认的27017冲突
 }
 
 # MongoDB配置
