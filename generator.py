@@ -509,16 +509,19 @@ class InvoiceGenerator:
         """
         try:
             # 构建图片文件路径
-            image_path = os.path.join(image_folder, f"{msku}.jpg")
-            print(f"尝试加载图片: {image_path}")
+            image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
+            image_path_png = os.path.join(image_folder, f"{msku}.png")
+            print(f"尝试加载图片: {image_path_jpg}")
             
-            # 检查图片文件是否存在
-            if not os.path.exists(image_path):
-                print(f"图片文件不存在: {image_path}")
+            # 检查JPEG图片文件是否存在
+            if os.path.exists(image_path_jpg):
+                return self.insert_centered_image(worksheet, cell_address, image_path_jpg, fixed_width, fixed_height)
+            elif os.path.exists(image_path_png):
+                print(f"尝试加载PNG图片: {image_path_png}")
+                return self.insert_centered_image(worksheet, cell_address, image_path_png, fixed_width, fixed_height)
+            else:
+                print(f"图片文件不存在: {image_path_jpg} 和 {image_path_png}")
                 return False
-                
-            # 插入图片
-            return self.insert_centered_image(worksheet, cell_address, image_path, fixed_width, fixed_height)
         except Exception as e:
             print(f"处理产品图片时发生错误: {str(e)}")
             return False
