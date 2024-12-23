@@ -37,7 +37,7 @@ class InvoiceGenerator:
         self.output_folder = output_folder
         # 获取当前文件所在的目录
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.image_folder = os.path.join(current_dir, '图片文档')  # 图片文件夹路径
+        self.image_folder = os.path.join(current_dir, '产品图片(1)')  # 图片文件夹路径
         
         # 初始化模板处理器字典
         self._template_handlers = {}
