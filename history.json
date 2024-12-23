@@ -233,5 +233,27 @@
     "template_name": "叮铛卡航限时达",
     "status": "completed",
     "result_file": "20241223165340.xlsx"
+  },
+  {
+    "task_id": "20241223175023",
+    "type": "packing_list",
+    "timestamp": "20241223_175054",
+    "input_file": "20241223175023_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241223192227",
+    "type": "packing_list",
+    "timestamp": "20241223_192230",
+    "input_file": "20241223192227_invoice_info.xlsx",
+    "output_file": "20241223192228.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "completed",
+    "result_file": "20241223192228.xlsx"
   }
 ]
