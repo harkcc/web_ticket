@@ -15,6 +15,14 @@ class ProcessingError(Exception):
     pass
 
 
+def template_handler(keyword):
+    """模板处理器装饰器"""
+    def decorator(func):
+        func._template_keyword = keyword
+        return func
+    return decorator
+
+
 class InvoiceGenerator:
     def __init__(self, upload_folder, output_folder, db_connector=None, image_folder=None):
         """
@@ -30,146 +38,16 @@ class InvoiceGenerator:
         # 获取当前文件所在的目录
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.image_folder = os.path.join(current_dir, '图片文档')  # 图片文件夹路径
+        
+        # 初始化模板处理器字典
+        self._template_handlers = {}
+        # 注册所有带有_template_keyword属性的方法
+        for name in dir(self):
+            method = getattr(self, name)
+            if hasattr(method, '_template_keyword'):
+                self._template_handlers[method._template_keyword] = method
 
-    def _get_template_handler(self, template_path):
-        """根据模板文件名选择对应的处理方法"""
-        template_name = os.path.basename(template_path).lower()
-        if "叮铛卡航限时达" in template_name:
-            return self._fill_dingdang_template
-        elif "林道美森限时快船" in template_name:
-            return self._fill_ldmsxsd_template
-        elif "法国" in template_name:
-            return self._fill_france_template
-        elif "英国" in template_name:
-            return self._fill_uk_template
-        else:
-            return self._fill_default_template
-
-    def generate_invoice(self, template_path, box_data,code=None, address_info=None):
-        """
-        生成发票
-        :param template_path: 模板文件路径
-        :param box_data: 箱子数据
-        :param code: 编码（可选）
-        :param address_info: 地址信息（可选）
-        :return: 生成的发票文件路径
-        """
-        try:
-            # 检查模板文件是否存在
-            if not os.path.exists(template_path):
-                raise ProcessingError(f"模板文件不存在: {template_path}")
-
-            # 获取当前时间戳
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            
-            # 检查产品的电磁属性
-            has_electric = False
-            has_magnetic = False
-            for box in box_data.values():
-                for item in box.items:
-                    product_info = self._get_product_info(item.msku, self.db_connector)
-                    if product_info:
-                        if product_info.get('electrified', '') == '是':
-                            has_electric = True
-                        if product_info.get('magnetic', '') == '是':
-                            has_magnetic = True
-                        if has_electric and has_magnetic:
-                            break
-                if has_electric and has_magnetic:
-                    break
-            
-            # 构建文件名后缀
-            suffix = ""
-            if has_electric:
-                suffix += "_带电"
-            if has_magnetic:
-                suffix += "_带磁"
-
-            # 构建输出文件路径
-            output_filename = f"{timestamp}{suffix}.xlsx"
-            output_path = os.path.join(self.output_folder, output_filename)
-
-            # 使用openpyxl加载模板
-            print(f"正在加载模板文件...")
-            wb = load_workbook(template_path)
-            print(f"成功加载模板文件，工作表: {wb.sheetnames}")
-
-            # 获取对应的模板处理方法
-            template_handler = self._get_template_handler(template_path)
-            if template_handler is None:
-                raise ProcessingError(f"未找到对应的模板处理方法: {template_path}")
-
-            # 处理模板
-            template_handler(wb, box_data, code, address_info)
-
-            # 保存文件
-            wb.save(output_path)
-            print(f"发票已生成: {output_path}")
-
-            return output_path
-
-        except Exception as e:
-            error_msg = f"生成发票时发生错误: {str(e)}"
-            print(error_msg)
-            traceback.print_exc()
-            raise ProcessingError(error_msg)
-
-    def _get_product_info(self, msku, db=None):
-        """
-        从MongoDB获取产品信息
-        :param msku: 产品的MSKU
-        :param db: 数据库连接（可选）
-        :return: 包含产品信息的字典
-        """
-        try:
-            if db is None:
-                # 如果没有传入db连接，创建新的连接
-                with self.db_connector as db:
-                    return self._get_product_info(msku, db)
-            
-            # 使用传入的db连接
-            collection = db['msku_info']
-            product = collection.find_one({'msku': msku})
-            
-            if product:
-                return {
-                    'cn_name': product.get('productNameZh', ''),
-                    'en_name': product.get('productNameEn', ''),
-                    'en_usage': product.get('useEn', ''),
-                    'ch_usage':product.get('useZh', ''),
-                    'material_en': product.get('materialEn', ''),
-                    'material_cn': product.get('materialZh', ''),
-                    'hs_code': product.get('HS', ''),
-                    'usage_en': product.get('useEn', ''),
-                    'usage_cn': product.get('useZh', ''),
-                    'brand': product.get('brand', ''),
-                    'model': product.get('model', ''),
-                    'link': product.get('productLink', ''),
-                    'price':product.get('askprice', ''),
-                    'electrified':product.get('electrified', ''),
-                    'magnetic':product.get('magnetic', ''),
-                    'weight':product.get('weight', ''),
-                }
-            return None
-        except Exception as e:
-            print(f"Error fetching product info for MSKU {msku}: {str(e)}")
-            return None
-
-    def _set_cell_value(self, sheet, row, column, value, style_info):
-        """
-        设置单元格的值和样式
-        :param sheet: 工作表对象
-        :param row: 行号
-        :param column: 列号
-        :param value: 单元格值
-        :param style_info: 样式信息
-        """
-        cell = sheet.cell(row=row, column=column)
-        cell.value = value
-        cell.font = style_info['font']
-        cell.border = style_info['border']
-        cell.alignment = style_info['alignment']
-
+    @template_handler("叮铛卡航限时达")
     def _fill_dingdang_template(self, wb, box_data, code=None, address_info=None):
         """
         填充叮铛卡航限时达模板
@@ -306,7 +184,7 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        print(f"产品信息：{product_info}")
+                        # print(f"产品信息：{product_info}")
                         price = product_info.get('price', 0)
                         total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                         if product_info:
@@ -351,6 +229,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
+    @template_handler("林道美森限时快船")
     def _fill_ldmsxsd_template(self, wb, box_data, code=None, address_info=None):
         """填充林道美森限时快船模板"""
         sheet = wb['模板']  # 获取模板工作表
@@ -365,296 +244,204 @@ class InvoiceGenerator:
             'alignment': Alignment(horizontal='center', vertical='center')
         }
 
-        # 在第一行B列填充编码
-        if code:
-            cell = sheet.cell(row=1, column=2)  # B列是第2列
-            cell.value = code
-            cell.font = Font(name='Arial', size=9)
-
         # 先解除所有合并的单元格
         print(f"正在解除合并单元格...")
         merged_ranges = list(sheet.merged_cells.ranges)
         for merged_range in merged_ranges:
             try:
                 sheet.unmerge_cells(str(merged_range))
-            except:
-                pass
-        print(f"合并单元格解除完成")
+            except Exception as e:
+                print(f"Warning: Failed to unmerge cells {str(merged_range)}: {str(e)}")
+                continue
+
+        # 重置数据区域的单元格
+        for row in sheet.iter_rows(min_row=18, max_row=sheet.max_row):
+            for cell in row:
+                try:
+                    cell.value = None
+                except Exception as e:
+                    print(f"Warning: Failed to reset cell {cell.coordinate}: {str(e)}")
 
         # 填充数据
-        row_num = 18  # 从第18行开始填充
-
-        # 遍历每个箱子
+        row_num = 18  # 起始行号
         for box_number, box in box_data.items():
-            print(f"处理箱子 {box_number}")
+            # 填充箱子数据
+            for item in box['array']:
+                # 从数据库获取产品信息
+                product_info = self._get_product_info(item['sku'])
+                if product_info:
+                    item.update(product_info)
+                
+                # 设置单元格值
+                sheet.cell(row=row_num, column=1, value=box_number)
+                sheet.cell(row=row_num, column=2, value=box['box_spec'])
+                sheet.cell(row=row_num, column=3, value=box['weight'])
+                sheet.cell(row=row_num, column=4, value=item['sku'])
+                sheet.cell(row=row_num, column=5, value=item.get('cn_name', ''))
+                sheet.cell(row=row_num, column=6, value=item.get('en_name', ''))
+                sheet.cell(row=row_num, column=7, value=item['quantity'])
+                sheet.cell(row=row_num, column=8, value=item['price'])
+                sheet.cell(row=row_num, column=9, value=item['total_value'])
+                sheet.cell(row=row_num, column=10, value=item.get('material', ''))
+                sheet.cell(row=row_num, column=11, value=item.get('hs_code', ''))
+                sheet.cell(row=row_num, column=12, value=item.get('usage', ''))
+                sheet.cell(row=row_num, column=13, value=item.get('brand', ''))
+                sheet.cell(row=row_num, column=14, value=item.get('model', ''))
+                sheet.cell(row=row_num, column=15, value=item.get('link', ''))
 
-            # 遍历箱子中的每个产品
-            for item in box.items:
-                # 货箱编号 (A列)
-                cell = sheet.cell(row=row_num, column=1)
-                cell.value = box_number
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
-
-                # 重量 (B列)
-                cell = sheet.cell(row=row_num, column=2)
-                cell.value = box.weight if box.weight is not None else ""
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
-
-                # 品名 (C列)
-                cell = sheet.cell(row=row_num, column=3)
-                cell.value = item.product_name
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
-
-                # 数量 (D列)
-                cell = sheet.cell(row=row_num, column=4)
-                cell.value = item.box_quantities.get(box_number, 0)
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
-
-                # 长度 (E列)
-                cell = sheet.cell(row=row_num, column=5)
-                cell.value = box.length if box.length is not None else ""
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
-
-                # 宽度 (F列)
-                cell = sheet.cell(row=row_num, column=6)
-                cell.value = box.width if box.width is not None else ""
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
-
-                # 高度 (G列)
-                cell = sheet.cell(row=row_num, column=7)
-                cell.value = box.height if box.height is not None else ""
-                cell.font = style_info['font']
-                cell.border = style_info['border']
-                cell.alignment = style_info['alignment']
+                # 应用样式
+                for col in range(1, 16):
+                    cell = sheet.cell(row=row_num, column=col)
+                    cell.font = style_info['font']
+                    cell.border = style_info['border']
+                    cell.alignment = style_info['alignment']
 
                 row_num += 1
 
-            # 在每个箱子的产品列表后添加一个空行
-            row_num += 1
-
         return row_num
 
+    @template_handler("法国")
     def _fill_france_template(self, wb, box_data, code=None, address_info=None):
-        """填充法国模板"""
-        sheet = wb['模板']  # 获取模板工作表
+        # TODO: 实现法国模板处理逻辑
+        pass
 
-        # 定义样式信息
-        style_info = {
-            'font': Font(name='Arial', size=10),
-            'border': Border(left=Side(border_style='thin'),
-                             right=Side(border_style='thin'),
-                             top=Side(border_style='thin'),
-                             bottom=Side(border_style='thin')),
-            'alignment': Alignment(horizontal='center', vertical='center')
-        }
-
-        # 先解除所有合并的单元格
-        print(f"正在解除合并单元格...")
-        merged_ranges = list(sheet.merged_cells.ranges)
-        for merged_range in merged_ranges:
-            try:
-                sheet.unmerge_cells(str(merged_range))
-            except Exception as e:
-                print(f"Warning: Failed to unmerge cells {str(merged_range)}: {str(e)}")
-                continue
-
-        # 重置数据区域的单元格
-        for row in sheet.iter_rows(min_row=18, max_row=sheet.max_row):
-            for cell in row:
-                try:
-                    cell.value = None
-                except Exception as e:
-                    print(f"Warning: Failed to reset cell {cell.coordinate}: {str(e)}")
-
-        # 填充数据
-        row_num = 18  # 起始行号
-        for box_number, box in box_data.items():
-            # 填充箱子数据
-            for item in box['array']:
-                # 从数据库获取产品信息
-                product_info = self._get_product_info(item['sku'])
-                if product_info:
-                    item.update(product_info)
-                
-                # 设置单元格值
-                sheet.cell(row=row_num, column=1, value=box_number)
-                sheet.cell(row=row_num, column=2, value=box['box_spec'])
-                sheet.cell(row=row_num, column=3, value=box['weight'])
-                sheet.cell(row=row_num, column=4, value=item['sku'])
-                sheet.cell(row=row_num, column=5, value=item.get('cn_name', ''))
-                sheet.cell(row=row_num, column=6, value=item.get('en_name', ''))
-                sheet.cell(row=row_num, column=7, value=item['quantity'])
-                sheet.cell(row=row_num, column=8, value=item['price'])
-                sheet.cell(row=row_num, column=9, value=item['total_value'])
-                sheet.cell(row=row_num, column=10, value=item.get('material', ''))
-                sheet.cell(row=row_num, column=11, value=item.get('hs_code', ''))
-                sheet.cell(row=row_num, column=12, value=item.get('usage', ''))
-                sheet.cell(row=row_num, column=13, value=item.get('brand', ''))
-                sheet.cell(row=row_num, column=14, value=item.get('model', ''))
-                sheet.cell(row=row_num, column=15, value=item.get('link', ''))
-
-                # 应用样式
-                for col in range(1, 16):
-                    cell = sheet.cell(row=row_num, column=col)
-                    cell.font = style_info['font']
-                    cell.border = style_info['border']
-                    cell.alignment = style_info['alignment']
-
-                row_num += 1
-
-        return row_num
-
+    @template_handler("英国")
     def _fill_uk_template(self, wb, box_data, code=None, address_info=None):
-        """填充英国模板"""
-        sheet = wb['模板']  # 获取模板工作表
+        # TODO: 实现英国模板处理逻辑
+        pass
 
-        # 定义样式信息
-        style_info = {
-            'font': Font(name='Arial', size=10),
-            'border': Border(left=Side(border_style='thin'),
-                             right=Side(border_style='thin'),
-                             top=Side(border_style='thin'),
-                             bottom=Side(border_style='thin')),
-            'alignment': Alignment(horizontal='center', vertical='center')
-        }
+    def generate_invoice(self, template_path, box_data,code=None, address_info=None):
+        """
+        生成发票
+        :param template_path: 模板文件路径
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        :return: 生成的发票文件路径
+        """
+        try:
+            # 检查模板文件是否存在
+            if not os.path.exists(template_path):
+                raise ProcessingError(f"模板文件不存在: {template_path}")
 
-        # 先解除所有合并的单元格
-        print(f"正在解除合并单元格...")
-        merged_ranges = list(sheet.merged_cells.ranges)
-        for merged_range in merged_ranges:
-            try:
-                sheet.unmerge_cells(str(merged_range))
-            except Exception as e:
-                print(f"Warning: Failed to unmerge cells {str(merged_range)}: {str(e)}")
-                continue
+            # 获取当前时间戳
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            
+            # 检查产品的电磁属性
+            has_electric = False
+            has_magnetic = False
+            for box in box_data.values():
+                for item in box.items:
+                    product_info = self._get_product_info(item.msku, self.db_connector)
+                    if product_info:
+                        if product_info.get('electrified', '') == '是':
+                            has_electric = True
+                        if product_info.get('magnetic', '') == '是':
+                            has_magnetic = True
+                        if has_electric and has_magnetic:
+                            break
+                if has_electric and has_magnetic:
+                    break
+            
+            # 构建文件名后缀
+            suffix = ""
+            if has_electric:
+                suffix += "_带电"
+            if has_magnetic:
+                suffix += "_带磁"
 
-        # 重置数据区域的单元格
-        for row in sheet.iter_rows(min_row=18, max_row=sheet.max_row):
-            for cell in row:
-                try:
-                    cell.value = None
-                except Exception as e:
-                    print(f"Warning: Failed to reset cell {cell.coordinate}: {str(e)}")
+            # 构建输出文件路径
+            output_filename = f"{timestamp}{suffix}.xlsx"
+            output_path = os.path.join(self.output_folder, output_filename)
 
-        # 填充数据
-        row_num = 18  # 起始行号
-        for box_number, box in box_data.items():
-            # 填充箱子数据
-            for item in box['array']:
-                # 从数据库获取产品信息
-                product_info = self._get_product_info(item['sku'])
-                if product_info:
-                    item.update(product_info)
-                
-                # 设置单元格值
-                sheet.cell(row=row_num, column=1, value=box_number)
-                sheet.cell(row=row_num, column=2, value=box['box_spec'])
-                sheet.cell(row=row_num, column=3, value=box['weight'])
-                sheet.cell(row=row_num, column=4, value=item['sku'])
-                sheet.cell(row=row_num, column=5, value=item.get('cn_name', ''))
-                sheet.cell(row=row_num, column=6, value=item.get('en_name', ''))
-                sheet.cell(row=row_num, column=7, value=item['quantity'])
-                sheet.cell(row=row_num, column=8, value=item['price'])
-                sheet.cell(row=row_num, column=9, value=item['total_value'])
-                sheet.cell(row=row_num, column=10, value=item.get('material', ''))
-                sheet.cell(row=row_num, column=11, value=item.get('hs_code', ''))
-                sheet.cell(row=row_num, column=12, value=item.get('usage', ''))
-                sheet.cell(row=row_num, column=13, value=item.get('brand', ''))
-                sheet.cell(row=row_num, column=14, value=item.get('model', ''))
-                sheet.cell(row=row_num, column=15, value=item.get('link', ''))
+            # 使用openpyxl加载模板
+            print(f"正在加载模板文件...")
+            wb = load_workbook(template_path)
+            print(f"成功加载模板文件，工作表: {wb.sheetnames}")
 
-                # 应用样式
-                for col in range(1, 16):
-                    cell = sheet.cell(row=row_num, column=col)
-                    cell.font = style_info['font']
-                    cell.border = style_info['border']
-                    cell.alignment = style_info['alignment']
+            # 获取对应的模板处理方法
+            template_handler = self._get_template_handler(template_path)
+            if template_handler is None:
+                raise ProcessingError(f"未找到对应的模板处理方法: {template_path}")
 
-                row_num += 1
+            # 处理模板
+            template_handler(wb, box_data, code, address_info)
 
-        return row_num
+            # 保存文件
+            wb.save(output_path)
+            print(f"发票已生成: {output_path}")
 
-    def _fill_default_template(self, wb, box_data, code=None, address_info=None):
-        """填充默认模板"""
-        sheet = wb['模板']  # 获取模板工作表
+            return output_path
 
-        # 定义样式信息
-        style_info = {
-            'font': Font(name='Arial', size=10),
-            'border': Border(left=Side(border_style='thin'),
-                             right=Side(border_style='thin'),
-                             top=Side(border_style='thin'),
-                             bottom=Side(border_style='thin')),
-            'alignment': Alignment(horizontal='center', vertical='center')
-        }
+        except Exception as e:
+            error_msg = f"生成发票时发生错误: {str(e)}"
+            print(error_msg)
+            traceback.print_exc()
+            raise ProcessingError(error_msg)
 
-        # 先解除所有合并的单元格
-        print(f"正在解除合并单元格...")
-        merged_ranges = list(sheet.merged_cells.ranges)
-        for merged_range in merged_ranges:
-            try:
-                sheet.unmerge_cells(str(merged_range))
-            except Exception as e:
-                print(f"Warning: Failed to unmerge cells {str(merged_range)}: {str(e)}")
-                continue
+    def _get_template_handler(self, template_path):
+        """根据模板文件名选择对应的处理方法"""
+        template_name = os.path.basename(template_path).lower()
+        for keyword, handler in self._template_handlers.items():
+            if keyword in template_name:
+                return handler.__get__(self, type(self))
+        return self._fill_default_template
 
-        # 重置数据区域的单元格
-        for row in sheet.iter_rows(min_row=18, max_row=sheet.max_row):
-            for cell in row:
-                try:
-                    cell.value = None
-                except Exception as e:
-                    print(f"Warning: Failed to reset cell {cell.coordinate}: {str(e)}")
+    def _get_product_info(self, msku, db=None):
+        """
+        从MongoDB获取产品信息
+        :param msku: 产品的MSKU
+        :param db: 数据库连接（可选）
+        :return: 包含产品信息的字典
+        """
+        try:
+            if db is None:
+                # 如果没有传入db连接，创建新的连接
+                with self.db_connector as db:
+                    return self._get_product_info(msku, db)
+            
+            # 使用传入的db连接
+            collection = db['msku_info']
+            product = collection.find_one({'msku': msku})
+            
+            if product:
+                return {
+                    'cn_name': product.get('productNameZh', ''),
+                    'en_name': product.get('productNameEn', ''),
+                    'en_usage': product.get('useEn', ''),
+                    'ch_usage':product.get('useZh', ''),
+                    'material_en': product.get('materialEn', ''),
+                    'material_cn': product.get('materialZh', ''),
+                    'hs_code': product.get('HS', ''),
+                    'usage_en': product.get('useEn', ''),
+                    'usage_cn': product.get('useZh', ''),
+                    'brand': product.get('brand', ''),
+                    'model': product.get('model', ''),
+                    'link': product.get('productLink', ''),
+                    'price':product.get('askprice', ''),
+                    'electrified':product.get('electrified', ''),
+                    'magnetic':product.get('magnetic', ''),
+                    'weight':product.get('weight', ''),
+                }
+            return None
+        except Exception as e:
+            print(f"Error fetching product info for MSKU {msku}: {str(e)}")
+            return None
 
-        # 填充数据
-        row_num = 18  # 起始行号
-        for box_number, box in box_data.items():
-            # 填充箱子数据
-            for item in box['array']:
-                # 从数据库获取产品信息
-                product_info = self._get_product_info(item['sku'])
-                if product_info:
-                    item.update(product_info)
-                
-                # 设置单元格值
-                sheet.cell(row=row_num, column=1, value=box_number)
-                sheet.cell(row=row_num, column=2, value=box['box_spec'])
-                sheet.cell(row=row_num, column=3, value=box['weight'])
-                sheet.cell(row=row_num, column=4, value=item['sku'])
-                sheet.cell(row=row_num, column=5, value=item.get('cn_name', ''))
-                sheet.cell(row=row_num, column=6, value=item.get('en_name', ''))
-                sheet.cell(row=row_num, column=7, value=item['quantity'])
-                sheet.cell(row=row_num, column=8, value=item['price'])
-                sheet.cell(row=row_num, column=9, value=item['total_value'])
-                sheet.cell(row=row_num, column=10, value=item.get('material', ''))
-                sheet.cell(row=row_num, column=11, value=item.get('hs_code', ''))
-                sheet.cell(row=row_num, column=12, value=item.get('usage', ''))
-                sheet.cell(row=row_num, column=13, value=item.get('brand', ''))
-                sheet.cell(row=row_num, column=14, value=item.get('model', ''))
-                sheet.cell(row=row_num, column=15, value=item.get('link', ''))
-
-                # 应用样式
-                for col in range(1, 16):
-                    cell = sheet.cell(row=row_num, column=col)
-                    cell.font = style_info['font']
-                    cell.border = style_info['border']
-                    cell.alignment = style_info['alignment']
-
-                row_num += 1
-
-        return row_num
+    def _set_cell_value(self, sheet, row, column, value, style_info):
+        """
+        设置单元格的值和样式
+        :param sheet: 工作表对象
+        :param row: 行号
+        :param column: 列号
+        :param value: 单元格值
+        :param style_info: 样式信息
+        """
+        cell = sheet.cell(row=row, column=column)
+        cell.value = value
+        cell.font = style_info['font']
+        cell.border = style_info['border']
+        cell.alignment = style_info['alignment']
 
     def insert_centered_image(self, worksheet, cell_address, image_path, fixed_width=None, fixed_height=None):
         """
