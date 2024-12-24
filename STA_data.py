@@ -64,6 +64,13 @@ def request_sta_data(sid, inboundPlanId):
     if result['code'] == 1 and result['data']:
         # 获取第一个箱子的地址信息
         address = result['data'][0]['address']
+        # print("DEBUG: 原始数据 ->", result['data'][0])  # 添加调试信息
+        # print("DEBUG: shipmentName ->", result['data'][0].get('shipmentName'))
+        # print("DEBUG: amazonReferenceId ->", result['data'][0].get('amazonReferenceId'))
+        
+        shipmentName = result['data'][0].get('shipmentName','')
+        amazonReferenceId = result['data'][0].get('amazonReferenceId','')
+
         return {
             'addressLine1': address.get('addressLine1', ''),
             'addressLine2': address.get('addressLine2', ''),
@@ -74,11 +81,15 @@ def request_sta_data(sid, inboundPlanId):
             'postalCode': address.get('postalCode', ''),
             'stateOrProvinceCode': address.get('stateOrProvinceCode', ''),
             'phoneNumber': address.get('phoneNumber', ''),
-            'email': address.get('email', '')
+            'email': address.get('email', ''),
+            'shipmentName':shipmentName,
+            'amazonReferenceId':amazonReferenceId
         }
+
     return None
 
 def request_loacl_localTaskId(ticket_id):
+
     headers = {
         'accept': 'application/json, text/plain, */*',
         'accept-language': 'zh-CN,zh;q=0.9',
@@ -151,11 +162,73 @@ def get_address_info(ticket_id):
     address_info = request_sta_data(basic_info['sid'], basic_info['inboundPlanId'])
     if not address_info:
         return None
-        
+
+    country_dict = {
+        "AC-BR": "巴西",
+        "AC-CA": "加拿大",
+        "AC-MX": "墨西哥",
+        "AC-US": "美国",
+        "BN-BR": "巴西",
+        "BN-CA": "加拿大",
+        "BN-MX": "墨西哥",
+        "BN-US": "美国",
+        "BT-BR": "巴西",
+        "BT-CA": "加拿大",
+        "BT-MX": "墨西哥",
+        "BT-US": "美国",
+        "DK-BE": "比利时",
+        "DK-DE": "德国",
+        "DK-ES": "西班牙",
+        "DK-FR": "法国",
+        "DK-IT": "意大利",
+        "DK-SE": "瑞典",
+        "DK-UK": "英国",
+        "GEAU-AU": "澳洲",
+        "HB-BR": "巴西",
+        "HB-CA": "加拿大",
+        "HB-MX": "墨西哥",
+        "HB-US": "美国",
+        "HK-BE": "比利时",
+        "HK-ES": "西班牙",
+        "HK-FR": "法国",
+        "HK-IT": "意大利",
+        "HK-NL": "荷兰",
+        "HK-PL": "波兰",
+        "HK-SE": "瑞典",
+        "HK-UK": "英国",
+        "JPD-JP": "日本",
+        "JPE-JP": "日本",
+        "OP-BE": "比利时",
+        "OP-DE": "德国",
+        "OP-ES": "西班牙",
+        "OP-FR": "法国",
+        "OP-IT": "意大利",
+        "OP-NL": "荷兰",
+        "OP-PL": "波兰",
+        "OP-SE": "瑞典",
+        "OP-TR": "土耳其",
+        "OP-UK": "英国",
+        "YM-BE": "比利时",
+        "YM-DE": "德国",
+        "YM-ES": "西班牙",
+        "YM-FR": "法国",
+        "YM-IT": "意大利",
+        "YM-JP": "日本",
+        "YM-NL": "荷兰",
+        "YM-PL": "波兰",
+        "YM-SE": "瑞典",
+        "YM-UK": "英国",
+        "YY-BR": "巴西",
+        "YY-CA": "加拿大",
+        "YY-MX": "墨西哥",
+        "YY-US": "美国"
+    }
+
     # 合并信息
     return {
         'seller_info': {
             'sellerName': basic_info['sellerName'],
+            'country_name': country_dict.get(basic_info['sellerName'], ''),
             'sid': basic_info['sid'],
             'inboundPlanId': basic_info['inboundPlanId']
         },
