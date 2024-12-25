@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 from db_connector import MongoDBConnector
 from io import BytesIO
+from openpyxl.utils import get_column_letter
 
 
 class ProcessingError(Exception):
@@ -198,7 +199,7 @@ class InvoiceGenerator:
                         if product_info:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
-                        # 设置单元格值和样式
+                        # 设置单元格值和样式ç
                         cell_data = [
                             (1, box_number),                    # 货箱编号 (A列)
                             (2, box.weight if box.weight is not None else ""),  # 重量 (B列)
@@ -264,15 +265,16 @@ class InvoiceGenerator:
                 }
 
 
-                # 先解除所有合并的单元格
-                print(f"正在解除合并单元格...")
-                merged_ranges = list(sheet.merged_cells.ranges)
-                for merged_range in merged_ranges:
-                    try:
-                        sheet.unmerge_cells(str(merged_range))
-                    except:
-                        pass
-                print(f"合并单元格解除完成")
+                # # 先解除所有合并的单元格
+                # print(f"正在解除合并单元格...")
+                # merged_ranges = list(sheet.merged_cells.ranges)
+                # for merged_range in merged_ranges:
+                #     try:
+                #         sheet.unmerge_cells(str(merged_range))
+                #     except:
+                #         pass
+                # print(f"合并单元格解除完成")
+                self.unmerge_cells_in_range(sheet, 2, 4, 2, 9)
 
 
                 # 如果有地址信息，填充到相应的单元格
@@ -313,7 +315,7 @@ class InvoiceGenerator:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
                 # 填充数据
-                row_num = 12  # 从第18行开始填充
+                row_num = 12  
                 index = 1    # 添加序号计数器，从1开始
 
                 # 遍历每个箱子
@@ -337,33 +339,38 @@ class InvoiceGenerator:
                         
                         # 设置单元格值和样式
                         cell_data = [
-                            (1, box_number_str),                    # 货箱编号 (A列)
-                            (2, Reference_id), 
-                            (3,item.msku),  # 重量 (B列)
-                            (4,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
-                            (5, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
+                            # 基本信息
+                            (1, box_number_str),                                   # 货箱编号
+                            (2, Reference_id),                                     # 参考编号
+                            (3, item.msku),                                       # 商品编码
                             
-                            (6, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (9, product_info.get('material_en', '') if product_info else ''),  # 材料 (D列) 
-                            (8, product_info.get('material_cn', '') if product_info else ''),  # HS编码 (G列)
-                            (12, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (10, str(product_info.get('usage_en', '')+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
-                            (11, '纸箱'),    # 品牌 (I列)
-                            (6, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
-                            (7, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
-                            (13, item.box_quantties.get(box_number, 0)),
-
-                          
-                            # (16, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
-                            (16, box.length if box.length is not None else ""),  # 长度 (Q列)
-                            (17, box.width if box.width is not None else ""),    # 宽度 (R列)
-                            (18, box.height if box.height is not None else ""),   # 高度 (S列)
-                            (19, box.weight if box.weight is not None else ""),  # 重量 (B列)
-                            (20, product_info.get('link', '') if product_info else ''),
-                            (21, ''),  # 图片列 (N列)
-
+                            # 产品名称信息
+                            (4, product_info.get('en_name', '')),                 # 英文名称
+                            (5, product_info.get('cn_name', '')),                 # 中文名称
+                            (6, product_info.get('brand', '')),                   # 品牌
+                            (7, product_info.get('model', '')),                   # 型号
+                            
+                            # 产品材料和用途
+                            (8, product_info.get('material_cn', '')),             # 中文材料
+                            (9, product_info.get('material_en', '')),             # 英文材料
+                            (10, str(product_info.get('usage_en', '') + 
+                                   product_info.get('usage_cn', ''))),            # 用途
+                            (11, '纸箱'),                                         # 包装类型
+                            
+                            # 产品规格信息
+                            (12, product_info.get('hs_code', '')),                # HS编码
+                            (13, item.box_quantities.get(box_number, 0)),         # 数量
+                            
+                            # 箱体信息
+                            (16, box.length if box.length is not None else ""),   # 长度
+                            (17, box.width if box.width is not None else ""),     # 宽度
+                            (18, box.height if box.height is not None else ""),   # 高度
+                            (19, box.weight if box.weight is not None else ""),   # 重量
+                            
+                            # 其他信息
+                            (20, product_info.get('link', '')),                   # 链接
+                            (21, '')                                              # 图片占位
                         ]
-
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
@@ -377,6 +384,12 @@ class InvoiceGenerator:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
+                
+                row_height = sheet.row_dimensions[12].height
+                self.set_row_heights(sheet, 12, row_num, row_height)
+                self.merge_cells_in_range(sheet, 2, 2, 2, 9)
+                self.merge_cells_in_range(sheet, 3, 3, 2, 9)
+                self.merge_cells_in_range(sheet, 4, 4, 2, 9)
 
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
@@ -664,3 +677,64 @@ class InvoiceGenerator:
             return match.group('time'), match.group('logistics').replace('-', ''), match.group(4)
         else:
             return None, None, None
+
+    def unmerge_cells_in_range(self, sheet, start_row, end_row, start_col, end_col):
+        """
+        解除指定范围内的所有合并单元格。
+
+        :param sheet: 要操作的工作表对象
+        :param start_row: 起始行
+        :param end_row: 结束行
+        :param start_col: 起始列
+        :param end_col: 结束列
+        """
+        print("正在解除合并单元格...")
+        merged_ranges = list(sheet.merged_cells.ranges)
+        for merged_range in merged_ranges:
+            min_row, min_col, max_row, max_col = merged_range.bounds
+            # 检查合并单元格是否在指定范围内
+            if (min_row >= start_row and max_row <= end_row and
+                min_col >= start_col and max_col <= end_col):
+                try:
+                    sheet.unmerge_cells(str(merged_range))
+                except Exception as e:
+                    print(f"解除合并单元格时发生错误: {str(e)}")
+        print("合并单元格解除完成")
+
+    def set_row_heights(self, sheet, start_row, end_row, height):
+        """
+        设置指定范围内的行高。
+
+        :param sheet: 要操作的工作表对象
+        :param start_row: 起始行
+        :param end_row: 结束行
+        :param height: 行高
+        """
+        for row in range(start_row, end_row + 1):
+            sheet.row_dimensions[row].height = height
+
+    def merge_cells_in_range(self, sheet, start_row, end_row, start_col, end_col):
+        """
+        合并指定区域内的单元格。
+
+        :param sheet: 要操作的工作表对象
+        :param start_row: 起始行
+        :param end_row: 结束行
+        :param start_col: 起始列
+        :param end_col: 结束列
+        """
+        try:
+            # 获取合并区域的范围字符串
+            merge_range = f"{get_column_letter(start_col)}{start_row}:{get_column_letter(end_col)}{end_row}"
+            print(f"正在合并单元格区域: {merge_range}")
+            
+            # 合并单元格
+            sheet.merge_cells(merge_range)
+            
+            # 设置合并后的单元格样式（可选）
+            merged_cell = sheet.cell(row=start_row, column=start_col)
+            merged_cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            print(f"单元格合并完成: {merge_range}")
+        except Exception as e:
+            print(f"合并单元格时发生错误: {str(e)}")

@@ -83,7 +83,6 @@ def request_sta_data(sid, inboundPlanId):
             'phoneNumber': address.get('phoneNumber', ''),
             'email': address.get('email', ''),
             'shipmentName':shipmentName,
-            'amazonReferenceId':amazonReferenceId
         }
 
     return None
@@ -139,7 +138,9 @@ def request_loacl_localTaskId(ticket_id):
         return {
             'sid': record['sid'],
             'inboundPlanId': record['inboundPlanId'],
-            'sellerName': record['sellerName']
+            'sellerName': record['sellerName'],
+            # 'amazonReferenceId':record['amazonReferenceId']
+            
         }
     return None
 
@@ -231,7 +232,7 @@ def get_address_info(ticket_id):
             'country_name': country_dict.get(basic_info['sellerName'], ''),
             'sid': basic_info['sid'],
             'inboundPlanId': basic_info['inboundPlanId'],
-            'amazonReferenceId':basic_info['amazonReferenceId'],
+            # 'amazonReferenceId':basic_info['amazonReferenceId'],
         },
         'address_info': address_info
     }
