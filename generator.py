@@ -43,10 +43,14 @@ class InvoiceGenerator:
         # 初始化模板处理器字典
         self._template_handlers = {}
         # 注册所有带有_template_keyword属性的方法
+        print("开始注册模板处理器...")
         for name in dir(self):
             method = getattr(self, name)
             if hasattr(method, '_template_keyword'):
-                self._template_handlers[method._template_keyword] = method
+                keyword = method._template_keyword
+                self._template_handlers[keyword] = method
+                print(f"注册模板处理器: {name} -> {keyword}")
+        print(f"已注册的模板处理器: {list(self._template_handlers.keys())}")
 
     @template_handler("叮铛卡航限时达")
     def _fill_dingdang_template(self, wb, box_data, code=None, address_info=None):
@@ -233,8 +237,8 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
-    @template_handler("顺丰")
-    def _fill_ldmsxsd_template(self, wb, box_data, code=None, address_info=None):
+    @template_handler("顺丰空派")
+    def _fill_sf_template(self, wb, box_data, code=None, address_info=None):
         """填充顺丰模板"""
         """
         填充顺丰模板
@@ -245,8 +249,8 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                sheet = wb['模板']  # 获取模板工作表
-
+                sheet = wb['Sheet1']  # 获取模板工作表
+                box_Reference_id = ''  # 在方法开始时就初始化
                 print("开始写入模版信息")
 
                 # 定义样式信息
@@ -260,14 +264,31 @@ class InvoiceGenerator:
                 }
 
 
+                # 先解除所有合并的单元格
+                print(f"正在解除合并单元格...")
+                merged_ranges = list(sheet.merged_cells.ranges)
+                for merged_range in merged_ranges:
+                    try:
+                        sheet.unmerge_cells(str(merged_range))
+                    except:
+                        pass
+                print(f"合并单元格解除完成")
+
+
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
                     address_info_detail = address_info['address_info']
+                    if 'seller_info' in address_info:
+                        box_Reference_id = address_info['seller_info']['amazonReferenceId']
                     try:
                         # 填充收件人信息
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=4, column=2)  # B2单元格
+                            cell = sheet.cell(row=4, column=2)  
                             cell.value = address_info_detail['name']
+
+                            cell = sheet.cell(row=3, column=2)  
+                            cell.value = address_info_detail['name']
+                        
 
                         # 填充地址信息
                         address_parts = []
@@ -284,45 +305,12 @@ class InvoiceGenerator:
 
 
                         if address_parts:
-                            cell = sheet.cell(row=4, column=2)  # B3单元格
+                            cell = sheet.cell(row=4, column=2)  
                             cell.value = ', '.join(address_parts)
+
+                        
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
-
-                try:
-                    total_boxes = len(box_data.keys())
-                    cell = sheet.cell(row=16, column=2)  # 在第7行B列填充箱数
-                    cell.value = str(total_boxes)
-                    cell.font = Font(name='Arial', size=9)
-                except Exception as e:
-                    print(f"填充箱数时发生错误: {str(e)}")
-
-                # 先解除所有合并的单元格
-                print(f"正在解除合并单元格...")
-                merged_ranges = list(sheet.merged_cells.ranges)
-                for merged_range in merged_ranges:
-                    try:
-                        sheet.unmerge_cells(str(merged_range))
-                    except:
-                        pass
-                print(f"合并单元格解除完成")
-
-                # 检查所有产品的电磁属性
-                has_electric = False
-                has_magnetic = False
-                for box in box_data.values():
-                    for item in box.items:
-                        product_info = self._get_product_info(item.msku, db)
-                        if product_info:
-                            if product_info.get('electrified', '') == '是':
-                                has_electric = True
-                            if product_info.get('magnetic', '') == '是':
-                                has_magnetic = True
-                            if has_electric and has_magnetic:
-                                break
-                    if has_electric and has_magnetic:
-                        break
-
 
                 # 填充数据
                 row_num = 12  # 从第18行开始填充
@@ -342,13 +330,19 @@ class InvoiceGenerator:
                         if product_info:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
+                        box_number_str = code+f"{box_number:05d}" 
+                        Reference_id = ''  # 初始化为None
+                        if box_Reference_id:
+                            Reference_id = box_Reference_id
+                        
                         # 设置单元格值和样式
                         cell_data = [
-                            (1, box_number),                    # 货箱编号 (A列)
-                            (2, box.weight if box.weight is not None else ""),  # 重量 (B列)
+                            (1, box_number_str),                    # 货箱编号 (A列)
+                            (2, Reference_id), 
+                            (3,item.msku),  # 重量 (B列)
                             (4,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
                             (5, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
-                            (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
+                            
                             (6, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
                             (9, product_info.get('material_en', '') if product_info else ''),  # 材料 (D列) 
                             (8, product_info.get('material_cn', '') if product_info else ''),  # HS编码 (G列)
@@ -357,13 +351,17 @@ class InvoiceGenerator:
                             (11, '纸箱'),    # 品牌 (I列)
                             (6, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (7, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
-                            (13, item.box_quantities.get(box_number, 0)),
+                            (13, item.box_quantties.get(box_number, 0)),
 
-                            (14, ''),  # 图片列 (N列)
-                            (16, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
-                            (17, box.length if box.length is not None else ""),  # 长度 (Q列)
-                            (18, box.width if box.width is not None else ""),    # 宽度 (R列)
-                            (19, box.height if box.height is not None else "")   # 高度 (S列)
+                          
+                            # (16, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                            (16, box.length if box.length is not None else ""),  # 长度 (Q列)
+                            (17, box.width if box.width is not None else ""),    # 宽度 (R列)
+                            (18, box.height if box.height is not None else ""),   # 高度 (S列)
+                            (19, box.weight if box.weight is not None else ""),  # 重量 (B列)
+                            (20, product_info.get('link', '') if product_info else ''),
+                            (21, ''),  # 图片列 (N列)
+
                         ]
 
                         # 批量设置单元格值和样式
@@ -373,7 +371,7 @@ class InvoiceGenerator:
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"N{row_num}"  # 图片列（第14列）
+                                image_cell = f"U{row_num}"  # 图片列（第14列）
                                 self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
@@ -394,6 +392,10 @@ class InvoiceGenerator:
         # TODO: 实现英国模板处理逻辑
         pass
 
+    def _fill_default_template(self, wb, box_data, code=None, address_info=None):
+        """默认的模板处理方法"""
+        raise ProcessingError("未找到匹配的模板处理方法，请确保模板文件名包含正确的关键字")
+
     def generate_invoice(self, template_path, box_data,code=None, address_info=None):
         """
         生成发票
@@ -404,7 +406,7 @@ class InvoiceGenerator:
         :return: 生成的发票文件路径
         """
         try:
-            # 检查模板文件是否存在
+            print(f"开始处理模板文件: {template_path}")
             if not os.path.exists(template_path):
                 raise ProcessingError(f"模板文件不存在: {template_path}")
 
@@ -494,11 +496,24 @@ class InvoiceGenerator:
 
     def _get_template_handler(self, template_path):
         """根据模板文件名选择对应的处理方法"""
-        template_name = os.path.basename(template_path).lower()
-        for keyword, handler in self._template_handlers.items():
-            if keyword in template_name:
-                return handler.__get__(self, type(self))
-        return self._fill_default_template
+        try:
+            template_name = os.path.basename(template_path).lower()
+            print(f"正在查找模板处理器，模板路径: {template_path}")
+            print(f"模板文件名: {template_name}")
+            print(f"已注册的处理器: {self._template_handlers}")
+            
+            for keyword, handler in self._template_handlers.items():
+                print(f"检查关键字: {keyword}, 类型: {type(keyword)}")
+                print(f"模板名称: {template_name}, 类型: {type(template_name)}")
+                keyword_lower = keyword.lower()
+                if keyword_lower in template_name:
+                    print(f"找到匹配的处理器: {handler.__name__}")
+                    return handler.__get__(self, type(self))
+            print(f"未找到匹配的处理器，可用的关键字: {list(self._template_handlers.keys())}")
+            return self._fill_default_template
+        except Exception as e:
+            print(f"模板处理器匹配过程中出错: {str(e)}")
+            return self._fill_default_template
 
     def _get_product_info(self, msku, db=None):
         """

@@ -230,7 +230,8 @@ def get_address_info(ticket_id):
             'sellerName': basic_info['sellerName'],
             'country_name': country_dict.get(basic_info['sellerName'], ''),
             'sid': basic_info['sid'],
-            'inboundPlanId': basic_info['inboundPlanId']
+            'inboundPlanId': basic_info['inboundPlanId'],
+            'amazonReferenceId':basic_info['amazonReferenceId'],
         },
         'address_info': address_info
     }
