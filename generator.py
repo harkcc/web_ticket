@@ -483,7 +483,7 @@ class InvoiceGenerator:
                             (2, box.weight if box.weight is not None else ""),  # 重量 
                             (3, box.length if box.length is not None else ""),  # 长度 
                             (4, box.width if box.width is not None else ""),    # 宽度 
-                            (5, box.height if box.height is not None else "")   # 高度 
+                            (5, box.height if box.height is not None else "") ,  # 高度 
                             (6, item.msku),                    
                             (7,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
                             (8, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
@@ -504,7 +504,7 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
-                        sheet.row_dimensions[row_num].height = height
+                        sheet.row_dimensions[row_num].height = row_height
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:

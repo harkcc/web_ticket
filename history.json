@@ -504,5 +504,113 @@
     "status": "error",
     "result_file": null,
     "address_info_status": "failed"
+  },
+  {
+    "task_id": "20241225214959",
+    "type": "packing_list",
+    "timestamp": "20241225_214959",
+    "input_file": "20241225214959_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达.xls",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20241225215026",
+    "type": "packing_list",
+    "timestamp": "20241225_215026",
+    "input_file": "20241225215026_invoice_info.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达.xls",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20241225215217",
+    "type": "packing_list",
+    "timestamp": "20241225_215220",
+    "input_file": "20241225215217_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达.xls",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225215623",
+    "type": "packing_list",
+    "timestamp": "20241225_215629",
+    "input_file": "20241225215623_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225215721",
+    "type": "packing_list",
+    "timestamp": "20241225_215725",
+    "input_file": "20241225215721_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225220008",
+    "type": "packing_list",
+    "timestamp": "20241225_220015",
+    "input_file": "20241225220008_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225220144",
+    "type": "packing_list",
+    "timestamp": "20241225_220148",
+    "input_file": "20241225220144_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225220255",
+    "type": "packing_list",
+    "timestamp": "20241225_220259",
+    "input_file": "20241225220255_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225220255",
+    "type": "packing_list",
+    "timestamp": "20241225_220303",
+    "input_file": "20241225220255_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20241225220404",
+    "type": "packing_list",
+    "timestamp": "20241225_220411",
+    "input_file": "20241225220404_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "依诺达",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]
