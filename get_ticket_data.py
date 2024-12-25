@@ -232,14 +232,22 @@ class SimplePackingListProcessor:
         self.boxes: Dict[int, PackingListBox] = {}
         self.items: List[PackingListItem] = []
 
-    def process(self):
-        """处理装箱单"""
+    def process(self, template_name=None):
+        """处理装箱单
+        
+        Args:
+            template_name: 模板名称，用于特殊处理某些模板
+        """
         try:
             print(f"Reading Excel file: {self.file_path}")
             df = pd.read_excel(self.file_path)
 
             if df.empty:
                 raise ValueError("Excel file is empty")
+
+            # 如果是依诺达模板，删除第一列
+            if template_name and "依诺达" in template_name:
+                df = df.iloc[:, 1:]
 
             # 获取Shipment ID（第1行第2列）
             try:

@@ -492,5 +492,17 @@
     "template_name": "顺丰空派",
     "status": "completed",
     "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20241225152732",
+    "type": "packing_list",
+    "timestamp": "20241225_152733",
+    "input_file": "20241225152732_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA0000001",
+    "template_name": "依诺达",
+    "status": "error",
+    "result_file": null,
+    "address_info_status": "failed"
   }
 ]

@@ -238,7 +238,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
-    @template_handler("顺丰空派")
+    @template_handler("顺丰")
     def _fill_sf_template(self, wb, box_data, code=None, address_info=None):
         """填充顺丰模板"""
         """
@@ -285,7 +285,7 @@ class InvoiceGenerator:
                     try:
                         # 填充收件人信息
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=4, column=2)  
+                            cell = sheet.cell(row=2, column=2)  
                             cell.value = address_info_detail['name']
 
                             cell = sheet.cell(row=3, column=2)  
@@ -317,6 +317,7 @@ class InvoiceGenerator:
                 # 填充数据
                 row_num = 12  
                 index = 1    # 添加序号计数器，从1开始
+                row_height = sheet.row_dimensions[12].height
 
                 # 遍历每个箱子
                 for box_number, box in box_data.items():
@@ -375,6 +376,8 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
+                        sheet.row_dimensions[row_num].height = height
+                        
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
@@ -385,8 +388,6 @@ class InvoiceGenerator:
 
                         row_num += 1
                 
-                row_height = sheet.row_dimensions[12].height
-                self.set_row_heights(sheet, 12, row_num-1, row_height)
                 self.merge_cells_in_range(sheet, 2, 2, 2, 9)
                 self.merge_cells_in_range(sheet, 3, 3, 2, 9)
                 self.merge_cells_in_range(sheet, 4, 4, 2, 9)
@@ -395,10 +396,133 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
-    @template_handler("法国")
-    def _fill_france_template(self, wb, box_data, code=None, address_info=None):
-        # TODO: 实现法国模板处理逻辑
-        pass
+    @template_handler("依诺达")
+    def _fill_ynd_template(self, wb, box_data, code=None, address_info=None):
+        """
+        填充叮铛卡航限时达模板
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        """
+        with self.db_connector as db:
+            try:
+                sheet = wb['模板']  # 获取模板工作表
+                self.unmerge_cells_in_range(sheet, 15, 15, 2, 4)
+                self.unmerge_cells_in_range(sheet, 1, 1, 6, 8)
+                self.unmerge_cells_in_range(sheet, 2, 2, 6, 8)
+                print("开始写入模版信息")
+
+                # 定义样式信息
+                style_info = {
+                    'font': Font(name='Arial', size=10),
+                    'border': Border(left=Side(border_style='thin'),
+                                     right=Side(border_style='thin'),
+                                     top=Side(border_style='thin'),
+                                     bottom=Side(border_style='thin')),
+                    'alignment': Alignment(horizontal='center', vertical='center')
+                }
+
+                try:
+                    total_boxes = len(box_data.keys())
+                    cell = sheet.cell(row=15, column=2)  #填充箱数
+                    cell.value = str(total_boxes)
+                    cell.font = Font(name='Arial', size=9)
+                except Exception as e:
+                    print(f"填充箱数时发生错误: {str(e)}")
+
+                # 检查所有产品的电磁属性
+                has_electric = False
+                has_magnetic = False
+                for box in box_data.values():
+                    for item in box.items:
+                        product_info = self._get_product_info(item.msku, db)
+                        if product_info:
+                            if product_info.get('electrified', '') == '是':
+                                has_electric = True
+                            if product_info.get('magnetic', '') == '是':
+                                has_magnetic = True
+                            if has_electric and has_magnetic:
+                                break
+                    if has_electric and has_magnetic:
+                        break
+
+                # 在表格顶部添加电磁属性标记
+                if has_electric:
+                    cell = sheet.cell(row=1, column=6)  # F列第1行
+                    cell.value = "是"
+                    cell.font = Font(name='Arial', size=9)
+                
+                if has_magnetic:
+                    cell = sheet.cell(row=2, column=6)  # F列第2行
+                    cell.value = "是"
+                    cell.font = Font(name='Arial', size=9)
+
+                # 填充数据
+                row_num = 17  # 从第18行开始填充
+                index = 1    # 添加序号计数器，从1开始
+                row_height = sheet.row_dimensions[17].height
+
+                # 遍历每个箱子
+                for box_number, box in box_data.items():
+                    print(f"处理箱子 {box_number}")
+
+                    # 遍历箱子中的每个产品
+                    for item in box.items:
+                        # 从数据库获取产品信息
+                        product_info = self._get_product_info(item.msku, db)
+                        # print(f"产品信息：{product_info}")
+                        price = product_info.get('price', 0)
+                        total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
+                        if product_info:
+                            item.product_name = product_info.get('cn_name', item.product_name)
+                        
+                        # 设置单元格值和样式ç
+                        cell_data = [
+                            (1, box_number),                    # 货箱编号 (A列)
+                            (2, box.weight if box.weight is not None else ""),  # 重量 
+                            (3, box.length if box.length is not None else ""),  # 长度 
+                            (4, box.width if box.width is not None else ""),    # 宽度 
+                            (5, box.height if box.height is not None else "")   # 高度 
+                            (6, item.msku),                    
+                            (7,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
+                            (8, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
+                            # (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
+                            (10, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
+                            (11, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (13, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
+                            (12, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (14, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
+                            (15, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
+                            (16, product_info.get('link', '') if product_info else ''),
+                            (17, ''),  # 图片列 (N列)
+                            # (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                          
+                        ]
+
+                        # 批量设置单元格值和样式
+                        for column, value in cell_data:
+                            self._set_cell_value(sheet, row_num, column, value, style_info)
+
+                        sheet.row_dimensions[row_num].height = height
+                        # 插入产品图片
+                        if item.msku and hasattr(self, 'image_folder'):
+                            try:
+                                image_cell = f"Q{row_num}"  # 图片列（第14列）
+                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                            except Exception as e:
+                                print(f"插入图片时发生错误: {str(e)}")
+
+                        row_num += 1
+
+                self.merge_cells_in_range(sheet, 15, 15, 2, 4)
+                self.merge_cells_in_range(sheet, 1, 1, 6, 8)
+                self.merge_cells_in_range(sheet, 2, 2, 6, 8)
+
+
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                raise
 
     @template_handler("英国")
     def _fill_uk_template(self, wb, box_data, code=None, address_info=None):
@@ -511,13 +635,13 @@ class InvoiceGenerator:
         """根据模板文件名选择对应的处理方法"""
         try:
             template_name = os.path.basename(template_path).lower()
-            print(f"正在查找模板处理器，模板路径: {template_path}")
-            print(f"模板文件名: {template_name}")
-            print(f"已注册的处理器: {self._template_handlers}")
+            # print(f"正在查找模板处理器，模板路径: {template_path}")
+            # print(f"模板文件名: {template_name}")
+            # print(f"已注册的处理器: {self._template_handlers}")
             
             for keyword, handler in self._template_handlers.items():
-                print(f"检查关键字: {keyword}, 类型: {type(keyword)}")
-                print(f"模板名称: {template_name}, 类型: {type(template_name)}")
+                # print(f"检查关键字: {keyword}, 类型: {type(keyword)}")
+                # print(f"模板名称: {template_name}, 类型: {type(template_name)}")
                 keyword_lower = keyword.lower()
                 if keyword_lower in template_name:
                     print(f"找到匹配的处理器: {handler.__name__}")
@@ -701,17 +825,6 @@ class InvoiceGenerator:
                     print(f"解除合并单元格时发生错误: {str(e)}")
         print("合并单元格解除完成")
 
-    def set_row_heights(self, sheet, start_row, end_row, height):
-        """
-        设置指定范围内的行高。
-
-        :param sheet: 要操作的工作表对象
-        :param start_row: 起始行
-        :param end_row: 结束行
-        :param height: 行高
-        """
-        for row in range(start_row, end_row + 1):
-            sheet.row_dimensions[row].height = height
 
     def merge_cells_in_range(self, sheet, start_row, end_row, start_col, end_col):
         """

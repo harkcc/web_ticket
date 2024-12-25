@@ -111,7 +111,9 @@ def process_task(task_info):
         else:
             processor = PackingListProcessor(task_info['files'])
             
-        box_data = processor.process()
+        # 获取模板名称并传递给process方法
+        template_type = task_info.get('template_type', '')
+        box_data = processor.process(template_name=template_type)
         
         if not box_data:
             raise ProcessingError("处理装箱单失败")
