@@ -69,7 +69,7 @@ def request_sta_data(sid, inboundPlanId):
         # print("DEBUG: amazonReferenceId ->", result['data'][0].get('amazonReferenceId'))
         
         shipmentName = result['data'][0].get('shipmentName','')
-        amazonReferenceId = result['data'][0].get('amazonReferenceId','')
+        # amazonReferenceId = result['data'][0].get('amazonReferenceId','')
 
         return {
             'addressLine1': address.get('addressLine1', ''),
