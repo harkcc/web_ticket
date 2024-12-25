@@ -251,7 +251,7 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
                 sheet = wb['Sheet1']  # 获取模板工作表
-                box_Reference_id = ''  # 在方法开始时就初始化
+                # box_Reference_id = ''  # 在方法开始时就初始化
                 print("开始写入模版信息")
 
                 # 定义样式信息
@@ -280,8 +280,8 @@ class InvoiceGenerator:
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
                     address_info_detail = address_info['address_info']
-                    if 'seller_info' in address_info:
-                        box_Reference_id = address_info['seller_info']['amazonReferenceId']
+                    # if 'seller_info' in address_info:
+                    #     box_Reference_id = address_info['seller_info']['amazonReferenceId']
                     try:
                         # 填充收件人信息
                         if 'name' in address_info_detail:
@@ -333,15 +333,15 @@ class InvoiceGenerator:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         box_number_str = code+f"{box_number:05d}" 
-                        Reference_id = ''  # 初始化为None
-                        if box_Reference_id:
-                            Reference_id = box_Reference_id
+                        # Reference_id = ''  # 初始化为None
+                        # if box_Reference_id:
+                        #     Reference_id = box_Reference_id
                         
                         # 设置单元格值和样式
                         cell_data = [
                             # 基本信息
                             (1, box_number_str),                                   # 货箱编号
-                            (2, Reference_id),                                     # 参考编号
+                            # (2, Reference_id),                                     # 参考编号
                             (3, item.msku),                                       # 商品编码
                             
                             # 产品名称信息
@@ -386,7 +386,7 @@ class InvoiceGenerator:
                         row_num += 1
                 
                 row_height = sheet.row_dimensions[12].height
-                self.set_row_heights(sheet, 12, row_num, row_height)
+                self.set_row_heights(sheet, 12, row_num-1, row_height)
                 self.merge_cells_in_range(sheet, 2, 2, 2, 9)
                 self.merge_cells_in_range(sheet, 3, 3, 2, 9)
                 self.merge_cells_in_range(sheet, 4, 4, 2, 9)

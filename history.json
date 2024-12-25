@@ -404,5 +404,93 @@
     "status": "completed",
     "result_file": "20241225112359.xlsx",
     "address_info_status": "failed"
+  },
+  {
+    "task_id": "20241225142657",
+    "type": "packing_list",
+    "timestamp": "20241225_142729",
+    "input_file": "20241225142657_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225142814",
+    "type": "packing_list",
+    "timestamp": "20241225_142817",
+    "input_file": "20241225142814_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225143156",
+    "type": "packing_list",
+    "timestamp": "20241225_143159",
+    "input_file": "20241225143156_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225143247",
+    "type": "packing_list",
+    "timestamp": "20241225_143249",
+    "input_file": "20241225143247_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225143329",
+    "type": "packing_list",
+    "timestamp": "20241225_143331",
+    "input_file": "20241225143329_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225143416",
+    "type": "packing_list",
+    "timestamp": "20241225_143420",
+    "input_file": "20241225143416_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225143534",
+    "type": "packing_list",
+    "timestamp": "20241225_143537",
+    "input_file": "20241225143534_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241225143655",
+    "type": "packing_list",
+    "timestamp": "20241225_143658",
+    "input_file": "20241225143655_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰空派",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]
