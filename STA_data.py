@@ -61,6 +61,7 @@ def request_sta_data(sid, inboundPlanId):
     )
 
     result = response.json()
+ 
     if result['code'] == 1 and result['data']:
         # 获取第一个箱子的地址信息
         address = result['data'][0]['address']
@@ -69,7 +70,7 @@ def request_sta_data(sid, inboundPlanId):
         # print("DEBUG: amazonReferenceId ->", result['data'][0].get('amazonReferenceId'))
         
         shipmentName = result['data'][0].get('shipmentName','')
-        # amazonReferenceId = result['data'][0].get('amazonReferenceId','')
+        amazonReferenceId = result['data'][0].get('amazonReferenceId','')
 
         return {
             'addressLine1': address.get('addressLine1', ''),
@@ -83,6 +84,7 @@ def request_sta_data(sid, inboundPlanId):
             'phoneNumber': address.get('phoneNumber', ''),
             'email': address.get('email', ''),
             'shipmentName':shipmentName,
+            'amazonReferenceId':amazonReferenceId,
         }
 
     return None
@@ -138,9 +140,7 @@ def request_loacl_localTaskId(ticket_id):
         return {
             'sid': record['sid'],
             'inboundPlanId': record['inboundPlanId'],
-            'sellerName': record['sellerName'],
-            # 'amazonReferenceId':record['amazonReferenceId']
-            
+            'sellerName': record['sellerName'],          
         }
     return None
 

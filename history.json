@@ -612,5 +612,62 @@
     "template_name": "依诺达",
     "status": "completed",
     "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20241226154103",
+    "type": "packing_list",
+    "timestamp": "20241226_154105",
+    "input_file": "20241226154103_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛(美洲)",
+    "status": "error",
+    "result_file": null,
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20241226154231",
+    "type": "packing_list",
+    "timestamp": "20241226_154234",
+    "input_file": "20241226154231_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛(美洲)",
+    "status": "error",
+    "result_file": null,
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20241226154506",
+    "type": "packing_list",
+    "timestamp": "20241226_154509",
+    "input_file": "20241226154506_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20241226160113",
+    "type": "packing_list",
+    "timestamp": "20241226_160116",
+    "input_file": "20241226160113_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20241226161129",
+    "type": "packing_list",
+    "timestamp": "20241226_161132",
+    "input_file": "20241226161129_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]
