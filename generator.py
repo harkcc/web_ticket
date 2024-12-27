@@ -364,7 +364,7 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
-                        sheet.row_dimensions[row_num].height = height
+                        sheet.row_dimensions[row_num].height = row_height
                         
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
@@ -691,6 +691,112 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
+    @template_handler("UPS(美洲)")
+    def _fill_ups_template(self, wb, box_data, code=None, address_info=None):
+        """
+        填充UPS美洲模板
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        """
+        with self.db_connector as db:
+            try:
+                sheet = wb['发票']  # 获取发票工作表
+                
+                # 定义样式信息
+                style_info = {
+                    'font': Font(name='Arial', size=10),
+                    'border': Border(left=Side(border_style='thin'),
+                                     right=Side(border_style='thin'),
+                                     top=Side(border_style='thin'),
+                                     bottom=Side(border_style='thin')),
+                    'alignment': Alignment(horizontal='center', vertical='center')
+                }
+
+                # 解除合并单元格
+                print("正在解除合并单元格...")
+                self.unmerge_cells_in_range(sheet, 13, 16, 1, 15)
+
+                row_num = 13  # 从第13行开始填充数据
+                total_quantity = 0
+                total_amount = 0
+                
+                # 遍历每个箱子
+                for box_number, box in box_data.items():
+                    if not box.items:
+                        continue
+                    
+                    start_row = row_num  # 记录当前箱子的起始行
+                    box_items_count = len(box.items)
+                    
+                    for item in box.items:
+                        # 获取产品信息
+                        product_info = self._get_product_info(item.msku, db)
+                        price = product_info.get('price', 0)
+                        quantity = item.box_quantities.get(box_number, 0)
+                        total_price = float(price) * quantity if price else 0
+                        
+                        # 累计总数和总金额
+                        total_quantity += quantity
+                        total_amount += total_price
+                        
+                        # 设置单元格值
+                        cell_data = [
+                            (1, f"FBA{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
+                            (2, box_number if item == box.items[0] else ""),  # 箱号,只在第一行显示
+                            (3, product_info.get('cn_name', '')),  # 中文品名
+                            (4, product_info.get('en_name', '')),  # 英文品名
+                            (5, price),  # 单价
+                            (6, quantity),  # 数量
+                            (7, total_price),  # 总价
+                            (8, f"{product_info.get('material_cn', '')}/{product_info.get('material_en', '')}"),  # 材质
+                            (9, f"{product_info.get('usage_cn', '')}/{product_info.get('usage_en', '')}"),  # 用途
+                            (10, box.weight if item == box.items[0] else ""),  # 毛重,只在第一行显示
+                            (11, box.length if item == box.items[0] else ""),  # 长,只在第一行显示
+                            (12, box.width if item == box.items[0] else ""),  # 宽,只在第一行显示
+                            (13, box.height if item == box.items[0] else ""),  # 高,只在第一行显示
+                            (14, product_info.get('brand', '')),  # 品牌
+                            (15, product_info.get('hs_code', ''))  # HS编码
+                        ]
+                        
+                        # 批量设置单元格值和样式
+                        for column, value in cell_data:
+                            self._set_cell_value(sheet, row_num, column, value, style_info)
+                        
+                        row_num += 1
+                    
+                    # 如果这个箱子有多个产品,需要合并单元格
+                    if box_items_count > 1:
+                        merge_columns = [1, 2, 10, 11, 12, 13]  # 需要合并的列
+                        for col in merge_columns:
+                            self.merge_cells_in_range(sheet, start_row, row_num-1, col, col)
+
+                # 添加总计行
+                total_row = row_num
+                self._set_cell_value(sheet, total_row, 1, "总件数", style_info)
+                self._set_cell_value(sheet, total_row, 2, len(box_data), style_info)
+                self._set_cell_value(sheet, total_row, 6, total_quantity, style_info)
+                self._set_cell_value(sheet, total_row, 7, total_amount, style_info)
+                self._set_cell_value(sheet, total_row, 9, "总重", style_info)
+                
+                # 添加Made in China
+                made_in_row = total_row + 1
+                self._set_cell_value(sheet, made_in_row, 1, "Made in China", style_info)
+                
+                # 添加日期
+                date_row = made_in_row
+                current_date = datetime.now().strftime("%Y.%m.%d")
+                self._set_cell_value(sheet, date_row, 11, "DATE", style_info)
+                self._set_cell_value(sheet, date_row, 12, f"签字日期:{current_date}", style_info)
+                
+                # 设置行高
+                for row in range(13, row_num):
+                    sheet.row_dimensions[row].height = 30
+
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                raise
 
     def _fill_default_template(self, wb, box_data, code=None, address_info=None):
         """默认的模板处理方法"""

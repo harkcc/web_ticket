@@ -105,16 +105,15 @@ def process_task(task_info):
             task_status[task_id]['status'] = 'processing'
             task_status[task_id]['message'] = 'Processing started'
         
-        # 根据文件格式选择处理器
+        # 根据文件格式选择处理器并处理
         if task_info.get('is_simple_format', False):
             processor = SimplePackingListProcessor(task_info['files'])
+            template_type = task_info.get('template_type', '')
+            box_data = processor.process(template_name=template_type)
         else:
             processor = PackingListProcessor(task_info['files'])
+            box_data = processor.process()
             
-        # 获取模板名称并传递给process方法
-        template_type = task_info.get('template_type', '')
-        box_data = processor.process(template_name=template_type)
-        
         if not box_data:
             raise ProcessingError("处理装箱单失败")
         
