@@ -117,20 +117,31 @@ def process_task(task_info):
         if not box_data:
             raise ProcessingError("处理装箱单失败")
         
-        # 如果有code，尝试获取地址信息
+        # 根据模板类型决定是否需要处理编码
+        template_type = task_info.get('template_type', '')
         code = task_info.get('code')
         address_info = None
-        if code:
-            try:
-                address_info = get_address_info(code)
-                if address_info:
-                    print(f"获取到地址信息: {address_info}")
-                else:
-                    print(f"未能获取到地址信息，将继续生成发票")
-            except Exception as e:
-                print(f"获取地址信息时发生错误: {str(e)}，将继续生成发票")
-                # 记录错误但不影响发票生成
-                pass
+        
+        # 检查模板是否需要编码
+        template_config = invoice_generator.template_config.get(template_type, {})
+        requires_code = template_config.get('requires_code', True)  # 默认需要编码
+        
+        if requires_code:
+            if not code:
+                print(f"警告：模板 {template_type} 需要编码，但未提供编码")
+            else:
+                try:
+                    address_info = get_address_info(code)
+                    if address_info:
+                        print(f"获取到地址信息: {address_info}")
+                    else:
+                        print(f"未能获取到地址信息，将继续生成发票")
+                except Exception as e:
+                    print(f"获取地址信息时发生错误: {str(e)}，将继续生成发票")
+                    # 记录错误但不影响发票生成
+                    pass
+        else:
+            print(f"模板 {template_type} 不需要编码，跳过地址信息获取")
         
         # 生成发票
         template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f"{task_info['template_type']}.xlsx")

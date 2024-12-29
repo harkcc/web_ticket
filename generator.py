@@ -41,6 +41,11 @@ class InvoiceGenerator:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.image_folder = os.path.join(current_dir, '产品图片(1)')  # 图片文件夹路径
         
+        # 定义模板配置，只列出不需要编码的模板
+        self.template_config = {
+            "依诺达": {"requires_code": False}  # 不需要编码的模板
+        }
+        
         # 初始化模板处理器字典
         self._template_handlers = {}
         # 注册所有带有_template_keyword属性的方法
@@ -143,16 +148,6 @@ class InvoiceGenerator:
                     cell.font = Font(name='Arial', size=9)
                 except Exception as e:
                     print(f"填充箱数时发生错误: {str(e)}")
-
-                # 先解除所有合并的单元格
-                print(f"正在解除合并单元格...")
-                merged_ranges = list(sheet.merged_cells.ranges)
-                for merged_range in merged_ranges:
-                    try:
-                        sheet.unmerge_cells(str(merged_range))
-                    except:
-                        pass
-                print(f"合并单元格解除完成")
 
                 # 检查所有产品的电磁属性
                 has_electric = False
@@ -316,10 +311,22 @@ class InvoiceGenerator:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
                         # print(f"产品信息：{product_info}")
-                        price = product_info.get('price', 0)
-                        total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
-                        if product_info:
+                        # price = product_info.get('price', 0)
+                        # total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
+                        price = 0
+                        total_price = 0
+                        # if product_info:
+                        #     item.product_name = product_info.get('cn_name', item.product_name)
+
+
+                        # print(f"产品信息：{product_info}")
+                        if product_info is not None:
                             item.product_name = product_info.get('cn_name', item.product_name)
+                            print(f"产品信息：{product_info}")
+                        else:
+                        # 处理未找到产品信息的情况
+                            print(f"未找到产品信息，MSKU: {item.msku}")
+                            item.product_name = "需要补数据"  # 可以设置一个默认值
                         
                         box_number_str = code+f"{box_number:05d}" 
                         # Reference_id = ''  # 初始化为None
@@ -330,24 +337,23 @@ class InvoiceGenerator:
                         cell_data = [
                             # 基本信息
                             (1, box_number_str),                                   # 货箱编号
-                            # (2, Reference_id),                                     # 参考编号
+                            # (2, Reference_id),                                    # 参考编号
                             (3, item.msku),                                       # 商品编码
-                            
                             # 产品名称信息
-                            (4, product_info.get('en_name', '')),                 # 英文名称
-                            (5, product_info.get('cn_name', '')),                 # 中文名称
-                            (6, product_info.get('brand', '')),                   # 品牌
-                            (7, product_info.get('model', '')),                   # 型号
+                            (4, product_info.get('en_name', '') if product_info else ''),                 # 英文名称
+                            (5, product_info.get('cn_name', '') if product_info else ''),                 # 中文名称
+                            (6, product_info.get('brand', '') if product_info else ''),                   # 品牌
+                            (7, product_info.get('model', '') if product_info else ''),                   # 型号
                             
                             # 产品材料和用途
-                            (8, product_info.get('material_cn', '')),             # 中文材料
-                            (9, product_info.get('material_en', '')),             # 英文材料
+                            (8, product_info.get('material_cn', '') if product_info else ''),             # 中文材料
+                            (9, product_info.get('material_en', '') if product_info else ''),             # 英文材料
                             (10, str(product_info.get('usage_en', '') + 
-                                   product_info.get('usage_cn', ''))),            # 用途
+                                   product_info.get('usage_cn', '')) if product_info else ''),            # 用途
                             (11, '纸箱'),                                         # 包装类型
                             
                             # 产品规格信息
-                            (12, product_info.get('hs_code', '')),                # HS编码
+                            (12, product_info.get('hs_code', '') if product_info else ''),                # HS编码
                             (13, item.box_quantities.get(box_number, 0)),         # 数量
                             
                             # 箱体信息
@@ -357,7 +363,7 @@ class InvoiceGenerator:
                             (19, box.weight if box.weight is not None else ""),   # 重量
                             
                             # 其他信息
-                            (20, product_info.get('link', '')),                   # 链接
+                            (20, product_info.get('link', '') if product_info else ''),                   # 链接
                             (21, '')                                              # 图片占位
                         ]
                         # 批量设置单元格值和样式
@@ -745,19 +751,19 @@ class InvoiceGenerator:
                         cell_data = [
                             (1, f"FBA{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
                             (2, box_number if item == box.items[0] else ""),  # 箱号,只在第一行显示
-                            (3, product_info.get('cn_name', '')),  # 中文品名
-                            (4, product_info.get('en_name', '')),  # 英文品名
+                            (3, product_info.get('cn_name', '') if product_info else ''),  # 中文品名
+                            (4, product_info.get('en_name', '') if product_info else ''),  # 英文品名
                             (5, price),  # 单价
                             (6, quantity),  # 数量
                             (7, total_price),  # 总价
-                            (8, f"{product_info.get('material_cn', '')}/{product_info.get('material_en', '')}"),  # 材质
-                            (9, f"{product_info.get('usage_cn', '')}/{product_info.get('usage_en', '')}"),  # 用途
+                            (8, f"{product_info.get('material_cn', '')}/{product_info.get('material_en', '')}" if product_info else ''),  # 材质
+                            (9, f"{product_info.get('usage_cn', '')}/{product_info.get('usage_en', '')}" if product_info else ''),  # 用途
                             (10, box.weight if item == box.items[0] else ""),  # 毛重,只在第一行显示
                             (11, box.length if item == box.items[0] else ""),  # 长,只在第一行显示
                             (12, box.width if item == box.items[0] else ""),  # 宽,只在第一行显示
                             (13, box.height if item == box.items[0] else ""),  # 高,只在第一行显示
-                            (14, product_info.get('brand', '')),  # 品牌
-                            (15, product_info.get('hs_code', ''))  # HS编码
+                            (14, product_info.get('brand', '') if product_info else ''),  # 品牌
+                            (15, product_info.get('hs_code', '') if product_info else '')  # HS编码
                         ]
                         
                         # 批量设置单元格值和样式

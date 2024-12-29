@@ -272,13 +272,13 @@
                     <option value="表格模版/顺丰.xlsx">顺丰</option>
                     <option value="表格模版/叮铛(美洲).xlsx">叮铛(美洲)</option>
                     <option value="表格模版/UPS(美洲).xlsx">UPS(美洲)</option>
-
                 </select>
             </div>
             
             <div class="form-group">
                 <label for="codeInput">编码：</label>
-                <input type="text" id="codeInput" name="codeInput" required placeholder="请输入编码">
+                <input type="text" id="codeInput" name="codeInput" placeholder="请输入编码">
+                <div class="help-text" id="codeInputHelp"></div>
             </div>
 
             <div class="form-group">
@@ -494,6 +494,33 @@
             loadHistory();
         }
         
+        // 模板配置，只列出不需要编码的模板
+        const templateConfig = {
+            "依诺达": { requiresCode: false }
+        };
+
+        // 处理模板选择变化
+        document.getElementById('templateSelect').addEventListener('change', function(e) {
+            const selectedTemplate = e.target.value.split('/').pop().replace('.xlsx', '');
+            const codeInput = document.getElementById('codeInput');
+            const codeInputHelp = document.getElementById('codeInputHelp');
+            
+            // 如果模板不在配置中，则默认需要编码
+            const templateInfo = templateConfig[selectedTemplate] || { requiresCode: true };
+            
+            if (templateInfo.requiresCode) {
+                codeInput.required = true;
+                codeInput.placeholder = "请输入编码（必填）";
+                codeInputHelp.textContent = "此模板需要编码";
+                codeInputHelp.style.color = "#ff4444";
+            } else {
+                codeInput.required = false;
+                codeInput.placeholder = "请输入编码（选填）";
+                codeInputHelp.textContent = "此模板不需要编码";
+                codeInputHelp.style.color = "#666";
+            }
+        });
+
         // 处理文件上传
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
