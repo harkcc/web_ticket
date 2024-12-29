@@ -833,5 +833,27 @@
     "template_name": "依诺达",
     "status": "completed",
     "result_file": "20241229222502.xlsx"
+  },
+  {
+    "task_id": "20241229225834",
+    "type": "packing_list",
+    "timestamp": "20241229_225838",
+    "input_file": "20241229225834_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "叮铛卡航限时达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20241229231513",
+    "type": "packing_list",
+    "timestamp": "20241229_231516",
+    "input_file": "20241229231513_packing_list.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "顺丰",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]

@@ -188,10 +188,14 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        # print(f"产品信息：{product_info}")
-                        price = product_info.get('price', 0)
-                        total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
-                        if product_info:
+                        # 处理产品信息为None的情况
+                        if product_info is None:
+                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            price = 0
+                            total_price = 0
+                        else:
+                            price = product_info.get('price', 0)
+                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         # 设置单元格值和样式ç
@@ -465,10 +469,14 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        # print(f"产品信息：{product_info}")
-                        price = product_info.get('price', 0)
-                        total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
-                        if product_info:
+                        # 处理产品信息为None的情况
+                        if product_info is None:
+                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            price = 0
+                            total_price = 0
+                        else:
+                            price = product_info.get('price', 0)
+                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         # 设置单元格值和样式ç
@@ -640,17 +648,20 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        # print(f"产品信息：{product_info}")
-                        price = product_info.get('price', 0)
-                        total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
-                        box_number_str = code+f"{box_number:05d}" 
-                        if product_info:
+                        # 处理产品信息为None的情况
+                        if product_info is None:
+                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            price = 0
+                            total_price = 0
+                        else:
+                            price = product_info.get('price', 0)
+                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
                         Reference_id = address_info['address_info'].get('amazonReferenceId','')
 
                         # 设置单元格值和样式ç
                         cell_data = [
-                            (1, box_number_str),                    
+                            (1, code+f"{box_number:05d}"),                    
                             # (2, box.weight if box.weight is not None else ""),  
                             (2,Reference_id),  
                             (3,f"{box.length}*{box.width}*{box.height}"),  
@@ -739,12 +750,18 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        price = product_info.get('price', 0)
-                        quantity = item.box_quantities.get(box_number, 0)
-                        total_price = float(price) * quantity if price else 0
+                        # 处理产品信息为None的情况
+                        if product_info is None:
+                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            price = 0
+                            total_price = 0
+                        else:
+                            price = product_info.get('price', 0)
+                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
+                            item.product_name = product_info.get('cn_name', item.product_name)
                         
                         # 累计总数和总金额
-                        total_quantity += quantity
+                        total_quantity += item.box_quantities.get(box_number, 0)
                         total_amount += total_price
                         
                         # 设置单元格值
@@ -754,7 +771,7 @@ class InvoiceGenerator:
                             (3, product_info.get('cn_name', '') if product_info else ''),  # 中文品名
                             (4, product_info.get('en_name', '') if product_info else ''),  # 英文品名
                             (5, price),  # 单价
-                            (6, quantity),  # 数量
+                            (6, item.box_quantities.get(box_number, 0)),  # 数量
                             (7, total_price),  # 总价
                             (8, f"{product_info.get('material_cn', '')}/{product_info.get('material_en', '')}" if product_info else ''),  # 材质
                             (9, f"{product_info.get('usage_cn', '')}/{product_info.get('usage_en', '')}" if product_info else ''),  # 用途
