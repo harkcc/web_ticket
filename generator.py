@@ -181,7 +181,11 @@ class InvoiceGenerator:
                 index = 1    # 添加序号计数器，从1开始
 
                 # 遍历每个箱子
-                for box_number, box in box_data.items():
+
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
                     print(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
@@ -292,12 +296,10 @@ class InvoiceGenerator:
                         if 'countryCode' in address_info_detail:
                             address_parts.append(address_info_detail['countryCode'])
 
-
                         if address_parts:
                             cell = sheet.cell(row=4, column=2)  
                             cell.value = ', '.join(address_parts)
-
-                        
+  
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -306,8 +308,11 @@ class InvoiceGenerator:
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[12].height
 
-                # 遍历每个箱子
-                for box_number, box in box_data.items():
+                # 将box_data按箱号排序
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
                     print(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
@@ -332,7 +337,8 @@ class InvoiceGenerator:
                             print(f"未找到产品信息，MSKU: {item.msku}")
                             item.product_name = "需要补数据"  # 可以设置一个默认值
                         
-                        box_number_str = code+f"{box_number:05d}" 
+                        # box_number_str = code+f"{box_number:05d}" 
+                        box_number_str = code+'00000'+str(box_number)
                         # Reference_id = ''  # 初始化为None
                         # if box_Reference_id:
                         #     Reference_id = box_Reference_id
@@ -462,7 +468,10 @@ class InvoiceGenerator:
                 row_height = sheet.row_dimensions[17].height
 
                 # 遍历每个箱子
-                for box_number, box in box_data.items():
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
                     print(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
@@ -595,9 +604,9 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['countryCode'])
 
                         # 填充地址信息
-                        if 'addressLine1' in address_info_detail:
-                            cell = sheet.cell(row=6, column=2)  # B3单元格
-                            cell.value = address_info_detail['addressLine1']
+                        # if 'addressLine1' in address_info_detail:
+                        #     cell = sheet.cell(row=6, column=2)  # B3单元格
+                        #     cell.value = address_info_detail['addressLine1']
 
                         # 城市
                         if 'city' in address_info_detail:
@@ -641,7 +650,10 @@ class InvoiceGenerator:
                 Reference_id = ''
 
                 # 遍历每个箱子
-                for box_number, box in box_data.items():
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
                     print(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
@@ -740,7 +752,10 @@ class InvoiceGenerator:
                 total_amount = 0
                 
                 # 遍历每个箱子
-                for box_number, box in box_data.items():
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
                     if not box.items:
                         continue
                     
