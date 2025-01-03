@@ -27,8 +27,7 @@ uploads/
 # 忽略特定文件，和文件夹
 test_mongo.py/
 图片文档/
-
-
+项目说明文档.md
 # 允许所有Excel文件
 # *.xlsx
 # !template*.xlsx
