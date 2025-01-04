@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>产品编辑</title>
+    <link rel="stylesheet" href="{{ url_for('static',filename='/js/index.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static',filename='/js/vxe-pc-ui.style.min.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static',filename='/js/vxe-table.style.min.css') }}"/>
+    <script src="{{ url_for('static',filename='/js/vue@3') }}"></script>
+    <script src="{{ url_for('static',filename='/js/element-plus') }}"></script>
+    <script src="{{ url_for('static',filename='/js/axios.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='/js/xe-utils.umd.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='/js/vxe-pc-ui.index.umd.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='/js/vxe-table.index.umd.min.js') }}"></script>
+</head>
+<body>
+<div id="app">
+    <div style="display: flex;flex-direction: column;padding: 20px;height: calc(100% - 40px)">
+        <p style="height: 34px;display: flex">
+            <el-text type="primary" style="margin-right: 30px">共[[ pageConfig.total ]]结果，当前已加载[[tableData.length]]个
+            </el-text>
+            <vxe-input v-model="msku" placeholder="请输入msku" style="width: 300px;margin-right: 20px"></vxe-input>
+            <vxe-button status="primary" icon="vxe-icon-search" @click="search">搜索</vxe-button>
+            <vxe-button status="primary" icon="vxe-icon-refresh" @click="()=>{msku='';search()}">重置</vxe-button>
+            <vxe-button status="primary" icon="vxe-icon-add" @click="addEvent">新增</vxe-button>
+        </p>
+
+        <div style="flex:1">
+            <vxe-table
+                    border
+                    show-overflow
+                    id="sjsj"
+                    :loading="loading"
+                    height="auto" :column-config="{ resizable: true }" header-align="center"
+                    align="center" :row-config="{ isCurrent: true, isHover: true, useKey: true }"
+                    :custom-config="customConfig" :seq-config="seqConfig"
+                    :data="tableData">
+                <vxe-column type="seq" width="60"></vxe-column>
+                <vxe-column v-for="(col,index) in columns" :field="col[0]" :title="col[1]" :key="index"
+                            :width="col[2]"></vxe-column>
+                <vxe-column title="操作" width="100" fixed="right">
+                    <template #default="{ row }">
+                        <vxe-button mode="text" status="primary" icon="vxe-icon-edit" @click="editRow(row)">编辑
+                        </vxe-button>
+                    </template>
+                </vxe-column>
+            </vxe-table>
+        </div>
+        <div style="width: 100%;margin-top: 0">
+            <vxe-pager background :page-sizes="[20, 50, 100, 200, 500]"
+                       v-model:currentPage="pageConfig.currentPage" v-model:pageSize="pageConfig.pageSize"
+                       :layouts="['Home', 'PrevJump', 'PrevPage', 'JumpNumber', 'NextPage', 'NextJump', 'End', 'Sizes', 'FullJump', 'Total']"
+                       :total="pageConfig.total" @page-change="page_change">
+            </vxe-pager>
+        </div>
+        <vxe-modal
+                resize
+                destroy-on-close
+                show-footer
+                show-confirm-button
+                show-cancel-button
+                v-model="showEditPopup"
+                :title="selectRow ? '编辑' : '新增'"
+                width="90vw"
+                height="90vh"
+                :loading="loading2"
+                :confirm-closable="false"
+                @confirm="confirmEvent">
+            <vxe-form ref="formRef" v-bind="formOptions"></vxe-form>
+        </vxe-modal>
+    </div>
+
+</div>
+<script>
+    const {createApp, ref, reactive, onMounted} = Vue
+
+    createApp({
+        delimiters: ['[[', ']]'],
+
+        setup() {
+            const formRef = ref()
+            const msku = ref("")
+            const showEditPopup = ref(false)
+            const loading = ref(false)
+            const loading2 = ref(false)
+
+            const pageConfig = reactive({
+                total: 0,
+                currentPage: 1,
+                pageSize: 20
+            })
+            const columns = [
+                ['msku', 'MSKU', 300],
+                ['productNameZh', '中文品名', 100],
+                ['productNameEn', '英文品名', 100],
+                ['price', '价格', 60],
+                ['materialZh', '中文材质', 150],
+                ['materialEn', '英文材质', 150],
+                ['useZh', '中文用途', 100],
+                ['useEn', '英文用途', 100],
+                ['model', '型号', 100],
+                ['HS', '海关HS编码', 150],
+                ['productLink', '商品链接', 200],
+                ['electrified', '是否带电', 60],
+                ['magnetic', '是否带磁', 60],
+                ['brand', '品牌', 100],
+                ['weight', '重量', 60],
+                ['asin', 'ASIN', 150],
+                ['putAwayFee', '上架手续费', 60],
+                ['outboundFee', '出库手续费', 60]
+            ]
+            const selectRow = ref()
+            const defaultData = {
+                HS: null,
+                asin: null,
+                brand: '无',
+                electrified: null,
+                magnetic: null,
+                materialEn: null,
+                materialZh: null,
+                model: '无',
+                msku: null,
+                outboundFee: null,
+                price: null,
+                productLink: null,
+                productNameEn: null,
+                productNameZh: null,
+                putAwayFee: null,
+                useEn: null,
+                useZh: null,
+                weight: null,
+                msku
+            }
+            const yesOrNotRender = reactive({
+                name: 'VxeSelect',
+                options: [
+                    {label: '是', value: '是'},
+                    {label: '否', value: '否'}
+                ]
+            })
+
+            const formOptions = reactive({
+                titleWidth: 80,
+                titleAlign: 'right',
+                titleColon: true,
+                data: XEUtils.clone(defaultData, true),
+                rules: {
+                    msku: [
+                        {required: true, message: '请输入msku'},
+                    ],
+                    productNameZh: [
+                        {required: true, message: '请输入中文品名'}
+                    ],
+                    materialZh: [
+                        {required: true, message: '请输入中文材质'}
+                    ],
+                    materialEn: [
+                        {required: true, message: '请输入英文材质'}
+                    ],
+                    useZh: [
+                        {required: true, message: '请输入中文用途'}
+                    ],
+                    useEn: [
+                        {required: true, message: '请输入英文用途'}
+                    ],
+                    HS: [
+                        {required: true, message: '请输入海关HS编码'}
+                    ],
+                    electrified: [
+                        {required: true, message: '请输入是否带电'}
+                    ],
+                    magnetic: [
+                        {required: true, message: '请输入是否带磁'}
+                    ],
+                    brand: [
+                        {required: true, message: '请输入品牌'}
+                    ],
+                    weight: [
+                        {required: true, message: '请输入重量'}
+                    ],
+                },
+                items: [
+                    {field: 'msku', title: 'MSKU', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'productNameZh', title: '中文品名', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'productNameEn', title: '英文品名', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'price', title: '价格', span: 8, itemRender: {name: 'VxeNumberInput', type: 'float'}},
+                    {field: 'materialZh', title: '中文材质', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'materialEn', title: '英文材质', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'useZh', title: '中文用途', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'useEn', title: '英文用途', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'model', title: '型号', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'HS', title: '海关HS编码', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'productLink', title: '商品链接', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'electrified', title: '是否带电', span: 8, itemRender: yesOrNotRender},
+                    {field: 'magnetic', title: '是否带磁', span: 8, itemRender: yesOrNotRender},
+                    {field: 'brand', title: '品牌', span: 8, itemRender: {name: 'VxeInput'}},
+                    {field: 'weight', title: '重量', span: 8, itemRender: {name: 'VxeNumberInput', type: 'float'}},
+                    {field: 'asin', title: 'ASIN', span: 8, itemRender: {name: 'VxeInput'}},
+                    {
+                        field: 'putAwayFee',
+                        title: '上架手续费',
+                        span: 8,
+                        itemRender: {name: 'VxeNumberInput', type: 'float'}
+                    },
+                    {
+                        field: 'outboundFee',
+                        title: '出库手续费',
+                        span: 8,
+                        itemRender: {name: 'VxeNumberInput', type: 'float'}
+                    },
+                ]
+            })
+            const seqConfig = reactive({
+                seqMethod({rowIndex}) {
+                    const {pageSize, currentPage} = pageConfig
+                    return (currentPage - 1) * pageSize + rowIndex + 1
+                }
+            })
+            const customConfig = reactive({
+                mode: 'popup',
+                storage: true,
+            })
+            const tableData = ref([
+                {id: 10001, name: 'Test1', nickname: '', role: 'Develop', sex: '', age: 28, address: 'test abc'},
+                {id: 10002, name: 'Test2', nickname: 'Test 2', role: 'Test', sex: '', age: null, address: 'Guangzhou'},
+                {id: 10003, name: 'Test3', nickname: '', role: 'PM', sex: 'Man', age: null, address: 'Shanghai'},
+                {id: 10004, name: 'Test4', nickname: 'Test 4', role: 'Designer', sex: '', age: 24, address: 'Shanghai'}
+            ])
+
+            const search = () => {
+                let data = {
+                    page: pageConfig.currentPage,
+                    pageSize: pageConfig.pageSize
+                }
+                if (msku.value) {
+                    data.filters = {msku: msku.value}
+                }
+                let config = {
+                    method: 'post',
+                    maxBodyLength: Infinity,
+                    url: '/api/get_msku_info/',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    data: JSON.stringify(data)
+                };
+                loading.value = true;
+                tableData.value = [];
+                axios.request(config)
+                    .then((response) => {
+                        loading.value = false;
+                        tableData.value = response.data.data;
+                        pageConfig.total = response.data.total;
+                    })
+                    .catch((error) => {
+                        loading.value = false;
+                    });
+
+            }
+            const save_data = (data) => {
+                let config = {
+                    method: 'post',
+                    maxBodyLength: Infinity,
+                    url: '/api/save_msku_info/',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    data: JSON.stringify(data)
+                };
+                loading2.value = true
+                axios.request(config)
+                    .then((response) => {
+                        VxeUI.modal.message({content: '保存成功', status: 'success'})
+                        loading2.value = false
+                        showEditPopup.value = false
+                        search()
+                    })
+                    .catch((error) => {
+                        loading2.value = false
+                        VxeUI.modal.message({content: '保存失败', status: 'error'})
+                    })
+
+            }
+            const addEvent = () => {
+                selectRow.value = undefined
+                formOptions.data = XEUtils.clone(defaultData, true)
+                showEditPopup.value = true
+            }
+            const editRow = (row) => {
+                selectRow.value = row
+                formOptions.data = Object.assign(XEUtils.clone(defaultData, true), row)
+                showEditPopup.value = true
+            }
+            const confirmEvent = async () => {
+                const $form = formRef.value
+                if ($form) {
+                    const errMap = await $form.validate()
+                    if (!errMap) {
+                        save_data($form.data)
+                    }
+                }
+            }
+
+            const page_change = ({pageSize, currentPage}) => {
+                pageConfig.currentPage = currentPage
+                pageConfig.pageSize = pageSize
+                {#search()#}
+            }
+            onMounted(() => {
+                search()
+            })
+            return {
+                columns,
+                formRef,
+                showEditPopup,
+                loading,
+                loading2,
+                selectRow,
+                defaultData,
+                formOptions,
+                tableData,
+                addEvent,
+                editRow,
+                confirmEvent,
+                seqConfig,
+                customConfig,
+                pageConfig,
+                page_change,
+                search,
+                msku
+            }
+        }
+    }).use(ElementPlus).use(VxeUI).use(VXETable).mount('#app')
+</script>
+</body>
+</html>
+
+<style>
+    body * {
+        font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif !important;
+        scrollbar-width: thin;
+    }
+
+    body {
+        color: rgb(0, 0, 0);
+    }
+
+    html, body, #root {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    body {
+        display: block;
+    }
+
+    #app {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>

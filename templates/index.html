@@ -13,32 +13,38 @@
             background-color: #f5f5f5;
             color: #333;
         }
+
         .container {
             background-color: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
+
         h1, h2 {
             text-align: center;
             color: #2c3e50;
             margin-bottom: 30px;
             font-size: 24px;
         }
+
         h2 {
             font-size: 20px;
             margin-top: 0;
         }
+
         .form-group {
             margin-bottom: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: #2c3e50;
         }
+
         input[type="file"], input[type="text"], select, textarea {
             width: 100%;
             padding: 10px;
@@ -47,14 +53,17 @@
             background-color: #fff;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
+
         input[type="file"]:hover, input[type="text"]:hover, select:hover, textarea:hover {
             border-color: #4CAF50;
         }
+
         input[type="file"]:focus, input[type="text"]:focus, select:focus, textarea:focus {
             outline: none;
             border-color: #4CAF50;
-            box-shadow: 0 0 0 2px rgba(76,175,80,0.2);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
         }
+
         select {
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
@@ -62,6 +71,7 @@
             background-position: right 10px center;
             padding-right: 30px;
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -74,62 +84,74 @@
             font-weight: 500;
             transition: background-color 0.3s;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         #status {
             margin-top: 20px;
             padding: 15px;
             border-radius: 6px;
             display: none;
         }
+
         .success {
             background-color: #e8f5e9;
             color: #2e7d32;
             border: 1px solid #a5d6a7;
         }
+
         .error {
             background-color: #fdecea;
             color: #c62828;
             border: 1px solid #ef9a9a;
         }
+
         .processing {
             background-color: #e3f2fd;
             color: #1565c0;
             border: 1px solid #90caf9;
         }
-        
+
         /* 历史记录样式 */
         .history-container {
             margin-top: 30px;
         }
+
         .history-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
+
         .history-table th,
         .history-table td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
+
         .history-table th {
             background-color: #f8f9fa;
             font-weight: 500;
             color: #2c3e50;
         }
+
         .history-table tr:hover {
             background-color: #f5f5f5;
         }
+
         .download-link {
             color: #4CAF50;
             text-decoration: none;
             font-weight: 500;
         }
+
         .download-link:hover {
             text-decoration: underline;
         }
+
         .refresh-button {
             background-color: #2196F3;
             color: white;
@@ -140,64 +162,69 @@
             font-size: 14px;
             margin-bottom: 10px;
         }
+
         .refresh-button:hover {
             background-color: #1976D2;
         }
+
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
             font-weight: 500;
         }
+
         .status-completed {
             background-color: #e8f5e9;
             color: #2e7d32;
         }
+
         .status-failed {
             background-color: #fdecea;
             color: #c62828;
         }
+
         .status-processing {
             background-color: #e3f2fd;
             color: #1565c0;
         }
-        
+
         /* 新增样式 */
         .filter-section {
             background-color: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
-        
+
         .filter-group {
             display: flex;
             gap: 20px;
             margin-bottom: 15px;
         }
-        
+
         .filter-item {
             flex: 1;
         }
-        
+
         .filter-buttons {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
             margin-top: 15px;
         }
-        
+
         .btn-primary {
             background-color: #4CAF50;
             color: white;
         }
-        
+
         .btn-secondary {
             background-color: #6c757d;
             color: white;
         }
-        
+
         /* 新增通知样式 */
         .notification {
             position: fixed;
@@ -205,7 +232,7 @@
             right: 20px;
             padding: 15px 25px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -257,320 +284,338 @@
                 opacity: 0;
             }
         }
+
+        .link {
+            text-decoration: none; /* 去掉下划线 */
+            color: #007bff; /* 设定链接文本颜色 */
+            background-color: #f5f5f5; /* 设定链接背景色 */
+            padding: 5px 10px; /* 设定内边距 */
+            border: 1px solid #007bff; /* 设定边框 */
+            border-radius: 5px; /* 设定圆角 */
+            margin: 5px; /* 设定外边距 */
+            display: inline-block; /* 将链接设置为块级元素，以便于设置宽度和高度 */
+            transition: background-color 0.3s, color 0.3s; /* 添加过渡效果 */
+        }
+
+        .link:hover {
+            background-color: #007bff; /* 鼠标悬停时改变背景色 */
+            color: #fff; /* 鼠标悬停时改变文本颜色 */
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>文件处理系统</h1>
-        <form id="uploadForm">
-            <div class="form-group">
-                <label for="templateSelect">选择模板：</label>
-                <select id="templateSelect" name="templateSelect" required>
-                    <option value="">请选择模板</option>
-                    <option value="表格模版/叮铛卡航限时达.xlsx">叮铛卡航限时达</option>
-                    <option value="表格模版/依诺达.xlsx">依诺达</option>
-                    <option value="表格模版/顺丰.xlsx">顺丰</option>
-                    <option value="表格模版/叮铛(美洲).xlsx">叮铛(美洲)</option>
-                    <option value="表格模版/UPS(美洲).xlsx">UPS(美洲)</option>
-                    <option value="表格模版/林道.xlsx">林道</option>
-                    <option value="表格模版/林道UPS.xlsx">林道UPS</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="codeInput">编码：</label>
-                <input type="text" id="codeInput" name="codeInput" placeholder="请输入编码">
-                <div class="help-text" id="codeInputHelp"></div>
-            </div>
+<div class="container">
+    <h1>文件处理系统</h1>
+    <a href="/msku_edit" target="_blank" class="link">编辑产品表</a>
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="templateSelect">选择模板：</label>
+            <select id="templateSelect" name="templateSelect" required>
+                <option value="">请选择模板</option>
+                <option value="表格模版/叮铛卡航限时达.xlsx">叮铛卡航限时达</option>
+                <option value="表格模版/依诺达.xlsx">依诺达</option>
+                <option value="表格模版/顺丰.xlsx">顺丰</option>
+                <option value="表格模版/叮铛(美洲).xlsx">叮铛(美洲)</option>
+                <option value="表格模版/UPS(美洲).xlsx">UPS(美洲)</option>
+                <option value="表格模版/林道.xlsx">林道</option>
+                <option value="表格模版/林道UPS.xlsx">林道UPS</option>
+            </select>
+        </div>
 
-            <div class="form-group">
-                <label for="packing_list">领星装箱单（详细格式）：</label>
-                <input type="file" id="packing_list" name="packing_list" accept=".xlsx,.xls">
-                <div class="help-text">请上传领星导出的标准装箱单Excel文件</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="invoice_info">基础装箱单（简单格式）：</label>
-                <div class="help-text">支持QV票格式，包含箱规、重量和SKU数量信息</div>
-                <input type="file" id="invoice_info" name="invoice_info" accept=".xlsx,.xls">
-            </div>
-            
-            <button type="submit">开始处理</button>
-        </form>
-        <div id="status"></div>
-    </div>
+        <div class="form-group">
+            <label for="codeInput">编码：</label>
+            <input type="text" id="codeInput" name="codeInput" placeholder="请输入编码">
+            <div class="help-text" id="codeInputHelp"></div>
+        </div>
 
-    <div class="container history-container">
-        <h2>处理历史</h2>
-        
-        <!-- 筛选部分 -->
-        <div class="filter-section">
-            <h3 style="margin-top: 0; margin-bottom: 15px;">筛选选项</h3>
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="startDate">开始日期：</label>
-                    <input type="datetime-local" id="startDate" class="form-control">
-                </div>
-                <div class="filter-item">
-                    <label for="endDate">结束日期：</label>
-                    <input type="datetime-local" id="endDate" class="form-control">
-                </div>
-                <div class="filter-item" style="display: flex; align-items: flex-end;">
-                    <button type="button" class="btn btn-primary" onclick="applyDateFilters()">筛选日期</button>
-                </div>
+        <div class="form-group">
+            <label for="packing_list">领星装箱单（详细格式）：</label>
+            <input type="file" id="packing_list" name="packing_list" accept=".xlsx,.xls">
+            <div class="help-text">请上传领星导出的标准装箱单Excel文件</div>
+        </div>
+
+        <div class="form-group">
+            <label for="invoice_info">基础装箱单（简单格式）：</label>
+            <div class="help-text">支持QV票格式，包含箱规、重量和SKU数量信息</div>
+            <input type="file" id="invoice_info" name="invoice_info" accept=".xlsx,.xls">
+        </div>
+
+        <button type="submit">开始处理</button>
+    </form>
+    <div id="status"></div>
+</div>
+
+<div class="container history-container">
+    <h2>处理历史</h2>
+
+    <!-- 筛选部分 -->
+    <div class="filter-section">
+        <h3 style="margin-top: 0; margin-bottom: 15px;">筛选选项</h3>
+        <div class="filter-group">
+            <div class="filter-item">
+                <label for="startDate">开始日期：</label>
+                <input type="datetime-local" id="startDate" class="form-control">
             </div>
-            
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="codeFilter">编码搜索：</label>
-                    <input type="text" id="codeFilter" class="form-control" placeholder="输入编码搜索">
-                </div>
-                <div class="filter-item" style="display: flex; align-items: flex-end;">
-                    <button type="button" class="btn btn-primary" onclick="applyCodeFilter()">搜索编码</button>
-                </div>
+            <div class="filter-item">
+                <label for="endDate">结束日期：</label>
+                <input type="datetime-local" id="endDate" class="form-control">
             </div>
-            
-            <div class="filter-buttons">
-                <button type="button" class="btn btn-secondary" onclick="resetFilters()">重置所有筛选</button>
+            <div class="filter-item" style="display: flex; align-items: flex-end;">
+                <button type="button" class="btn btn-primary" onclick="applyDateFilters()">筛选日期</button>
             </div>
         </div>
-        
-        <button class="refresh-button" onclick="loadHistory()">刷新历史记录</button>
-        <table class="history-table">
-            <thead>
-                <tr>
-                    <th>时间</th>
-                    <th>编码</th>
-                    <th>模板</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody">
-            </tbody>
-        </table>
+
+        <div class="filter-group">
+            <div class="filter-item">
+                <label for="codeFilter">编码搜索：</label>
+                <input type="text" id="codeFilter" class="form-control" placeholder="输入编码搜索">
+            </div>
+            <div class="filter-item" style="display: flex; align-items: flex-end;">
+                <button type="button" class="btn btn-primary" onclick="applyCodeFilter()">搜索编码</button>
+            </div>
+        </div>
+
+        <div class="filter-buttons">
+            <button type="button" class="btn btn-secondary" onclick="resetFilters()">重置所有筛选</button>
+        </div>
     </div>
 
-    <script>
-        function updateStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = type;
-            statusDiv.style.display = 'block';
-            
-            // 显示通知
-            if (type === 'success' || type === 'error') {
-                showNotification(message, type);
-            }
+    <button class="refresh-button" onclick="loadHistory()">刷新历史记录</button>
+    <table class="history-table">
+        <thead>
+        <tr>
+            <th>时间</th>
+            <th>编码</th>
+            <th>模板</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody id="historyTableBody">
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function updateStatus(message, type) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = message;
+        statusDiv.className = type;
+        statusDiv.style.display = 'block';
+
+        // 显示通知
+        if (type === 'success' || type === 'error') {
+            showNotification(message, type);
+        }
+    }
+
+    function showNotification(message, type) {
+        // 移除现有的通知
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
         }
 
-        function showNotification(message, type) {
-            // 移除现有的通知
-            const existingNotification = document.querySelector('.notification');
-            if (existingNotification) {
-                existingNotification.remove();
-            }
-
-            // 创建新的通知
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
+        // 创建新的通知
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
                 <span>${message}</span>
                 <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
             `;
 
-            // 添加到页面
-            document.body.appendChild(notification);
+        // 添加到页面
+        document.body.appendChild(notification);
 
-            // 3秒后自动关闭
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.style.animation = 'fadeOut 0.3s ease-out';
-                    setTimeout(() => notification.remove(), 300);
+        // 3秒后自动关闭
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 3000);
+    }
+
+    function formatDateToCustom(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+    }
+
+    function parseCustomDate(dateStr) {
+        // 解析格式为 "20241209_171615" 的日期字符串
+        const year = dateStr.substring(0, 4);
+        const month = dateStr.substring(4, 6);
+        const day = dateStr.substring(6, 8);
+        const hour = dateStr.substring(9, 11);
+        const minute = dateStr.substring(11, 13);
+        const second = dateStr.substring(13, 15);
+        return new Date(year, month - 1, day, hour, minute, second);
+    }
+
+    function loadHistory(filters = {}) {
+        fetch('/history')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('historyTableBody');
+                tbody.innerHTML = '';
+
+                // 过滤数据
+                let filteredData = data;
+
+                if (filters.startDate || filters.endDate) {
+                    filteredData = filteredData.filter(item => {
+                        const itemDate = parseCustomDate(item.timestamp);
+
+                        if (filters.startDate && filters.endDate) {
+                            const start = new Date(filters.startDate);
+                            const end = new Date(filters.endDate);
+                            return itemDate >= start && itemDate <= end;
+                        } else if (filters.startDate) {
+                            const start = new Date(filters.startDate);
+                            return itemDate >= start;
+                        } else if (filters.endDate) {
+                            const end = new Date(filters.endDate);
+                            return itemDate <= end;
+                        }
+                        return true;
+                    });
                 }
-            }, 3000);
-        }
 
-        function formatDateToCustom(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            return `${year}${month}${day}_${hours}${minutes}${seconds}`;
-        }
+                if (filters.code) {
+                    filteredData = filteredData.filter(item =>
+                        item.code_input.toLowerCase().includes(filters.code.toLowerCase())
+                    );
+                }
 
-        function parseCustomDate(dateStr) {
-            // 解析格式为 "20241209_171615" 的日期字符串
-            const year = dateStr.substring(0, 4);
-            const month = dateStr.substring(4, 6);
-            const day = dateStr.substring(6, 8);
-            const hour = dateStr.substring(9, 11);
-            const minute = dateStr.substring(11, 13);
-            const second = dateStr.substring(13, 15);
-            return new Date(year, month - 1, day, hour, minute, second);
-        }
-
-        function loadHistory(filters = {}) {
-            fetch('/history')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('historyTableBody');
-                    tbody.innerHTML = '';
-                    
-                    // 过滤数据
-                    let filteredData = data;
-                    
-                    if (filters.startDate || filters.endDate) {
-                        filteredData = filteredData.filter(item => {
-                            const itemDate = parseCustomDate(item.timestamp);
-                            
-                            if (filters.startDate && filters.endDate) {
-                                const start = new Date(filters.startDate);
-                                const end = new Date(filters.endDate);
-                                return itemDate >= start && itemDate <= end;
-                            } else if (filters.startDate) {
-                                const start = new Date(filters.startDate);
-                                return itemDate >= start;
-                            } else if (filters.endDate) {
-                                const end = new Date(filters.endDate);
-                                return itemDate <= end;
-                            }
-                            return true;
-                        });
-                    }
-                    
-                    if (filters.code) {
-                        filteredData = filteredData.filter(item => 
-                            item.code_input.toLowerCase().includes(filters.code.toLowerCase())
-                        );
-                    }
-                    
-                    // 显示过滤后的数据
-                    filteredData.forEach(item => {
-                        const tr = document.createElement('tr');
-                        const date = parseCustomDate(item.timestamp);
-                        tr.innerHTML = `
+                // 显示过滤后的数据
+                filteredData.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const date = parseCustomDate(item.timestamp);
+                    tr.innerHTML = `
                             <td>${date.toLocaleString()}</td>
                             <td>${item.code_input}</td>
                             <td>${item.template_name}</td>
                             <td class="status-${item.status}">${item.status}</td>
                             <td>
-                                ${item.status === 'completed' ? 
-                                    `<a href="/download/${item.result_file}" class="download-link">下载</a>` : 
-                                    (item.status === 'processing' ? 
-                                        `<button onclick="checkStatus('${item.task_id}')" class="check-status-btn">检查状态</button>` : 
-                                        '')}
+                                ${item.status === 'completed' ?
+                        `<a href="/download/${item.result_file}" class="download-link">下载</a>` :
+                        (item.status === 'processing' ?
+                            `<button onclick="checkStatus('${item.task_id}')" class="check-status-btn">检查状态</button>` :
+                            '')}
                             </td>
                         `;
-                        tbody.appendChild(tr);
-                    });
+                    tbody.appendChild(tr);
                 });
-        }
-        
-        function applyDateFilters() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            loadHistory({
-                startDate: startDate,
-                endDate: endDate,
-                code: document.getElementById('codeFilter').value
             });
-        }
-        
-        function applyCodeFilter() {
-            const code = document.getElementById('codeFilter').value;
-            loadHistory({
-                startDate: document.getElementById('startDate').value,
-                endDate: document.getElementById('endDate').value,
-                code: code
-            });
-        }
-        
-        function resetFilters() {
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            document.getElementById('codeFilter').value = '';
-            loadHistory();
-        }
-        
-        // 模板配置，只列出不需要编码的模板，后续要改
-        const templateConfig = {
-            "依诺达": { requiresCode: false }
-        };
+    }
 
-        // 处理模板选择变化
-        document.getElementById('templateSelect').addEventListener('change', function(e) {
-            const selectedTemplate = e.target.value.split('/').pop().replace('.xlsx', '');
-            const codeInput = document.getElementById('codeInput');
-            const codeInputHelp = document.getElementById('codeInputHelp');
-            
-            // 如果模板不在配置中，则默认需要编码
-            const templateInfo = templateConfig[selectedTemplate] || { requiresCode: true };
-            
-            if (templateInfo.requiresCode) {
-                codeInput.required = true;
-                codeInput.placeholder = "请输入编码（必填）";
-                codeInputHelp.textContent = "此模板需要编码";
-                codeInputHelp.style.color = "#ff4444";
-            } else {
-                codeInput.required = false;
-                codeInput.placeholder = "请输入编码（选填）";
-                codeInputHelp.textContent = "此模板不需要编码";
-                codeInputHelp.style.color = "#666";
-            }
+    function applyDateFilters() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        loadHistory({
+            startDate: startDate,
+            endDate: endDate,
+            code: document.getElementById('codeFilter').value
         });
+    }
 
-        // 处理文件上传
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const packingList = document.getElementById('packing_list').files[0];
-            const invoiceInfo = document.getElementById('invoice_info').files[0];
-            const templateType = document.getElementById('templateSelect').value;
-            const code = document.getElementById('codeInput').value;
-            
-            // 检查是否选择了模板
-            if (!templateType) {
-                updateStatus('请选择模板', 'error');
-                return;
-            }
-            
-            // 检查文件上传情况
-            if (!packingList && !invoiceInfo) {
-                updateStatus('请上传装箱单文件', 'error');
-                return;
-            }
-            
-            if (packingList && invoiceInfo) {
-                updateStatus('请只上传一个装箱单文件', 'error');
-                return;
-            }
-            
-            const formData = new FormData();
-            // 根据上传的文件类型设置不同的处理标识
-            if (packingList) {
-                formData.append('packing_list', packingList);
-            } else {
-                formData.append('invoice_info', invoiceInfo);
-            }
-            
-            // 提取模板名称（去掉路径）
-            const templateName = templateType.split('/').pop().replace('.xlsx', '');
-            formData.append('template_type', templateName);
-            
-            if (code) {
-                formData.append('code', code);
-            }
-            
-            updateStatus('正在上传文件...', 'processing');
-            
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
+    function applyCodeFilter() {
+        const code = document.getElementById('codeFilter').value;
+        loadHistory({
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            code: code
+        });
+    }
+
+    function resetFilters() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('codeFilter').value = '';
+        loadHistory();
+    }
+
+    // 模板配置，只列出不需要编码的模板，后续要改
+    const templateConfig = {
+        "依诺达": {requiresCode: false}
+    };
+
+    // 处理模板选择变化
+    document.getElementById('templateSelect').addEventListener('change', function (e) {
+        const selectedTemplate = e.target.value.split('/').pop().replace('.xlsx', '');
+        const codeInput = document.getElementById('codeInput');
+        const codeInputHelp = document.getElementById('codeInputHelp');
+
+        // 如果模板不在配置中，则默认需要编码
+        const templateInfo = templateConfig[selectedTemplate] || {requiresCode: true};
+
+        if (templateInfo.requiresCode) {
+            codeInput.required = true;
+            codeInput.placeholder = "请输入编码（必填）";
+            codeInputHelp.textContent = "此模板需要编码";
+            codeInputHelp.style.color = "#ff4444";
+        } else {
+            codeInput.required = false;
+            codeInput.placeholder = "请输入编码（选填）";
+            codeInputHelp.textContent = "此模板不需要编码";
+            codeInputHelp.style.color = "#666";
+        }
+    });
+
+    // 处理文件上传
+    document.getElementById('uploadForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const packingList = document.getElementById('packing_list').files[0];
+        const invoiceInfo = document.getElementById('invoice_info').files[0];
+        const templateType = document.getElementById('templateSelect').value;
+        const code = document.getElementById('codeInput').value;
+
+        // 检查是否选择了模板
+        if (!templateType) {
+            updateStatus('请选择模板', 'error');
+            return;
+        }
+
+        // 检查文件上传情况
+        if (!packingList && !invoiceInfo) {
+            updateStatus('请上传装箱单文件', 'error');
+            return;
+        }
+
+        if (packingList && invoiceInfo) {
+            updateStatus('请只上传一个装箱单文件', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        // 根据上传的文件类型设置不同的处理标识
+        if (packingList) {
+            formData.append('packing_list', packingList);
+        } else {
+            formData.append('invoice_info', invoiceInfo);
+        }
+
+        // 提取模板名称（去掉路径）
+        const templateName = templateType.split('/').pop().replace('.xlsx', '');
+        formData.append('template_type', templateName);
+
+        if (code) {
+            formData.append('code', code);
+        }
+
+        updateStatus('正在上传文件...', 'processing');
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -601,10 +646,10 @@
                     location.reload();
                 }, 2000);
             });
-        });
+    });
 
-        function checkStatus(taskId) {
-            fetch(`/status/${taskId}`)
+    function checkStatus(taskId) {
+        fetch(`/status/${taskId}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -653,7 +698,7 @@
                     location.reload();
                 }, 2000);
             });
-        }
-    </script>
+    }
+</script>
 </body>
 </html>
