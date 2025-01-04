@@ -3,31 +3,23 @@
 <head>
     <meta charset="utf-8">
     <title>产品编辑</title>
-    {#    <link rel="stylesheet" href="../static/js/index.css"/>#}
-    {#    <script src="../static/js/vue@3"></script>#}
-    {#    <script src="../static/js/element-plus"></script>#}
-    {#    <script src="../static/js/axios.min.js"></script>#}
     <link rel="stylesheet" href="{{ url_for('static',filename='/js/index.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static',filename='/js/vxe-pc-ui.style.min.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static',filename='/js/vxe-table.style.min.css') }}"/>
     <script src="{{ url_for('static',filename='/js/vue@3') }}"></script>
     <script src="{{ url_for('static',filename='/js/element-plus') }}"></script>
     <script src="{{ url_for('static',filename='/js/axios.min.js') }}"></script>
-
-    <!-- 引入样式 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vxe-pc-ui@4.3.16/lib/style.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vxe-table@4.9.15/lib/style.min.css">
-    <!-- 引入组件 -->
-    <script src="https://cdn.jsdelivr.net/npm/xe-utils@3.5.32/dist/xe-utils.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vxe-pc-ui@4.3.16/lib/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vxe-table@4.9.15/lib/index.umd.min.js"></script>
-
+    <script src="{{ url_for('static',filename='/js/xe-utils.umd.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='/js/vxe-pc-ui.index.umd.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='/js/vxe-table.index.umd.min.js') }}"></script>
 </head>
 <body>
 <div id="app">
     <div style="display: flex;flex-direction: column;padding: 20px;height: calc(100% - 40px)">
         <p style="height: 34px;display: flex">
             <el-text type="primary" style="margin-right: 30px">共[[ pageConfig.total ]]结果，当前已加载[[tableData.length]]个
-                        </el-text>
-            <vxe-input v-model="msku"  placeholder="请输入msku" style="width: 300px;margin-right: 20px"></vxe-input>
+            </el-text>
+            <vxe-input v-model="msku" placeholder="请输入msku" style="width: 300px;margin-right: 20px"></vxe-input>
             <vxe-button status="primary" icon="vxe-icon-search" @click="search">搜索</vxe-button>
             <vxe-button status="primary" icon="vxe-icon-refresh" @click="()=>{msku='';search()}">重置</vxe-button>
             <vxe-button status="primary" icon="vxe-icon-add" @click="addEvent">新增</vxe-button>
