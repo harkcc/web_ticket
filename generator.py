@@ -1567,8 +1567,7 @@ class InvoiceGenerator:
                             
                             (10, box.weight if box.weight is not None else ""),   # 重量
                             (11, box.weight if box.weight is not None else ""),   # 重量
-                            (13, volume)
-
+                            (13, volume),
                             (3, '')                                              # 图片占位
                         ]
                         # 批量设置单元格值和样式

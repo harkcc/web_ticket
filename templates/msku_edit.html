@@ -36,11 +36,22 @@
                     :custom-config="customConfig" :seq-config="seqConfig"
                     :data="tableData">
                 <vxe-column type="seq" width="60"></vxe-column>
+                <vxe-column title="主图" width="50">
+                    <template #default="{ row }">
+                        <vxe-image
+                                :style="`width: 40px; height:40px`"
+                                :src="`/api/images/${row.msku}`"
+                        ></vxe-image>
+                    </template>
+                </vxe-column>
+
                 <vxe-column v-for="(col,index) in columns" :field="col[0]" :title="col[1]" :key="index"
                             :width="col[2]"></vxe-column>
-                <vxe-column title="操作" width="100" fixed="right">
+                <vxe-column title="操作" width="200" fixed="right">
                     <template #default="{ row }">
                         <vxe-button mode="text" status="primary" icon="vxe-icon-edit" @click="editRow(row)">编辑
+                        </vxe-button>
+                        <vxe-button mode="text" status="primary" icon="vxe-icon-edit" @click="uploadImage(row.msku)">上传图片
                         </vxe-button>
                     </template>
                 </vxe-column>
@@ -68,6 +79,17 @@
                 @confirm="confirmEvent">
             <vxe-form ref="formRef" v-bind="formOptions"></vxe-form>
         </vxe-modal>
+        <vxe-modal
+                resize
+                destroy-on-close
+                show-footer
+                show-confirm-button
+                show-cancel-button
+                v-model="showUploadImage"
+                :title="`上传图片->${selectMsku}`"
+                :confirm-closable="false">
+             <vxe-upload v-model="imgList1" mode="image" single-mode auto-hidden-button show-progress :upload-method="uploadMethod"></vxe-upload>
+        </vxe-modal>
     </div>
 
 </div>
@@ -83,7 +105,12 @@
             const showEditPopup = ref(false)
             const loading = ref(false)
             const loading2 = ref(false)
-
+            const showUploadImage = ref(false)
+            const imgList1 = ref({
+                name: '',
+                url: ''
+            })
+            const selectMsku = ref("")
             const pageConfig = reactive({
                 total: 0,
                 currentPage: 1,
@@ -308,10 +335,32 @@
                 pageConfig.pageSize = pageSize
                 {#search()#}
             }
+
+            const uploadMethod = ({file}) => {
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('msku',selectMsku.value)
+                return axios.post('/api/upload/', formData).then((res) => {
+                    return {
+                        ...res.data
+                    }
+                })
+            }
+            const uploadImage=(msku)=>{
+                selectMsku.value = msku
+                imgList1.value.name = `${msku}`
+                imgList1.value.url = `/api/images/${msku}`
+                showUploadImage.value = true
+            }
             onMounted(() => {
                 search()
             })
             return {
+                uploadImage,
+                uploadMethod,
+                selectMsku,
+                showUploadImage,
+                imgList1,
                 columns,
                 formRef,
                 showEditPopup,
