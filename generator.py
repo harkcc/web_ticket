@@ -10,6 +10,7 @@ from datetime import datetime
 from db_connector import MongoDBConnector
 from io import BytesIO
 from openpyxl.utils import get_column_letter
+import re
 
 
 class ProcessingError(Exception):
@@ -306,7 +307,6 @@ class InvoiceGenerator:
                 # 填充数据
                 row_num = 12  
                 index = 1    # 添加序号计数器，从1开始
-                row_height = sheet.row_dimensions[12].height
 
                 # 将box_data按箱号排序
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
@@ -380,7 +380,7 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
-                        sheet.row_dimensions[row_num].height = row_height
+                        sheet.row_dimensions[row_num].height = sheet.row_dimensions[12].height
                         
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
@@ -905,7 +905,7 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 13, 13, 6, 8)
                 self.unmerge_cells_in_range(sheet, 14, 14, 6, 8)
                 self.unmerge_cells_in_range(sheet, 15, 15, 6, 8)
-                print("开始写入模版信息")
+                print("开始写入林道模版信息")
 
                 # 定义样式信息
                 style_info = {
@@ -1039,9 +1039,8 @@ class InvoiceGenerator:
                             price = product_info.get('price', 0)
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
-                        Reference_id = address_info['address_info'].get('amazonReferenceId','')
                         
-                        # 设置单元格值和样式
+                        # 设置单元格值和样式ç
                         cell_data = [
                             (1, box_number),                    # 货箱编号 (A列)
                             (2, code),
@@ -1096,235 +1095,521 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
+    @template_handler("林道UPS")
+    def _fill_lindaoUPS_template(self, wb, box_data, code=None, address_info=None):
+        """
+        填充林道UPS模板
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        """
+        try:
+            sheet = wb['发票']
+            
+            # 解除单元格合并
+            ranges_to_unmerge = ['A22:D22', 'A23:D23', 'A24:D24', 'A25:D25',
+                               'A26:D26', 'A27:D27']
+            for range_str in ranges_to_unmerge:
+                try:
+                    start_row, end_row, start_col, end_col = self._parse_range(range_str)
+                    self.unmerge_cells_in_range(sheet, start_row, end_row, start_col, end_col)
+                except Exception as e:
+                    print(f"解除单元格合并时出错 {range_str}: {str(e)}")
 
-    # @template_handler("林道")
-    # def _fill_lindao_template(self, wb, box_data, code=None, address_info=None):
-        # """
-        # 填充林道模板
-        # :param wb: 工作簿对象
-        # :param box_data: 箱子数据
-        # :param code: 编码（可选）
-        # :param address_info: 地址信息（可选）
-        # """
-        # with self.db_connector as db:
-        #     try:
-        #         sheet = wb['模板']  # 获取模板工作表
-        #         print("开始写入林道模版信息")
+            # 保存特定行的高度
+            row_23_height = sheet.row_dimensions[23].height if 23 in sheet.row_dimensions else 15
+            row_28_height = sheet.row_dimensions[28].height if 28 in sheet.row_dimensions else 15
 
-        #         # 记录第17行的格式信息
-        #         row_height = sheet.row_dimensions[17].height
-        #         cell_border = Border(left=Side(border_style='thin'),
-        #                            right=Side(border_style='thin'),
-        #                            top=Side(border_style='thin'),
-        #                            bottom=Side(border_style='thin'))
-        #         cell_alignment = Alignment(horizontal='center', vertical='center')
+            # 设置行高
+            default_height = sheet.row_dimensions[60].height if 60 in sheet.row_dimensions else 15
+            for r in range(19, 22):
+                sheet.row_dimensions[r].height = default_height
+
+            # 记录E24单元格的格式
+            cell_e24 = sheet.cell(row=24, column=5)
+            cell_font_e24 = Font(
+                name=cell_e24.font.name if cell_e24.font.name else 'Arial',
+                size=cell_e24.font.size if cell_e24.font.size else 11,
+                bold=cell_e24.font.bold,
+                italic=cell_e24.font.italic,
+                vertAlign=cell_e24.font.vertAlign,
+                color=cell_e24.font.color
+            )
+            cell_alignment_e24 = Alignment(
+                horizontal=cell_e24.alignment.horizontal if cell_e24.alignment.horizontal else 'center',
+                vertical=cell_e24.alignment.vertical if cell_e24.alignment.vertical else 'center',
+                text_rotation=cell_e24.alignment.text_rotation,
+                wrap_text=cell_e24.alignment.wrap_text,
+                shrink_to_fit=cell_e24.alignment.shrink_to_fit,
+                indent=cell_e24.alignment.indent
+            )
+
+            # 删除指定行
+            sheet.delete_rows(22, 29)
+
+            # 记录格式信息
+            row_height = sheet.row_dimensions[19].height if 19 in sheet.row_dimensions else 15
+            cell_page = sheet.cell(row=19, column=1)
+            cell_border = Border(
+                left=cell_page.border.left if cell_page.border.left else Side(style='thin'),
+                right=cell_page.border.right if cell_page.border.right else Side(style='thin'),
+                top=cell_page.border.top if cell_page.border.top else Side(style='thin'),
+                bottom=cell_page.border.bottom if cell_page.border.bottom else Side(style='thin')
+            )
+            cell_style = sheet.cell(row=19, column=1)
+            cell_font = Font(
+                name=cell_style.font.name if cell_style.font.name else 'Arial',
+                size=cell_style.font.size if cell_style.font.size else 11,
+                bold=cell_style.font.bold,
+                italic=cell_style.font.italic,
+                vertAlign=cell_style.font.vertAlign,
+                color=cell_style.font.color
+            )
+            cell_alignment = Alignment(horizontal='center', vertical='center')
+            # 填充数据
+            num_row = 19
+            for box_number, box in box_data.items():
+                if not box.items:
+                    continue
+                for product_info in box.items:
+                    # 获取产品信息
+                    # 获取产品信息
+                    db_product_info = self._get_product_info(product_info.msku)
+                    if not db_product_info:
+                        continue
+
+                    # 构建产品名称和获取数量、价格
+                    name = f"{db_product_info.get('en_name', '')}({db_product_info.get('cn_name', '')})"
+                    quantity = product_info.box_quantities.get(box_number, 0)
+                    price = db_product_info.get('price', 0)
+
+                    # 设置单元格值
+                    cell_values = [
+                        (1, name), 
+                        (2, quantity), 
+                        (3, price), 
+                        (4, quantity * price),
+                        ('CN', 5)
+                    ]
+                    
+                    for value, col in cell_values:
+                        cell = sheet.cell(row=num_row, column=col, value=value)
+                        cell.font = cell_font
+                        cell.alignment = cell_alignment
+                        cell.border = cell_border
+                    num_row += 1
+
+            # 设置行高和边框
+            for row in range(19, num_row + 8):
+                sheet.row_dimensions[row].height = row_height
+                for col in range(1, 6):
+                    cell = sheet.cell(row=row, column=col)
+                    if not cell.border:
+                        cell.border = cell_border
+
+            # 添加底部文本
+            declarations = [
+                ('THESE COMMODITIES ARE LICENSED FOR THE UNTIMATE DESTINATION SHOWN.', cell_font),
+                ('以上商品已有到最终目的地的许可。', cell_font),
+                ('', None),
+                ('I DECLARE ALL THE INFORMATION CONTAINED IN THIS INVOICE LIST TO BE TRUE AND CORRECT.',
+                 Font(name='Arial', size=9, color='000080')),
+                ('以上申报均属实。', Font(name='宋体', size=11, color='FF0000', bold=True)),
+                ('', None),
+                ('SIGNATURE OF SHIPPER/EXPORTER(TYPE NAME TITLE AND SIGN):    ',
+                 Font(name='Arial', size=9, color='000080', bold=True)),
+                ('寄件人/出口商签名(正楷和职位)', Font(name='宋体', size=9, color='000080', bold=True))
+            ]
+
+            for i, (text, font) in enumerate(declarations):
+                if text:
+                    cell = sheet.cell(row=num_row + i, column=1, value=text)
+                    if font:
+                        cell.font = font
+                    cell.alignment = cell_alignment
+                    if i == 1:
+                        sheet.row_dimensions[num_row + i].height = row_23_height
+                    elif i == 6:
+                        sheet.row_dimensions[num_row + i].height = row_28_height
+
+            # 合并单元格
+            for row in range(num_row, num_row + 8):
+                try:
+                    self.merge_cells_in_range(sheet, row, row, 1, 4)
+                except Exception as e:
+                    print(f"合并单元格时出错 row {row}: {str(e)}")
+
+            # 设置右侧文本
+            right_text = [
+                (num_row, 5, 'CHECK ONE', cell_font),
+                (num_row + 1, 5, '□ F.O.B', cell_font),
+                (num_row + 2, 5, '', cell_font_e24),
+                (num_row + 6, 4, 'DATE:', cell_font),
+                (num_row + 7, 4, '日期', cell_font)
+            ]
+
+            for row, col, text, font in right_text:
+                cell = sheet.cell(row=row, column=col, value=text)
+                cell.font = font
+                cell.alignment = (cell_alignment_e24 if col == 5 and row == num_row + 2 
+                                else cell_alignment)
+
+        except Exception as e:
+            print(f"填充林道UPS模板时发生错误: {str(e)}")
+            raise
+
+   
+    @template_handler("递信")
+    def _fill_dixing_template(self, wb, box_data, code=None, address_info=None):
+        """
+        填充递信模板
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        """
+        with self.db_connector as db:
+            try:
+                sheet = wb['FBA对应贴标资料']  # 获取模板工作表
+                print("开始写入递信模版信息")
+                current_date = datetime.now().strftime("%Y.%m.%d")
+                cell = sheet.cell(row=1, column=4)
+                cell.value = current_date
+                cell.font = Font(name='Arial', size=12)
+
+                # 记录第3行的格式信息
+                row_height = sheet.row_dimensions[3].height
+
+                # 查找并取消合并单元格
+                merged_cells = sheet.merged_cells
+                cells_to_unmerge = []
+                for merged_cell in merged_cells:
+                    if merged_cell.min_row >= 3:
+                        cells_to_unmerge.append(merged_cell)
+
+                for cell_range in cells_to_unmerge:
+                    sheet.unmerge_cells(str(cell_range))
+
+                # 保存最后一行的高度
+                last_height = sheet.row_dimensions[21].height
+
+                # 删除原来的内容
+                sheet.delete_rows(3, 20)
+
+                # 设置行高
+                for r in range(3, 21):
+                    sheet.row_dimensions[r].height = sheet.row_dimensions[25].height
+
+                # 初始化统计数据
+                total_weight = 0
+                total_quantity = 0
+                row_num = 3
+                ticket = str(code)+"00000"
+
+                # 设置单元格对齐方式
+                center_alignment = Alignment(horizontal='center', vertical='center')
+
+                # 遍历每个箱子
+                for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
+                    print(f"处理箱子 {box_number}")
+                    
+                    if not hasattr(box, 'items') or not box.items:
+                        continue
+
+                    # 计算箱子中的产品数量
+                    box_products = box.items
+                    is_mixed = len(box_products) >= 2
+                    identifier = f"{len(box_data)}-{box_number}{'(混装)' if is_mixed else ''}"
+
+                    merge_start_row = row_num
+                    
+                    # 遍历箱子中的每个产品
+                    for product_info in box_products:
+                        if hasattr(product_info, 'msku'):
+                            db_product_info = self._get_product_info(product_info.msku, db)
+                            if db_product_info:
+                                # 更新产品信息
+                                for key, value in db_product_info.items():
+                                    setattr(product_info, key, value)
+
+                        # 设置单元格值
+                        cell_data = [
+                            (1, identifier),  # 标识符
+                            (2, f"{getattr(product_info, 'cn_name', '')}\n{getattr(product_info, 'en_name', '')}"),  # 品名
+                            (3, f"{getattr(product_info, 'material_cn', '')}\n{getattr(product_info, 'material_en', '')}"),  # 材质
+                            (4, f"{getattr(product_info, 'usage_en', '')}, {getattr(product_info, 'usage_cn', '')}"),  # 用途
+                            (5, box_number),  # 箱号
+                            (6, getattr(box, 'weight', '')),  # 重量
+                            (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 尺寸
+                            # (8,item.box_quantities.get(box_number, 0)),
+                            # (11,item.fnsku),
+                        ]
+
+                        # 处理数量信息
+                        quantity = getattr(product_info, 'box_quantities', {}).get(box_number, 0)
+                        if quantity:
+                            quantity_str = str(quantity)
+                            match = re.match(r'^([A-Za-z])(\d)$', quantity_str)
+                            if match:
+                                cell_data.extend([
+                                    (8, match.group(2)),  # 数量
+                                    (9, match.group(2)),  # 数量（重复）
+                                    (10, f"{match.group(1)}-{match.group(2)}"),  # 格式化的数量
+                                ])
+                                total_quantity += int(match.group(2))
+
+                        # 设置运单号
+                        cell_data.append((13, f"{ticket}{box_number}"))  # 运单号
+
+                        # 设置单元格值和格式
+                        for col, value in cell_data:
+                            cell = sheet.cell(row=row_num, column=col, value=value)
+                            cell.alignment = center_alignment
+
+                        # 插入产品图片
+                        if hasattr(product_info, 'msku') and hasattr(self, 'image_folder'):
+                            try:
+                                image_cell = f"L{row_num}"
+                                self.insert_product_image(sheet, image_cell, product_info.msku, self.image_folder)
+                            except Exception as e:
+                                print(f"插入图片时发生错误: {str(e)}")
+
+                        row_num += 1
+                        if hasattr(box, 'weight') and box.weight:
+                            total_weight += float(box.weight)
+                    # 合并单元格
+                    if row_num > merge_start_row:
+                        merge_ranges = [
+                            (merge_start_row, 1, row_num - 1, 1),  # 标识符列
+                            (merge_start_row, 5, row_num - 1, 5),  # 箱号列
+                            (merge_start_row, 6, row_num - 1, 6),  # 重量列
+                            (merge_start_row, 7, row_num - 1, 7),  # 尺寸列
+                            (merge_start_row, 13, row_num - 1, 13),  # 运单号列
+                        ]
+                        for start_row, start_col, end_row, end_col in merge_ranges:
+                            sheet.merge_cells(
+                                start_row=start_row,
+                                start_column=start_col,
+                                end_row=end_row,
+                                end_column=end_col
+                            )
+
+                # 合并最后一列
+                sheet.merge_cells(start_row=3, start_column=14, end_row=row_num, end_column=14)
+
+                # 删除多余的行
+                if row_num < sheet.max_row:
+                    sheet.delete_rows(row_num + 1, sheet.max_row - row_num)
+
+                # 设置边框
+                cell_border = Border(
+                    left=Side(border_style='thin'),
+                    right=Side(border_style='thin'),
+                    top=Side(border_style='thin'),
+                    bottom=Side(border_style='thin')
+                )
+
+                # 设置所有单元格的边框和行高
+                for row in range(3, row_num + 1):
+                    sheet.row_dimensions[row].height = row_height
+                    for col in range(1, 15):
+                        cell = sheet.cell(row=row, column=col)
+                        cell.border = cell_border
+
+                # 设置最后一行的汇总信息
+                sheet.row_dimensions[row_num].height = last_height
+
+                # 设置汇总行的字体和样式
+                summary_data = [
+                    (1, '汇总', Font(bold=True, name='宋体', size=12)),
+                    (5, len(box_data), Font(bold=True, name='微软雅黑', size=11)),
+                    (6, total_weight, Font(bold=True, name='微软雅黑', size=9)),
+                    (8, total_quantity, Font(bold=True, name='微软雅黑', size=12)),
+                    (9, total_quantity, Font(bold=True, name='微软雅黑', size=11))
+                ]
+
+                for col, value, font in summary_data:
+                    cell = sheet.cell(row=row_num, column=col, value=value)
+                    cell.font = font
+                    cell.alignment = center_alignment
+
+                print("递信模板填充完成")
+
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                traceback.print_exc()
+                raise
+    
+
+    @template_handler("德邦美森限时达")
+    def _fill_dbmsxsd_template(self, wb, box_data, code=None, address_info=None):
+        """
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        """
+        with self.db_connector as db:
+            try:
+                sheet = wb['FBA专线出货资料模板']  # 获取模板工作表
+                # box_Reference_id = ''  # 在方法开始时就初始化
+                print("开始写入模版信息")
+
+                if code:
+                    cell = sheet.cell(row=4, column=5)  # B列是第2列
+                    cell.value = "FBA 号：" + str(code)
+                    cell.font = Font(name='Arial', size=12,bold=True)
+
+                # 定义样式信息
+                style_info = {
+                    'font': Font(name='Arial', size=10),
+                    'border': Border(left=Side(border_style='thin'),
+                                     right=Side(border_style='thin'),
+                                     top=Side(border_style='thin'),
+                                     bottom=Side(border_style='thin')),
+                    'alignment': Alignment(horizontal='center', vertical='center')
+                }
+
+                self.unmerge_cells_in_range(sheet, 2, 2, 3, 5)
+                self.unmerge_cells_in_range(sheet, 3, 3, 3, 5)
+                self.unmerge_cells_in_range(sheet, 4, 4, 3, 5)
+                self.unmerge_cells_in_range(sheet, 4, 4, 7, 8)
+                self.unmerge_cells_in_range(sheet, 5, 5, 3, 5)
+
+                # 如果有地址信息，填充到相应的单元格
+                if address_info:
+                    address_info_detail = address_info['address_info']
+                    # if 'seller_info' in address_info:
+                    #     box_Reference_id = address_info['seller_info']['amazonReferenceId']
+                    try:
+                        # 填充收件人信息
+                        if 'name' in address_info_detail:
+                            cell = sheet.cell(row=3, column=3)  
+                            cell.value = address_info_detail['name']
+
+                            cell = sheet.cell(row=4, column=3)  
+                            cell.value = address_info_detail['name']
+                        
+                        # 填充地址信息
+                        address_parts = []
+                        if 'addressLine1' in address_info_detail:
+                            address_parts.append(address_info_detail['addressLine1'])
+                        if 'city' in address_info_detail:
+                            address_parts.append(address_info_detail['city'])
+                        if 'stateOrProvinceCode' in address_info_detail:
+                            address_parts.append(address_info_detail['stateOrProvinceCode'])
+                        if 'postalCode' in address_info_detail:
+                            address_parts.append(address_info_detail['postalCode'])
+                        if 'countryCode' in address_info_detail:
+                            address_parts.append(address_info_detail['countryCode'])
+
+
+                        if address_parts:
+                            cell = sheet.cell(row=2, column=3)  
+                            cell.value = ', '.join(address_parts)
+                            
+                            cell = sheet.cell(row=5, column=3)  
+                            cell.value = ', '.join(address_parts)
+
+  
+                    except Exception as e:
+                        print(f"填充地址信息时发生错误: {str(e)}")
+
+                # 填充数据
+                row_num = 12  
+                index = 1    # 添加序号计数器，从1开始
+                row_height = sheet.row_dimensions[12].height
+
+                # 将box_data按箱号排序
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
                 
-        #         # 获取原始单元格样式
-        #         style_cell = sheet.cell(row=17, column=1)
-        #         # 创建新的填充样式
-        #         from openpyxl.styles import PatternFill, Color
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
+                    print(f"处理箱子 {box_number}")
+                    first_row_of_box = row_num  # 记录这个箱子的第一行
+                    box_number_str = code + '00000' + str(box_number)
+
+                    # 遍历箱子中的每个产品
+                    for item in box.items:
+                        # 从数据库获取产品信息
+                        product_info = self._get_product_info(item.msku, db)
+                        volume = box.length * box.width * box.height*0.000001
+                        price = 0
+                        total_price = 0
+    
+                        if product_info is not None:
+                            item.product_name = product_info.get('cn_name', item.product_name)
+                            print(f"产品信息：{product_info}")
+                        else:
+                        # 处理未找到产品信息的情况
+                            print(f"未找到产品信息，MSKU: {item.msku}")
+                            item.product_name = "需要补数据"  # 可以设置一个默认值
+                    
+                        # 设置单元格值和样式
+                        cell_data = [
+                            # 基本信息
+                            (1, box_number_str),                                   # 货箱编号
+    
+                            # 产品名称信息
+                            (2, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''),    
+                            (10, product_info.get('model', '') if product_info else ''),                   # 型号
+                            
+                            # 产品材料和用途
+                            (8, f"{product_info.get('material_en', '')} +'/'+{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
+                            
+                            (9, str(product_info.get('usage_en', '') + '/' +
+                                   product_info.get('usage_cn', '')) if product_info else ''),            # 用途
+
+                            (1, product_info.get('hs_code', '') if product_info else ''),                # HS编码
+                            (4, item.box_quantities.get(box_number, 0)),         # 数量
+                            (9,  product_info.get('electrified', '')if product_info else ''),            
+                            
+                            (10, box.weight if box.weight is not None else ""),   # 重量
+                            (11, box.weight if box.weight is not None else ""),   # 重量
+                            (13, volume)
+
+                            (3, '')                                              # 图片占位
+                        ]
+                        # 批量设置单元格值和样式
+                        for column, value in cell_data:
+                            self._set_cell_value(sheet, row_num, column, value, style_info)
+
+                        sheet.row_dimensions[row_num].height = row_height
+                        
+                        # 插入产品图片
+                        if item.msku and hasattr(self, 'image_folder'):
+                            try:
+                                image_cell = f"D{row_num}"  # 图片列（第14列）
+                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                            except Exception as e:
+                                print(f"插入图片时发生错误: {str(e)}")
+
+                        row_num += 1
+                    # 合并单元格
+                    if row_num > first_row_of_box:
+                        merge_ranges = [
+                            (first_row_of_box, 1, row_num - 1, 1),  # 货箱编号列
+                            (first_row_of_box, 16, row_num - 1, 16),  # 长度列
+                            (first_row_of_box, 17, row_num - 1, 17),  # 宽度列
+                            (first_row_of_box, 18, row_num - 1, 18),  # 高度列
+                            (first_row_of_box, 19, row_num - 1, 19),  # 重量列
+                        ]
+                        for start_row, start_col, end_row, end_col in merge_ranges:
+                            sheet.merge_cells(
+                                start_row=start_row,
+                                start_column=start_col,
+                                end_row=end_row,
+                                end_column=end_col
+                            )
                 
-        #         # 创建填充样式
-        #         try:
-        #             # 尝试获取原始填充样式的颜色
-        #             if style_cell.fill and style_cell.fill.fgColor and style_cell.fill.fgColor.rgb:
-        #                 fg_color = Color(rgb=style_cell.fill.fgColor.rgb)
-        #             else:
-        #                 fg_color = Color(rgb='FFFFFF')
-                        
-        #             if style_cell.fill and style_cell.fill.bgColor and style_cell.fill.bgColor.rgb:
-        #                 bg_color = Color(rgb=style_cell.fill.bgColor.rgb)
-        #             else:
-        #                 bg_color = Color(rgb='FFFFFF')
-                        
-        #             pattern_type = style_cell.fill.patternType if style_cell.fill else 'solid'
-                    
-        #             cell_fill = PatternFill(
-        #                 patternType=pattern_type,
-        #                 fgColor=fg_color,
-        #                 bgColor=bg_color
-        #             )
-        #         except Exception as e:
-        #             print(f"创建填充样式时发生错误: {str(e)}")
-        #             # 使用默认填充样式
-        #             cell_fill = PatternFill(
-        #                 patternType='solid',
-        #                 fgColor=Color(rgb='FFFFFF'),
-        #                 bgColor=Color(rgb='FFFFFF')
-        #             )
+                self.merge_cells_in_range(sheet, 2, 2, 2, 9)
+                self.merge_cells_in_range(sheet, 3, 3, 2, 9)
+                self.merge_cells_in_range(sheet, 4, 4, 2, 9)
 
-        #         cell_font = Font(name=style_cell.font.name, 
-        #                        size=style_cell.font.size, 
-        #                        bold=style_cell.font.bold,
-        #                        italic=style_cell.font.italic,
-        #                        vertAlign=style_cell.font.vertAlign, 
-        #                        color=style_cell.font.color)
-
-        #         # 清理原有数据
-        #         # 解除合并单元格
-        #         merge_ranges = [
-        #             'B17:B28', 'C17:C28', 'D17:D28', 'E17:E28',
-        #             'B29:B41', 'C29:C41', 'D29:D41', 'E29:E41',
-        #             'B42:B54', 'C42:C54', 'D42:D54', 'E42:E54',
-        #             'B55:B63', 'C55:C63', 'D55:D63', 'E55:E63'
-        #         ]
-        #         for ranges in merge_ranges:
-        #             if ranges in sheet.merged_cells:
-        #                 sheet.unmerge_cells(ranges)
-
-        #         # 重置行高
-        #         for r in range(17, 64):
-        #             sheet.row_dimensions[r].height = sheet.row_dimensions[70].height
-
-        #         # 在第一行B列填充编码
-        #         if code:
-        #             cell = sheet.cell(row=1, column=2)
-        #             cell.value = code
-        #             cell.font = Font(name='Arial', size=9)
-
-        #         # 填充地址信息
-        #         if address_info:
-        #             address_info_detail = address_info['address_info']
-        #             try:
-        #                 # 收件人信息
-        #                 if 'name' in address_info_detail:
-        #                     for row in [3, 4]:
-        #                         cell = sheet.cell(row=row, column=2)
-        #                         cell.value = address_info_detail['name']
-
-        #                 # 地址信息
-        #                 if 'addressLine1' in address_info_detail:
-        #                     cell = sheet.cell(row=6, column=2)
-        #                     cell.value = address_info_detail['addressLine1']
-
-        #                 if 'city' in address_info_detail:
-        #                     cell = sheet.cell(row=8, column=2)
-        #                     cell.value = address_info_detail['city']
-
-        #                 if 'postalCode' in address_info_detail:
-        #                     cell = sheet.cell(row=10, column=2)
-        #                     cell.value = address_info_detail['postalCode']
-
-        #                 if 'countryCode' in address_info_detail:
-        #                     cell = sheet.cell(row=11, column=2)
-        #                     cell.value = address_info_detail['countryCode']
-
-        #             except Exception as e:
-        #                 print(f"填充地址信息时发生错误: {str(e)}")
-
-        #         # 填充箱数
-        #         try:
-        #             total_boxes = len(box_data.keys())
-        #             cell = sheet.cell(row=16, column=2)
-        #             cell.value = str(total_boxes)
-        #             cell.font = Font(name='Arial', size=9)
-        #         except Exception as e:
-        #             print(f"填充箱数时发生错误: {str(e)}")
-
-        #         # 填充数据
-        #         row_num = 17
-        #         last_box_number = None
-        #         merge_start_row = row_num
-
-        #         # 对箱子进行排序
-        #         sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
-
-        #         # 遍历每个箱子
-        #         for box_number, box in sorted_boxes:
-        #             print(f"处理箱子 {box_number}")
-                    
-        #             # 如果是新的箱子，需要处理上一个箱子的合并单元格
-        #             if last_box_number is not None and last_box_number != box_number:
-        #                 if row_num > merge_start_row:
-        #                     # 合并上一个箱子的单元格
-        #                     for col in range(2, 6):  # B到E列
-        #                         sheet.merge_cells(start_row=merge_start_row, 
-        #                                        start_column=col, 
-        #                                        end_row=row_num-1, 
-        #                                        end_column=col)
-        #                 merge_start_row = row_num
-
-        #             # 遍历箱子中的每个产品
-        #             for item in box.items:
-        #                 # 获取产品信息
-        #                 product_info = self._get_product_info(item.msku, db)
-                        
-        #                 # 处理产品信息为None的情况
-        #                 if product_info is None:
-        #                     print(f"警告: 未找到产品 {item.msku} 的信息")
-        #                     price = 0
-        #                     total_price = 0
-        #                 else:
-        #                     price = product_info.get('price', 0)
-        #                     total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
-
-        #                 # 设置单元格值
-        #                 cell_data = [
-        #                     (1, box_number),  # 箱号
-        #                     (2, box.weight if box.weight is not None else ""),  # 重量
-        #                     (3, box.length if box.length is not None else ""),  # 长
-        #                     (4, box.width if box.width is not None else ""),   # 宽
-        #                     (5, box.height if box.height is not None else ""), # 高
-        #                     (7, product_info.get('cn_name', '')),  # 中文品名
-        #                     (6, product_info.get('en_name', '')),  # 英文品名
-        #                     (8, product_info.get('price', '')),    # 单价
-        #                     (10, product_info.get('material_en', '')), # 英文材质
-        #                     (12, product_info.get('usage_en', '')),   # 英文用途
-        #                     (14, product_info.get('model', '')),      # 型号
-        #                     (11, product_info.get('hs_code', '')),    # HS编码
-        #                     (17, product_info.get('link', '')),       # 链接
-        #                     (13, product_info.get('brand', '')),      # 品牌
-        #                     (18, product_info.get('weight', '')),     # 单重
-        #                     (9, item.box_quantities.get(box_number, 0)), # 数量
-        #                     (16, total_price if total_price > 0 else ""), # 总价
-        #                     (20, item.msku)  # SKU
-        #                 ]
-
-        #                 # 设置单元格值和样式
-        #                 for col, value in cell_data:
-        #                     cell = sheet.cell(row=row_num, column=col)
-        #                     cell.value = value
-        #                     cell.border = cell_border
-        #                     cell.alignment = cell_alignment
-        #                     cell.font = cell_font
-        #                     # 只为特定列设置填充色
-        #                     if col in [1, 17]:  # A列和Q列
-        #                         cell.fill = cell_fill
-
-        #                 # 插入产品图片
-        #                 try:
-        #                     image_cell = f"O{row_num}"
-        #                     self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
-        #                 except Exception as e:
-        #                     print(f"插入图片时发生错误: {str(e)}")
-
-        #                 row_num += 1
-                    
-        #             last_box_number = box_number
-
-        #         # 处理最后一个箱子的合并单元格
-        #         if row_num > merge_start_row:
-        #             for col in range(2, 6):  # B到E列
-        #                 sheet.merge_cells(start_row=merge_start_row, 
-        #                                start_column=col, 
-        #                                end_row=row_num-1, 
-        #                                end_column=col)
-
-        #         # 设置标题行
-        #         sheet.cell(row=16, column=20, value="产品SKU")
-
-        #         # 设置特殊列的填充色
-        #         for row in range(17, row_num):
-        #             for col in [1, 17]:  # A列和Q列
-        #                 cell = sheet.cell(row=row, column=col)
-        #                 cell.fill = cell_fill
-
-        #         print("林道模板填充完成")
-
-        #     except Exception as e:
-        #         print(f"填充模板时发生错误: {str(e)}")
-        #         traceback.print_exc()
-        #         raise
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                raise
 
     def _fill_default_template(self, wb, box_data, code=None, address_info=None):
         """默认的模板处理方法"""
@@ -1622,7 +1907,6 @@ class InvoiceGenerator:
                     print(f"解除合并单元格时发生错误: {str(e)}")
         print("合并单元格解除完成")
 
-
     def merge_cells_in_range(self, sheet, start_row, end_row, start_col, end_col):
         """
         合并指定区域内的单元格。
@@ -1648,3 +1932,17 @@ class InvoiceGenerator:
             print(f"单元格合并完成: {merge_range}")
         except Exception as e:
             print(f"合并单元格时发生错误: {str(e)}")
+
+    def _parse_range(self, range_str):
+        """
+        解析Excel单元格范围字符串
+
+        :param range_str: Excel单元格范围字符串（例如'A1:B2'）
+        :return: 解析后的范围元组（start_row, end_row, start_col, end_col）
+        """
+        start_cell, end_cell = range_str.split(':')
+        start_row = int(start_cell[1:])
+        start_col = ord(start_cell[0]) - 64
+        end_row = int(end_cell[1:])
+        end_col = ord(end_cell[0]) - 64
+        return start_row, end_row, start_col, end_col
