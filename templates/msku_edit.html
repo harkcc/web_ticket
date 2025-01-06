@@ -306,7 +306,7 @@
             const page_change = ({pageSize, currentPage}) => {
                 pageConfig.currentPage = currentPage
                 pageConfig.pageSize = pageSize
-                {#search()#}
+                search()
             }
             onMounted(() => {
                 search()
