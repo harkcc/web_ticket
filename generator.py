@@ -754,6 +754,7 @@ class InvoiceGenerator:
                 row_num = 13  # 从第13行开始填充数据
                 total_quantity = 0
                 total_amount = 0
+                total_weight = 0
                 
                 
                 if code:
@@ -792,7 +793,7 @@ class InvoiceGenerator:
             
                 # 遍历每个箱子
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
-                # row_height = sheet.row_dimensions[12].height
+                row_height = sheet.row_dimensions[13].height
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -818,10 +819,11 @@ class InvoiceGenerator:
                         # 累计总数和总金额
                         total_quantity += item.box_quantities.get(box_number, 0)
                         total_amount += total_price
-                        
+                        total_weight += box.weight
+
                         # 设置单元格值
                         cell_data = [
-                            (1, f"FBA{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
+                            (1, f"{code}00000{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
                             (2, box_number if item == box.items[0] else ""),  # 箱号,只在第一行显示
                             (3, product_info.get('cn_name', '') if product_info else ''),  # 中文品名
                             (4, product_info.get('en_name', '') if product_info else ''),  # 英文品名
@@ -841,7 +843,8 @@ class InvoiceGenerator:
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
-                        
+
+                        sheet.row_dimensions[row_num].height = row_height
                         row_num += 1
                     
                     # 如果这个箱子有多个产品,需要合并单元格
@@ -857,22 +860,43 @@ class InvoiceGenerator:
                 self._set_cell_value(sheet, total_row, 6, total_quantity, style_info)
                 self._set_cell_value(sheet, total_row, 7, total_amount, style_info)
                 self._set_cell_value(sheet, total_row, 9, "总重", style_info)
+                self._set_cell_value(sheet, total_row, 10, total_weight, style_info)
                 
-                # 添加Made in China
-                made_in_row = total_row + 1
-                self._set_cell_value(sheet, made_in_row, 1, "Made in China", style_info)
-                
-                # 添加日期
-                date_row = made_in_row
+                def set_cell_value(sheet, row, column, value, font_size=12):
+                    cell = sheet.cell(row=row, column=column)
+                    cell.value = value
+                    cell.font = Font(name='Arial', size=font_size,bold=True)
+                    no_border = Border(left=Side(border_style=None),
+                                right=Side(border_style=None),
+                                top=Side(border_style=None),
+                                bottom=Side(border_style=None))
+                    cell.border = no_border
+                    
+                def add_border_to_range(sheet, start_row, end_row, start_col, end_col):
+                    border = Border(
+                        left=Side(style='thin'),
+                        right=Side(style='thin'),
+                        top=Side(style='thin'),
+                        bottom=Side(style='thin')
+                    )
+                    for row in range(start_row, end_row + 1):
+                        for col in range(start_col, end_col + 1):
+                            cell = sheet.cell(row=row, column=col)
+                            cell.border = border
+
+                    # 为数据区域添加边框（从表头到合计行）
+                add_border_to_range(sheet,total_row, total_row, 1, 15)
+
+                # 使用辅助函数设置单元格
+                made_in_row = total_row + 2
                 current_date = datetime.now().strftime("%Y.%m.%d")
-                self._set_cell_value(sheet, date_row, 11, "DATE", style_info)
-                self._set_cell_value(sheet, date_row, 12, f"签字日期:{current_date}", style_info)
+                set_cell_value(sheet, made_in_row, 11, "DATE")
+                set_cell_value(sheet, made_in_row+1, 11, f"签字日期:{current_date}")
+                set_cell_value(sheet, made_in_row, 1, "Made in China")
 
                 # 设置行高
                 # for row in range(13, row_num):
                 #     sheet.row_dimensions[row].height = 
-                
-                # self.merge_cells_in_range(sheet, 13, 16, 1, 15)
                 self.merge_cells_in_range(sheet, 4, 4, 1, 3)
                 self.merge_cells_in_range(sheet, 7, 11, 1, 3)
                 self.merge_cells_in_range(sheet, 7, 11, 4, 15)
@@ -907,6 +931,8 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 15, 15, 6, 8)
                 print("开始写入林道模版信息")
 
+                box_Reference_id = '' 
+
                 # 定义样式信息
                 style_info = {
                     'font': Font(name='Arial', size=10),
@@ -927,6 +953,9 @@ class InvoiceGenerator:
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
                     address_info_detail = address_info['address_info']
+
+                    if address_info_detail['amazonReferenceId']:
+                        box_Reference_id =address_info_detail['amazonReferenceId']
                     try:
                         # 填充收件人信息，这里收件人和
                         if 'name' in address_info_detail:
@@ -1030,6 +1059,10 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
+
+                        Reference_id = None  # 初始化为None
+                        if box_Reference_id:
+                            Reference_id = box_Reference_id
                         # 处理产品信息为None的情况
                         if product_info is None:
                             print(f"警告: 未找到产品 {item.msku} 的信息")
@@ -1039,12 +1072,13 @@ class InvoiceGenerator:
                             price = product_info.get('price', 0)
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
+
                         
                         # 设置单元格值和样式ç
                         cell_data = [
                             (1, box_number),                    # 货箱编号 (A列)
                             (2, code),
-                            (3,Reference_id), 
+                            (3,Reference_id if Reference_id is not None else ""), 
                             (4, box.weight if box.weight is not None else ""),  # 重量 (B列)
                             (5, box.length if box.length is not None else ""),  # 长度 (Q列)
                             (6, box.width if box.width is not None else ""),    # 宽度 (R列)
@@ -1453,10 +1487,8 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
                 sheet = wb['FBA专线出货资料模板']  # 获取模板工作表
-                # box_Reference_id = ''  # 在方法开始时就初始化
                 print("开始写入模版信息")
 
-               
                 # 定义样式信息
                 style_info = {
                     'font': Font(name='Arial', size=10),
@@ -1467,18 +1499,17 @@ class InvoiceGenerator:
                     'alignment': Alignment(horizontal='center', vertical='center')
                 }
 
-                # 先解除所有合并的单元格
+                #先拆分合并的单元格，用于写入
                 self.unmerge_cells_in_range(sheet, 2, 2, 3, 5)
                 self.unmerge_cells_in_range(sheet, 3, 3, 3, 5)
                 self.unmerge_cells_in_range(sheet, 4, 4, 3, 5)
                 self.unmerge_cells_in_range(sheet, 4, 4, 7, 8)
                 self.unmerge_cells_in_range(sheet, 5, 5, 3, 5)
 
-                if code:
-                    cell = sheet.cell(row=4, column=5)  # B列是第2列
-                    cell.value = "FBA 号：" + str(code)
-                    cell.font = Font(name='Arial', size=12,bold=True)
-
+                # if code:
+                #     cell = sheet.cell(row=4, column=7)  # B列是第2列
+                #     cell.value = "FBA 号：" + str(code)
+                #     cell.font = Font(name='Arial', size=12,bold=True)
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
@@ -1507,7 +1538,6 @@ class InvoiceGenerator:
                         if 'countryCode' in address_info_detail:
                             address_parts.append(address_info_detail['countryCode'])
 
-
                         if address_parts:
                             cell = sheet.cell(row=2, column=3)  
                             cell.value = ', '.join(address_parts)
@@ -1520,9 +1550,9 @@ class InvoiceGenerator:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
                 # 填充数据
-                row_num = 12  
+                row_num = 9  
                 index = 1    # 添加序号计数器，从1开始
-                row_height = sheet.row_dimensions[12].height
+                row_height = sheet.row_dimensions[9].height
 
                 # 将box_data按箱号排序
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
@@ -1552,28 +1582,18 @@ class InvoiceGenerator:
                         # 设置单元格值和样式
                         cell_data = [
                             # 基本信息
-                                                        
                             # 产品名称信息
-                            (2, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''),    
-                            (10, product_info.get('model', '') if product_info else ''),                   # 型号
-                            
+                            (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''),    
+                            (11, product_info.get('model', '') if product_info else ''),                   # 型号
                             # 产品材料和用途
-                            (8, f"{product_info.get('material_en', '')} +'/'+{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
-                            
-                            (9, str(product_info.get('usage_en', '') + '/' +
+                            (9, f"{product_info.get('material_en', '')} +'/'+{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
+                            (10, str(product_info.get('usage_en', '') + '/' +
                                    product_info.get('usage_cn', '')) if product_info else ''),            # 用途
-
-                            (1, product_info.get('hs_code', '') if product_info else ''),                # HS编码
-                            (4, item.box_quantities.get(box_number, 0)),         # 数量
-                            (9,  product_info.get('electrified', '')if product_info else ''),            
-                            
-    
-
-                            (3, '')
-                        ]                                              # 图片占位
-                        
-
-
+                            (2, product_info.get('hs_code', '') if product_info else ''),                # HS编码
+                            (5, item.box_quantities.get(box_number, 0)),         # 数量
+                            (10,  product_info.get('electrified', '')if product_info else ''),            
+                            (4, ''),                                            # 图片占位
+                        ]
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
@@ -1589,13 +1609,12 @@ class InvoiceGenerator:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
-
-                box_info_data = [
-                    (11, box_number_str),  
-                    (12, box.weight if box.weight is not None else ""),     # 重量
-                    (13, box.weight if box.weight is not None else ""),     # 重量
-                    (14, volume if box.weight is not None else "")          # 体积
-                ]
+                    box_info_data = [
+                        (12, box_number_str),  
+                        (13, box.weight if box.weight is not None else ""),     # 重量
+                        (14, box.weight if box.weight is not None else ""),     # 重量
+                        (15, volume if box.weight is not None else "")          # 体积
+                    ]
 
                 # 设置箱子信息
                 for column, value in box_info_data:
@@ -1603,8 +1622,8 @@ class InvoiceGenerator:
                     cell.font = style_info['font']
                     cell.border = style_info['border']
                     cell.alignment = style_info['alignment']
-                    
-                    # 使用箱子中的产品数量来确定合并范围
+
+                 # 使用箱子中的产品数量来确定合并范围
                     if len(box.items) > 1:  # 只有当箱子中有多个产品时才合并
                         sheet.merge_cells(
                             start_row=first_row_of_box,
@@ -1613,9 +1632,11 @@ class InvoiceGenerator:
                             end_column=column
                         )
                 
-                self.merge_cells_in_range(sheet, 2, 2, 2, 9)
-                self.merge_cells_in_range(sheet, 3, 3, 2, 9)
-                self.merge_cells_in_range(sheet, 4, 4, 2, 9)
+                self.merge_cells_in_range(sheet, 2, 2, 3, 5)
+                self.merge_cells_in_range(sheet, 3, 3, 3, 5)
+                self.merge_cells_in_range(sheet, 4, 4, 3, 5)
+                self.merge_cells_in_range(sheet, 4, 4, 7, 8)
+                self.merge_cells_in_range(sheet, 5, 5, 3, 5)
 
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
