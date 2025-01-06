@@ -151,6 +151,10 @@
                     productNameZh: [
                         {required: true, message: '请输入中文品名'}
                     ],
+                    productNameEn: [
+                        {required: true, message: '请输入英文品名'}
+                    ],
+
                     materialZh: [
                         {required: true, message: '请输入中文材质'}
                     ],
@@ -175,9 +179,9 @@
                     brand: [
                         {required: true, message: '请输入品牌'}
                     ],
-                    weight: [
-                        {required: true, message: '请输入重量'}
-                    ],
+                    // weight: [
+                    //     {required: true, message: '请输入重量'}
+                    // ],
                 },
                 items: [
                     {field: 'msku', title: 'MSKU', span: 8, itemRender: {name: 'VxeInput'}},
@@ -306,7 +310,7 @@
             const page_change = ({pageSize, currentPage}) => {
                 pageConfig.currentPage = currentPage
                 pageConfig.pageSize = pageSize
-                {#search()#}
+                search()
             }
             onMounted(() => {
                 search()
