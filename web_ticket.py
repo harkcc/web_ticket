@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, make_response
 from werkzeug.utils import secure_filename
 import os
 import threading
@@ -11,6 +11,8 @@ import pandas as pd
 from generator import InvoiceGenerator, ProcessingError
 from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
 from STA_data import get_address_info
+from PIL import Image
+from io import BytesIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -507,8 +509,56 @@ def save_msku_info():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/images/<string:msku>', methods=['GET'])
+def show_image(msku):
+    try:
+        image_path_jpg = os.path.join(invoice_generator.image_folder, f"{msku}.jpg")
+        image_path_png = os.path.join(invoice_generator.image_folder, f"{msku}.png")
+        if os.path.exists(image_path_jpg):
+            file_min = Image.open(image_path_jpg)
+
+        elif os.path.exists(image_path_png):
+            file_min = Image.open(image_path_jpg)
+        else:
+            image_data = open("static/no.png", "rb").read()
+            response = make_response(image_data)
+            response.headers['Content-Type'] = 'image/jpg'
+            return response
+        # 获取原图尺寸
+        w, h = file_min.size
+        # 计算压缩比
+        bili = int(w / 300)
+        if bili == 0:
+            bili = 1
+        # 按比例对宽高压缩
+        file_min.thumbnail((w // bili, h // bili))
+        bytesIO = BytesIO()
+        file_min.save(bytesIO, format='PNG')
+        response = make_response(bytesIO.getvalue())
+        response.headers['Content-Type'] = 'image/jpg'
+        return response
+    except Exception as e:
+        image_data = open("static/no.png", "rb").read()
+        response = make_response(image_data)
+        response.headers['Content-Type'] = 'image/jpg'
+        return response
+
+@app.route('/api/upload/', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        print("no file")
+    file = request.files['file']
+    msku = request.form['msku']
+    filename = f"{msku}.jpg"
+    file.save(os.path.join(invoice_generator.image_folder, filename))
+    return {"code": 200, "name": filename,
+            "url": f"/api/images/{msku}"}, 200
+    # return {"code": 200, "name": filename,
+    #         "url": f"https://em-erp-1252538772.cos.ap-nanjing.myqcloud.com/{filename}"},  200
+
 
 if __name__ == '__main__':
+    os.makedirs(invoice_generator.image_folder,exist_ok=True)
     FIELDS = [
         ["msku", 0],  # sku必有
         ["productNameZh", 1],
@@ -530,3 +580,4 @@ if __name__ == '__main__':
         ["outboundFee", 17]
     ]
     app.run(host="0.0.0.0", port=5009, debug=True)
+
