@@ -1456,11 +1456,7 @@ class InvoiceGenerator:
                 # box_Reference_id = ''  # 在方法开始时就初始化
                 print("开始写入模版信息")
 
-                if code:
-                    cell = sheet.cell(row=4, column=5)  # B列是第2列
-                    cell.value = "FBA 号：" + str(code)
-                    cell.font = Font(name='Arial', size=12,bold=True)
-
+               
                 # 定义样式信息
                 style_info = {
                     'font': Font(name='Arial', size=10),
@@ -1471,11 +1467,18 @@ class InvoiceGenerator:
                     'alignment': Alignment(horizontal='center', vertical='center')
                 }
 
+                # 先解除所有合并的单元格
                 self.unmerge_cells_in_range(sheet, 2, 2, 3, 5)
                 self.unmerge_cells_in_range(sheet, 3, 3, 3, 5)
                 self.unmerge_cells_in_range(sheet, 4, 4, 3, 5)
                 self.unmerge_cells_in_range(sheet, 4, 4, 7, 8)
                 self.unmerge_cells_in_range(sheet, 5, 5, 3, 5)
+
+                if code:
+                    cell = sheet.cell(row=4, column=5)  # B列是第2列
+                    cell.value = "FBA 号：" + str(code)
+                    cell.font = Font(name='Arial', size=12,bold=True)
+
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
@@ -1549,8 +1552,7 @@ class InvoiceGenerator:
                         # 设置单元格值和样式
                         cell_data = [
                             # 基本信息
-                            (1, box_number_str),                                   # 货箱编号
-    
+                                                        
                             # 产品名称信息
                             (2, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''),    
                             (10, product_info.get('model', '') if product_info else ''),                   # 型号
@@ -1565,12 +1567,13 @@ class InvoiceGenerator:
                             (4, item.box_quantities.get(box_number, 0)),         # 数量
                             (9,  product_info.get('electrified', '')if product_info else ''),            
                             
-                            (10, box.weight if box.weight is not None else ""),   # 重量
-                            (11, box.weight if box.weight is not None else ""),   # 重量
-                            (13, volume)
+    
 
-                            (3, '')                                              # 图片占位
-                        ]
+                            (3, '')
+                        ]                                              # 图片占位
+                        
+
+
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
@@ -1586,22 +1589,29 @@ class InvoiceGenerator:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
-                    # 合并单元格
-                    if row_num > first_row_of_box:
-                        merge_ranges = [
-                            (first_row_of_box, 1, row_num - 1, 1),  # 货箱编号列
-                            (first_row_of_box, 16, row_num - 1, 16),  # 长度列
-                            (first_row_of_box, 17, row_num - 1, 17),  # 宽度列
-                            (first_row_of_box, 18, row_num - 1, 18),  # 高度列
-                            (first_row_of_box, 19, row_num - 1, 19),  # 重量列
-                        ]
-                        for start_row, start_col, end_row, end_col in merge_ranges:
-                            sheet.merge_cells(
-                                start_row=start_row,
-                                start_column=start_col,
-                                end_row=end_row,
-                                end_column=end_col
-                            )
+
+                box_info_data = [
+                    (11, box_number_str),  
+                    (12, box.weight if box.weight is not None else ""),     # 重量
+                    (13, box.weight if box.weight is not None else ""),     # 重量
+                    (14, volume if box.weight is not None else "")          # 体积
+                ]
+
+                # 设置箱子信息
+                for column, value in box_info_data:
+                    cell = sheet.cell(row=first_row_of_box, column=column, value=value)
+                    cell.font = style_info['font']
+                    cell.border = style_info['border']
+                    cell.alignment = style_info['alignment']
+                    
+                    # 使用箱子中的产品数量来确定合并范围
+                    if len(box.items) > 1:  # 只有当箱子中有多个产品时才合并
+                        sheet.merge_cells(
+                            start_row=first_row_of_box,
+                            start_column=column,
+                            end_row=first_row_of_box + len(box.items) - 1,
+                            end_column=column
+                        )
                 
                 self.merge_cells_in_range(sheet, 2, 2, 2, 9)
                 self.merge_cells_in_range(sheet, 3, 3, 2, 9)
