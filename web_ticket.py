@@ -480,7 +480,7 @@ def get_msku_info():
             page = request.json.get('page', 1)
             page_size = request.json.get('pageSize', 50)
             filters = request.json.get('filters', {})
-            products = collection.find(filters).skip((page - 1) * page_size).limit(page_size)
+            products = collection.find(filters).sort('_id',-1).skip((page - 1) * page_size).limit(page_size)
             results = []
             for i in products:
                 results.append({
