@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -13,6 +13,11 @@ class PackingListItem:
     sku: str  # SKU
     quantity: int  # 发货数量
     box_quantities: Dict[int, int]  # 每箱数量 {箱号: 数量}
+    box_original_values: Dict[int, str] = field(default_factory=dict)  # 存储特殊格式的原始值
+
+    def __post_init__(self):
+        if self.box_original_values is None:
+            self.box_original_values = {}
 
 
 class PackingListBox:
@@ -39,6 +44,7 @@ class PackingListBox:
     def set_weight(self, weight: float):
         """设置箱子重量"""
         self.weight = weight
+
 
 class PackingListProcessor:
     """领星装箱单处理器"""
@@ -232,18 +238,47 @@ class SimplePackingListProcessor:
         self.boxes: Dict[int, PackingListBox] = {}
         self.items: List[PackingListItem] = []
 
+    def _parse_box_dimensions(self, box_spec):
+        """解析箱子规格，返回长宽高的元组"""
+        try:
+            # 处理 "定制59" 这样的格式
+            if box_spec.startswith('定制'):
+                number = int(box_spec[2:])  # 提取数字部分
+                # 根据箱号返回预定义的尺寸
+                if number == 59:
+                    return (59, 48, 39)
+                elif number == 53:
+                    return (53, 40, 35)
+                # 可以添加更多的箱型
+            
+            # 处理 "59*48*39" 这样的格式
+            if '*' in box_spec:
+                dimensions = box_spec.split('*')
+                if len(dimensions) == 3:
+                    return tuple(int(d.strip()) for d in dimensions)
+            
+            print(f"Warning: Unknown box specification format: {box_spec}")
+            return None
+        except Exception as e:
+            print(f"Error parsing box dimensions: {str(e)}")
+            return None
+
     def process(self, template_name=None):
         """处理装箱单
         
         Args:
             template_name: 模板名称，用于特殊处理某些模板
         """
+        print(f"\n========== 开始处理装箱单 ==========")
+        print(f"模板名称: {template_name}")
         try:
             print(f"Reading Excel file: {self.file_path}")
-            df = pd.read_excel(self.file_path)
-
-            if df.empty:
-                raise ValueError("Excel file is empty")
+            df = pd.read_excel(self.file_path, header=None)
+            print(f"\n=== Excel文件基本信息 ===")
+            print(f"总行数: {len(df)}")
+            print(f"总列数: {len(df.columns)}")
+            print("前5行数据预览:")
+            print(df.head())
 
             # 如果是依诺达模板，删除第一列
             if template_name and "依诺达" in template_name:
@@ -259,84 +294,111 @@ class SimplePackingListProcessor:
 
             print(f"Found Shipment ID: {self.shipment_id}")
 
-            # 读取箱子信息
+            # 查找箱号行
             box_number_index = None
-            box_columns = {}
-            box_types = {}
+            box_columns = {}  # 用于存储箱号对应的列索引
 
-            # 找到箱号所在行
-            for index, row in enumerate(df.iterrows()):
-                if str(row[1].iloc[1]).strip() == '箱号':  # 第2列是否为"箱号"
-                    box_number_index = index
+            print("\n=== 查找箱号行 ===")
+            for idx, row in df.iterrows():
+                if not pd.isna(row.iloc[1]) and str(row.iloc[1]).strip() == "箱号":
+                    box_number_index = idx
+                    # 查找每个箱子的列索引
+                    for col_idx in range(2, len(row)):  # 从第3列开始查找箱号
+                        if not pd.isna(row.iloc[col_idx]):
+                            try:
+                                box_number = int(row.iloc[col_idx])
+                                box_columns[col_idx] = box_number
+                                print(f"找到箱号 {box_number} 在列 {col_idx}")
+                            except (ValueError, TypeError):
+                                continue
                     break
 
             if box_number_index is None:
                 raise ValueError("未找到箱号行")
+            print(f"找到箱号行，索引为: {box_number_index}")
 
-            print(f"Found box number row at index {box_number_index}")
+            # 处理箱子规格
+            print("\n=== 处理箱子规格 ===")
+            box_spec_row = None
+            box_weight_row = None
 
-            # 从箱号行开始处理每一列
-            valid_columns = []  # 存储有效的箱子列
-            for col in range(2, len(df.columns)):  # 从第3列开始
-                box_number_str = str(df.iloc[box_number_index, col]).strip() if not pd.isna(df.iloc[box_number_index, col]) else ""
-                if box_number_str and box_number_str.isdigit():
-                    valid_columns.append(col)
-                    box_number = int(box_number_str)
-                    box_type = str(df.iloc[box_number_index - 1, col]).strip() if not pd.isna(df.iloc[box_number_index - 1, col]) else ""
-                    
-                    # 查找匹配的箱规
-                    matched_box_type = None
-                    for spec_type in self.BOX_SPECS:
-                        if spec_type.strip() in box_type or box_type in spec_type.strip():
-                            matched_box_type = spec_type
-                            break
+            # 查找箱规和重量行
+            for idx in range(box_number_index - 2, box_number_index):
+                row = df.iloc[idx]
+                if not pd.isna(row.iloc[1]):
+                    if str(row.iloc[1]).strip() == "箱规":
+                        box_spec_row = idx
+                    elif str(row.iloc[1]).strip() == "重量（kg）":
+                        box_weight_row = idx
 
-                    if matched_box_type:
-                        try:
-                            # 获取重量
-                            weight_str = str(df.iloc[box_number_index - 2, col]).strip() if not pd.isna(df.iloc[box_number_index - 2, col]) else ""
-                            box_weight = float(weight_str) if weight_str and weight_str != '0' else None
+            # 处理每个箱子的规格和重量
+            for col_idx, box_number in box_columns.items():
+                print(f"箱子 {box_number}:")
+                
+                # 获取箱规
+                box_spec = None
+                if box_spec_row is not None:
+                    box_spec = str(df.iloc[box_spec_row, col_idx]).strip() if not pd.isna(df.iloc[box_spec_row, col_idx]) else None
+                    print(f"  - 箱规: {box_spec}")
 
-                            # 创建箱子对象并设置规格
-                            self.boxes[box_number] = PackingListBox(box_number)
-                            specs = self.BOX_SPECS[matched_box_type]
-                            self.boxes[box_number].length = specs["length"]
-                            self.boxes[box_number].width = specs["width"]
-                            self.boxes[box_number].height = specs["height"]
-                            self.boxes[box_number].weight = box_weight if box_weight is not None else specs["weight"]
+                # 获取重量
+                box_weight = None
+                if box_weight_row is not None:
+                    try:
+                        box_weight = float(df.iloc[box_weight_row, col_idx]) if not pd.isna(df.iloc[box_weight_row, col_idx]) else None
+                        print(f"  - 重量: {box_weight}kg")
+                    except (ValueError, TypeError):
+                        print(f"  - 重量转换失败")
 
-                            box_columns[col] = box_number
-                            box_types[box_number] = matched_box_type
-                            print(f"Processed box {box_number} (Type: {matched_box_type}, Weight: {self.boxes[box_number].weight}kg)")
+                # 创建箱子对象
+                box = PackingListBox(box_number)
+                if box_spec:
+                    print(f"  - 匹配到箱规: {box_spec}")
+                    dimensions = self._parse_box_dimensions(box_spec)
+                    if dimensions:
+                        box.length, box.width, box.height = dimensions
+                        print(f"  - 尺寸: {box.length}x{box.width}x{box.height}")
+                if box_weight:
+                    box.weight = box_weight
+                self.boxes[box_number] = box
 
-                        except Exception as e:
-                            print(f"Warning: Invalid box information in column {col+1}: {str(e)}")
-                            continue
-
-            if not box_columns:
+            if not self.boxes:
                 raise ValueError("未找到有效的箱子信息")
 
-            # 数据从箱号行后两行开始
-            data_start_row = box_number_index + 2
-            data_end_row = None
+            # 数据从箱号行后一行开始（使用索引）
+            data_start_row = box_number_index + 1
+            print(f"\n=== 数据范围信息 ===")
+            print(f"箱号行索引: {box_number_index}")
+            print(f"数据开始行索引: {data_start_row}")
 
-            # 查找数据结束位置
-            for i in range(data_start_row, len(df)):
-                first_col = str(df.iloc[i, 0]).strip() if not pd.isna(df.iloc[i, 0]) else ""
-                if data_end_row is None and not first_col:
-                    data_end_row = i - 1
-                    break
+            # 遍历所有可能的数据行
+            valid_rows = []
+            for idx in range(data_start_row, len(df)):
+                row_data = df.iloc[idx]
+                first_col = str(row_data.iloc[0]).strip() if not pd.isna(row_data.iloc[0]) else ""
+                
+                # 显示行数据用于调试
+                print(f"\n检查行索引 {idx}:")
+                print(f"第一列值: '{first_col}'")
+                print(f"完整行数据: {row_data.to_dict()}")
+                
+                if first_col:  # 如果第一列不为空，说明是有效的数据行
+                    print(f"发现有效数据行，索引: {idx}")
+                    valid_rows.append(idx)
 
-            if data_end_row is None:
-                data_end_row = len(df) - 1
+            if not valid_rows:
+                raise ValueError("未找到有效的数据行")
 
-            print(f"Data range: row {data_start_row + 1} to {data_end_row + 1}")
+            print(f"\n=== 有效数据行索引: {valid_rows} ===")
 
             # 处理商品信息
             row_count = 0
             item_count = 0  # 添加实际商品计数
-            for _, row in df.iloc[data_start_row:data_end_row + 1].iterrows():
+            
+            for idx in range(data_start_row, len(df)):
+                row = df.iloc[idx]
                 row_count += 1
+                print(f"\n=== 处理第 {row_count} 行 ===")
                 
                 # 检查SKU是否为空或者只包含空白字符
                 sku = str(row.iloc[0]).strip() if not pd.isna(row.iloc[0]) else ""
@@ -344,55 +406,94 @@ class SimplePackingListProcessor:
                     print(f"跳过空行 {row_count}")
                     continue
 
+                print(f"处理商品: SKU={sku}")
+                item_count += 1
+
+                # 创建商品对象
+                item = PackingListItem(
+                    sequence_no=item_count,
+                    msku=sku,
+                    fnsku="",  # 暂时为空
+                    product_name="",  # 暂时为空
+                    sku=sku,
+                    quantity=0,  # 稍后更新
+                    box_quantities={}
+                )
+
+                # 尝试获取总数量
+                total_quantity = None
                 try:
-                    item_count += 1  # 只有在有效商品时才增加计数
+                    if not pd.isna(row.iloc[1]):  # 第2列是总数量
+                        total_quantity = int(float(str(row.iloc[1]).strip()))
+                        print(f"找到总数量: {total_quantity}")
+                except (ValueError, TypeError) as e:
+                    print(f"Warning: Invalid total quantity in row {row_count}: {str(e)}")
 
-                    # 尝试获取总数量
-                    total_quantity = None
+                # 处理每个箱子中的数量
+                box_total = 0
+                print(f"\n=== 处理商品 {sku} 的箱子数量 ===")
+                print(f"box_columns: {box_columns}")
+                print(f"当前行完整数据: {row.to_dict()}")
+                
+                for col_idx, box_number in box_columns.items():
                     try:
-                        if not pd.isna(row.iloc[1]):  # 第2列是总数量
-                            total_quantity = int(float(str(row.iloc[1]).strip()))
-                    except (ValueError, TypeError):
-                        print(f"Warning: Invalid quantity in row {row_count}, using sum of box quantities")
-
-                    print(f"Processing row {row_count}: SKU={sku}")
-
-                    # 创建商品信息
-                    item = PackingListItem(
-                        sequence_no=item_count,  # 使用实际商品计数作为序号
-                        msku=str(row.iloc[0]).strip() if not pd.isna(row.iloc[0]) else "",  # SKU作为MSKU
-                        fnsku="",  # FNSKU置空
-                        product_name="",  # 产品名称置空
-                        sku=sku,
-                        quantity=0,  # 先设为0，后面再更新
-                        box_quantities={}
-                    )
-
-                    # 处理每个箱子中的数量
-                    box_total = 0
-                    for col, box_number in box_columns.items():
-                        try:
-                            if not pd.isna(row.iloc[col]):
-                                quantity = int(float(str(row.iloc[col]).strip()))
+                        print(f"\n检查箱子 {box_number} (列 {col_idx}):")
+                        raw_value = row.iloc[col_idx]
+                        print(f"原始值: {raw_value} (类型: {type(raw_value)})")
+                        
+                        if not pd.isna(raw_value):
+                            value = str(raw_value).strip()
+                            print(f"处理值: {value}")
+                            
+                            # 处理数量
+                            try:
+                                if ' ' in value:
+                                    # 处理 "A1 70" 格式
+                                    print(f"发现特殊格式: {value}")
+                                    prefix, number = value.split(' ', 1)
+                                    print(f"  - 前缀: {prefix}")
+                                    print(f"  - 数量: {number}")
+                                    quantity = int(number)
+                                    original_value = value  # 保存完整的原始值
+                                else:
+                                    # 普通数字格式
+                                    quantity = int(float(value))
+                                    original_value = str(quantity)
+                                
+                                print(f"  - 处理后数量: {quantity}")
+                                
                                 if quantity > 0:
-                                    item.box_quantities[box_number] = quantity
+                                    print(f"添加到箱子 {box_number}: {quantity} (原始值: {original_value})")
+                                    item.box_quantities[box_number] = quantity  # 存储数字形式的数量
+                                    if not hasattr(item, 'box_original_values'):
+                                        item.box_original_values = {}
+                                    item.box_original_values[box_number] = original_value  # 存储原始值
+                                    
+                                    if box_number not in self.boxes:
+                                        print(f"创建新箱子: {box_number}")
+                                        self.boxes[box_number] = PackingListBox(box_number)
                                     self.boxes[box_number].add_item(item)
                                     box_total += quantity
-                                    print(f"  - Box {box_number}: {quantity} units")
-                        except (ValueError, TypeError) as e:
-                            print(f"Warning: Invalid quantity in row {row_count}, box {box_number}: {str(e)}")
-                            continue
+                                    print(f"当前箱子总数: {box_total}")
+                                    print(f"存储的原始值: {item.box_original_values}")
+                            except (ValueError, TypeError) as e:
+                                print(f"  - 数量转换失败: {str(e)}")
+                                continue
+                        else:
+                            print(f"  - 跳过空值")
+                            
+                    except Exception as e:
+                        print(f"Warning: Error processing box {box_number}: {str(e)}")
+                        continue
 
-                    # 更新总数量
-                    item.quantity = total_quantity if total_quantity is not None else box_total
-                    if total_quantity is not None and total_quantity != box_total:
-                        print(f"Warning: Total quantity ({total_quantity}) doesn't match sum of box quantities ({box_total})")
+                # 更新总数量
+                print(f"\n=== 更新总数量 ===")
+                print(f"总数量: {total_quantity}, 箱子总数: {box_total}")
+                item.quantity = total_quantity if total_quantity is not None else box_total
+                if total_quantity is not None and total_quantity != box_total:
+                    print(f"Warning: Total quantity ({total_quantity}) doesn't match sum of box quantities ({box_total})")
 
-                    self.items.append(item)
-
-                except Exception as e:
-                    print(f"Warning: Error processing row {row_count}: {str(e)}")
-                    continue
+                self.items.append(item)
 
             if not self.items:
                 raise ValueError("未找到有效的商品信息")
@@ -401,7 +502,7 @@ class SimplePackingListProcessor:
             print(f"- Total products: {len(self.items)}")
             print(f"- Total boxes: {len(self.boxes)}")
             for box_number, box in self.boxes.items():
-                box_type = box_types.get(box_number, "Unknown")
+                box_type = "Unknown"
                 print(f"Box {box_number} (Type: {box_type}):")
                 print(f"  - Dimensions: {box.length}x{box.width}x{box.height} cm")
                 print(f"  - Weight: {box.weight} kg")

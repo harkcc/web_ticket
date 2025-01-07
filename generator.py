@@ -1304,6 +1304,7 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+                
                 sheet = wb['FBA对应贴标资料']  # 获取模板工作表
                 print("开始写入递信模版信息")
                 current_date = datetime.now().strftime("%Y.%m.%d")
@@ -1344,14 +1345,19 @@ class InvoiceGenerator:
                 center_alignment = Alignment(horizontal='center', vertical='center')
 
                 # 遍历每个箱子
+
                 for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
                     print(f"处理箱子 {box_number}")
                     
-                    if not hasattr(box, 'items') or not box.items:
+                    # 检查box.items是否为空，同时打印更多信息以便调试
+                    print(f"Box {box_number} items: {box.items}")
+                    if not box.items:
+                        print(f"跳过箱子 {box_number} - 没有商品")
                         continue
 
                     # 计算箱子中的产品数量
                     box_products = box.items
+                    print(box_products)
                     is_mixed = len(box_products) >= 2
                     identifier = f"{len(box_data)}-{box_number}{'(混装)' if is_mixed else ''}"
 
@@ -1374,23 +1380,39 @@ class InvoiceGenerator:
                             (4, f"{getattr(product_info, 'usage_en', '')}, {getattr(product_info, 'usage_cn', '')}"),  # 用途
                             (5, box_number),  # 箱号
                             (6, getattr(box, 'weight', '')),  # 重量
-                            (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 尺寸
-                            # (8,item.box_quantities.get(box_number, 0)),
-                            # (11,item.fnsku),
+                            (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 
                         ]
 
                         # 处理数量信息
                         quantity = getattr(product_info, 'box_quantities', {}).get(box_number, 0)
+                        original_value = getattr(product_info, 'box_original_values', {}).get(box_number, str(quantity))
+                        
+                        print("数量信息:")
+                        print(f"  - 数字形式: {quantity}")
+                        print(f"  - 原始格式: {original_value}")
+                        
+                        total_quantity = total_quantity + quantity
                         if quantity:
-                            quantity_str = str(quantity)
-                            match = re.match(r'^([A-Za-z])(\d)$', quantity_str)
-                            if match:
+                            # 使用原始格式
+                            if ' ' in original_value:
+                                prefix, number = original_value.split(' ', 1)
                                 cell_data.extend([
-                                    (8, match.group(2)),  # 数量
-                                    (9, match.group(2)),  # 数量（重复）
-                                    (10, f"{match.group(1)}-{match.group(2)}"),  # 格式化的数量
+                                    (8, number),  # 数量
+                                    (9, number),  # 数量（重复）
+                                    (10, prefix),  # 前缀（如 A1）
                                 ])
-                                total_quantity += int(match.group(2))
+                            else:
+                                cell_data.extend([
+                                    (8, str(quantity)),  # 数量
+                                    (9, str(quantity)),  # 数量（重复）
+                                    (10, ''),  # 没有前缀
+                                ])
+                        else:
+                            cell_data.extend([
+                                (8, ''),  # 数量
+                                (9, ''),  # 数量（重复）
+                                (10, ''),  # 没有前缀
+                            ])
 
                         # 设置运单号
                         cell_data.append((13, f"{ticket}{box_number}"))  # 运单号
@@ -1409,8 +1431,7 @@ class InvoiceGenerator:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
-                        if hasattr(box, 'weight') and box.weight:
-                            total_weight += float(box.weight)
+                        
                     # 合并单元格
                     if row_num > merge_start_row:
                         merge_ranges = [
@@ -1427,6 +1448,7 @@ class InvoiceGenerator:
                                 end_row=end_row,
                                 end_column=end_col
                             )
+                    total_weight += box.weight
 
                 # 合并最后一列
                 sheet.merge_cells(start_row=3, start_column=14, end_row=row_num, end_column=14)
@@ -1474,9 +1496,8 @@ class InvoiceGenerator:
                 traceback.print_exc()
                 raise
     
-
     @template_handler("德邦美森限时达")
-    def _fill_dbmsxsd_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_dbmsxsd_template(self, wb, box_data,code=None, address_info=None):
         """
         :param wb: 工作簿对象
         :param box_data: 箱子数据
