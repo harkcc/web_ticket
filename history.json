@@ -1141,5 +1141,27 @@
     "template_name": "林道UPS",
     "status": "error",
     "result_file": null
+  },
+  {
+    "task_id": "20250107134201",
+    "type": "packing_list",
+    "timestamp": "20250107_134204",
+    "input_file": "20250107134201_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "德邦美森限时达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250107134735",
+    "type": "packing_list",
+    "timestamp": "20250107_134738",
+    "input_file": "20250107134735_packing_list.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "德邦美森限时达",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]

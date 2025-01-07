@@ -1293,7 +1293,6 @@ class InvoiceGenerator:
             print(f"填充林道UPS模板时发生错误: {str(e)}")
             raise
 
-   
     @template_handler("递信")
     def _fill_dixing_template(self, wb, box_data, code=None, address_info=None):
         """
@@ -1487,6 +1486,9 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
                 sheet = wb['FBA专线出货资料模板']  # 获取模板工作表
+                total_quantity = 0
+                total_amount = 0
+                total_weight = 0
                 print("开始写入模版信息")
 
                 # 定义样式信息
@@ -1503,13 +1505,13 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 2, 2, 3, 5)
                 self.unmerge_cells_in_range(sheet, 3, 3, 3, 5)
                 self.unmerge_cells_in_range(sheet, 4, 4, 3, 5)
-                self.unmerge_cells_in_range(sheet, 4, 4, 7, 8)
+                # self.unmerge_cells_in_range(sheet, 4, 4, 7, 8)
                 self.unmerge_cells_in_range(sheet, 5, 5, 3, 5)
 
-                # if code:
-                #     cell = sheet.cell(row=4, column=7)  # B列是第2列
-                #     cell.value = "FBA 号：" + str(code)
-                #     cell.font = Font(name='Arial', size=12,bold=True)
+                if code:
+                    cell = sheet.cell(row=4, column=7)  # B列是第2列
+                    cell.value = "FBA 号：" + str(code)
+                    cell.font = Font(name='Arial', size=12,bold=True)
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
@@ -1570,6 +1572,10 @@ class InvoiceGenerator:
                         volume = box.length * box.width * box.height*0.000001
                         price = 0
                         total_price = 0
+
+                        total_quantity += item.box_quantities.get(box_number, 0)
+                        total_amount += total_price
+                        total_weight += box.weight
     
                         if product_info is not None:
                             item.product_name = product_info.get('cn_name', item.product_name)
@@ -1584,10 +1590,12 @@ class InvoiceGenerator:
                             # 基本信息
                             # 产品名称信息
                             (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''),    
+                            (6,''),
                             (11, product_info.get('model', '') if product_info else ''),                   # 型号
                             # 产品材料和用途
-                            (9, f"{product_info.get('material_en', '')} +'/'+{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
-                            (10, str(product_info.get('usage_en', '') + '/' +
+
+                            (8, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
+                            (9, str(product_info.get('usage_en', '') + '/' +
                                    product_info.get('usage_cn', '')) if product_info else ''),            # 用途
                             (2, product_info.get('hs_code', '') if product_info else ''),                # HS编码
                             (5, item.box_quantities.get(box_number, 0)),         # 数量
@@ -1609,6 +1617,7 @@ class InvoiceGenerator:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
+                        
                     box_info_data = [
                         (12, box_number_str),  
                         (13, box.weight if box.weight is not None else ""),     # 重量
@@ -1631,12 +1640,32 @@ class InvoiceGenerator:
                             end_row=first_row_of_box + len(box.items) - 1,
                             end_column=column
                         )
+                               # 添加总计行
+
+                total_row = row_num+1
+                self._set_cell_value(sheet, total_row, 2, "TOTAL", style_info)
+                self._set_cell_value(sheet, total_row, 12, len(box_data), style_info)
+                self._set_cell_value(sheet, total_row, 5, total_quantity, style_info)
+                # self._set_cell_value(sheet, total_row, 7, total_amount, style_info)
+             
+                self._set_cell_value(sheet, total_row, 13, total_weight, style_info)
+                self._set_cell_value(sheet,total_row,14,total_weight,style_info)
                 
                 self.merge_cells_in_range(sheet, 2, 2, 3, 5)
                 self.merge_cells_in_range(sheet, 3, 3, 3, 5)
                 self.merge_cells_in_range(sheet, 4, 4, 3, 5)
                 self.merge_cells_in_range(sheet, 4, 4, 7, 8)
                 self.merge_cells_in_range(sheet, 5, 5, 3, 5)
+                
+                thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+
+                for row_index in range(total_row-1, total_row+1):  # 行索引从1到3（对应A1:C3中的1到3行）
+                    for col_index in range(2, 16):  # 列索引从1到3（对应A、B、C三列）
+                        cell = ws.cell(row=row_index, column=col_index)
+                        cell.border = thin_border
 
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
