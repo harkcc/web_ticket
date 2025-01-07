@@ -1685,7 +1685,7 @@ class InvoiceGenerator:
 
                 for row_index in range(total_row-1, total_row+1):  # 行索引从1到3（对应A1:C3中的1到3行）
                     for col_index in range(2, 16):  # 列索引从1到3（对应A、B、C三列）
-                        cell = ws.cell(row=row_index, column=col_index)
+                        cell = sheet.cell(row=row_index, column=col_index)
                         cell.border = thin_border
 
             except Exception as e:
