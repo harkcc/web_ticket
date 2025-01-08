@@ -1364,7 +1364,7 @@ class InvoiceGenerator:
                         if address_parts:
                             # cell = sheet.cell(row=3, column=14)  # B3单元格
                             # adress = ', '.join(address_parts)
-                            adress = '\n'.join(address_parts)
+                            adress = ', \n'.join(address_parts)
 
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
