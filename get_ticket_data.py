@@ -274,7 +274,7 @@ class SimplePackingListProcessor:
 
             # 获取Shipment ID（第1行第2列）
             try:
-                self.shipment_id = str(df.iloc[1, 1])  # 第1行第2列
+                self.shipment_id = str(df.iloc[0, 1])  # 第1行第2列
                 if pd.isna(self.shipment_id):
                     raise ValueError("Shipment ID is empty")
             except Exception as e:

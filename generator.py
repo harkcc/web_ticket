@@ -12,6 +12,8 @@ from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
 
+#记得切环境
+
 
 class ProcessingError(Exception):
     """处理错误的自定义异常类"""
@@ -955,12 +957,20 @@ class InvoiceGenerator:
                     'alignment': Alignment(horizontal='center', vertical='center')
                 }
 
-
                 # 在第一行B列填充编码
                 if code:
                     cell = sheet.cell(row=1, column=2)  # B列是第2列
                     cell.value = code
                     cell.font = Font(name='Arial', size=9)
+
+                    cell = sheet.cell(row=14, column=6)  # B列是第2列
+                    cell.value = code
+                    cell.font = Font(name='Arial', size=9)
+                    cell = sheet.cell(row=13, column=6)  # B列是第2列
+                    cell.value = code
+                    cell.font = Font(name='Arial', size=9)
+
+
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
@@ -968,6 +978,11 @@ class InvoiceGenerator:
 
                     if address_info_detail['amazonReferenceId']:
                         box_Reference_id =address_info_detail['amazonReferenceId']
+
+                        cell = sheet.cell(row=15, column=6)  # B列是第2列
+                        cell.value = box_Reference_id
+                        cell.font = Font(name='Arial', size=9)
+
                     try:
                         # 填充收件人信息，这里收件人和
                         
