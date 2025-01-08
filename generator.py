@@ -338,7 +338,7 @@ class InvoiceGenerator:
                             item.product_name = "需要补数据"  # 可以设置一个默认值
                         
                         # box_number_str = code+f"{box_number:05d}" 
-                        box_number_str = code+'00000'+str(box_number)
+                        box_number_str = code+'U00000'+str(box_number)
                         # Reference_id = ''  # 初始化为None
                         # if box_Reference_id:
                         #     Reference_id = box_Reference_id
@@ -823,7 +823,7 @@ class InvoiceGenerator:
 
                         # 设置单元格值
                         cell_data = [
-                            (1, f"{code}00000{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
+                            (1, f"{code}U00000{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
                             (2, box_number if item == box.items[0] else ""),  # 箱号,只在第一行显示
                             (3, product_info.get('cn_name', '') if product_info else ''),  # 中文品名
                             (4, product_info.get('en_name', '') if product_info else ''),  # 英文品名
@@ -1294,13 +1294,14 @@ class InvoiceGenerator:
             raise
 
     @template_handler("递信")
-    def _fill_dixing_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_dixing_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充递信模板
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -1312,6 +1313,7 @@ class InvoiceGenerator:
                 cell.value = current_date
                 cell.font = Font(name='Arial', size=12)
 
+                sheet_shipment_id = shipment_id if shipment_id else ''
                 # 记录第3行的格式信息
                 row_height = sheet.row_dimensions[3].height
 
@@ -1339,7 +1341,7 @@ class InvoiceGenerator:
                 total_weight = 0
                 total_quantity = 0
                 row_num = 3
-                ticket = str(code)+"00000"
+                ticket = str(code)+"U00000"
 
                 # 设置单元格对齐方式
                 center_alignment = Alignment(horizontal='center', vertical='center')
@@ -1359,12 +1361,20 @@ class InvoiceGenerator:
                     box_products = box.items
                     print(box_products)
                     is_mixed = len(box_products) >= 2
-                    identifier = f"{len(box_data)}-{box_number}{'(混装)' if is_mixed else ''}"
+                    # identifier = f"{len(box_data)}-{box_number}{'(混装)' if is_mixed else ''}"
+                    identifier = f"{sheet_shipment_id}0{box_number}"
 
                     merge_start_row = row_num
                     
+                    # 计算该箱子的总数量
+                    box_total_quantity = sum(
+                        getattr(product_info, 'box_quantities', {}).get(box_number, 0)
+                        for product_info in box_products
+                    )
+                    print(f"Box {box_number} total quantity: {box_total_quantity}")
+
                     # 遍历箱子中的每个产品
-                    for product_info in box_products:
+                    for index, product_info in enumerate(box_products):
                         if hasattr(product_info, 'msku'):
                             db_product_info = self._get_product_info(product_info.msku, db)
                             if db_product_info:
@@ -1379,17 +1389,19 @@ class InvoiceGenerator:
                             (3, f"{getattr(product_info, 'material_cn', '')}\n{getattr(product_info, 'material_en', '')}"),  # 材质
                             (4, f"{getattr(product_info, 'usage_en', '')}, {getattr(product_info, 'usage_cn', '')}"),  # 用途
                             (5, box_number),  # 箱号
+                            (8, box_total_quantity), 
                             (6, getattr(box, 'weight', '')),  # 重量
-                            (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 
+                            (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 尺寸
+                            
                         ]
 
                         # 处理数量信息
                         quantity = getattr(product_info, 'box_quantities', {}).get(box_number, 0)
                         original_value = getattr(product_info, 'box_original_values', {}).get(box_number, str(quantity))
                         
-                        print("数量信息:")
-                        print(f"  - 数字形式: {quantity}")
-                        print(f"  - 原始格式: {original_value}")
+                        # print("数量信息:")
+                        # print(f"  - 数字形式: {quantity}")
+                        # print(f"  - 原始格式: {original_value}")
                         
                         total_quantity = total_quantity + quantity
                         if quantity:
@@ -1397,19 +1409,19 @@ class InvoiceGenerator:
                             if ' ' in original_value:
                                 prefix, number = original_value.split(' ', 1)
                                 cell_data.extend([
-                                    (8, number),  # 数量
+                                    # (8, number),  # 数量
                                     (9, number),  # 数量（重复）
-                                    (10, prefix),  # 前缀（如 A1）
+                                    (10, f"{prefix} {str(quantity)}"),  # 前缀（如 A1）
                                 ])
                             else:
                                 cell_data.extend([
-                                    (8, str(quantity)),  # 数量
+                                    # (8, str(quantity)),  # 数量
                                     (9, str(quantity)),  # 数量（重复）
                                     (10, ''),  # 没有前缀
                                 ])
                         else:
                             cell_data.extend([
-                                (8, ''),  # 数量
+                                # (8, ''),  # 数量
                                 (9, ''),  # 数量（重复）
                                 (10, ''),  # 没有前缀
                             ])
@@ -1426,7 +1438,7 @@ class InvoiceGenerator:
                         if hasattr(product_info, 'msku') and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"L{row_num}"
-                                sheet.row_dimensions[row_num].height = 100 
+                                sheet.row_dimensions[row_num].height = 95
                                 self.insert_product_image(sheet, image_cell, product_info.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
@@ -1440,7 +1452,9 @@ class InvoiceGenerator:
                             (merge_start_row, 5, row_num - 1, 5),  # 箱号列
                             (merge_start_row, 6, row_num - 1, 6),  # 重量列
                             (merge_start_row, 7, row_num - 1, 7),  # 尺寸列
+                            (merge_start_row, 8, row_num - 1, 8),  # 数量列
                             (merge_start_row, 13, row_num - 1, 13),  # 运单号列
+                           
                         ]
                         for start_row, start_col, end_row, end_col in merge_ranges:
                             sheet.merge_cells(
@@ -1585,7 +1599,7 @@ class InvoiceGenerator:
                 for box_number, box in sorted_boxes:
                     print(f"处理箱子 {box_number}")
                     first_row_of_box = row_num  # 记录这个箱子的第一行
-                    box_number_str = code + '00000' + str(box_number)
+                    box_number_str = code + 'U00000' + str(box_number)
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -1697,13 +1711,14 @@ class InvoiceGenerator:
         """默认的模板处理方法"""
         raise ProcessingError("未找到匹配的模板处理方法，请确保模板文件名包含正确的关键字")
 
-    def generate_invoice(self, template_path, box_data,code=None, address_info=None):
+    def generate_invoice(self, template_path, box_data, code=None, address_info=None, shipment_id=None):
         """
         生成发票
         :param template_path: 模板文件路径
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         :return: 生成的发票文件路径
         """
         try:
@@ -1781,7 +1796,7 @@ class InvoiceGenerator:
                 raise ProcessingError(f"未找到对应的模板处理方法: {template_path}")
 
             # 处理模板
-            template_handler(wb, box_data, code, address_info)
+            template_handler(wb, box_data, code, address_info, shipment_id)
 
             # 保存文件
             wb.save(output_path)

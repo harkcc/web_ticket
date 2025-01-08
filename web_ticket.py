@@ -116,9 +116,11 @@ def process_task(task_info):
             processor = SimplePackingListProcessor(task_info['files'])
             template_type = task_info.get('template_type', '')
             box_data = processor.process(template_name=template_type)
+            shipment_id = processor.shipment_id  # 获取shipment_id
         else:
             processor = PackingListProcessor(task_info['files'])
             box_data = processor.process()
+            shipment_id = None
 
         if not box_data:
             raise ProcessingError("处理装箱单失败")
@@ -152,7 +154,7 @@ def process_task(task_info):
         # 生成发票
         template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f"{task_info['template_type']}.xlsx")
         try:
-            output_path = invoice_generator.generate_invoice(template_path, box_data, code, address_info)
+            output_path = invoice_generator.generate_invoice(template_path, box_data, code, address_info, shipment_id=shipment_id)
             if output_path:
                 print(f"发票生成成功: {output_path}")
                 with task_lock:

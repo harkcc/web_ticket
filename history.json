@@ -283,5 +283,103 @@
     "template_name": "递信",
     "status": "completed",
     "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250108113152",
+    "type": "packing_list",
+    "timestamp": "20250108_113156",
+    "input_file": "20250108113152_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250108114407",
+    "type": "packing_list",
+    "timestamp": "20250108_114410",
+    "input_file": "20250108114407_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250108135147",
+    "type": "packing_list",
+    "timestamp": "20250108_135150",
+    "input_file": "20250108135147_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250108135455",
+    "type": "packing_list",
+    "timestamp": "20250108_135458",
+    "input_file": "20250108135455_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250108135518",
+    "type": "packing_list",
+    "timestamp": "20250108_135520",
+    "input_file": "20250108135518_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250108135832",
+    "type": "packing_list",
+    "timestamp": "20250108_135835",
+    "input_file": "20250108135832_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250108140330",
+    "type": "packing_list",
+    "timestamp": "20250108_140330",
+    "input_file": "20250108140330_packing_list.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250108140414",
+    "type": "packing_list",
+    "timestamp": "20250108_140416",
+    "input_file": "20250108140414_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250108140718",
+    "type": "packing_list",
+    "timestamp": "20250108_140721",
+    "input_file": "20250108140718_invoice_info.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]
