@@ -60,13 +60,14 @@ class InvoiceGenerator:
         print(f"已注册的模板处理器: {list(self._template_handlers.keys())}")
 
     @template_handler("叮铛卡航限时达")
-    def _fill_dingdang_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_dingdang_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充叮铛卡航限时达模板
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -244,7 +245,7 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("顺丰")
-    def _fill_sf_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_sf_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """填充顺丰模板"""
         """
         填充顺丰模板
@@ -252,6 +253,7 @@ class InvoiceGenerator:
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -403,13 +405,14 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("依诺达")
-    def _fill_ynd_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_ynd_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充叮铛卡航限时达模板
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -470,6 +473,7 @@ class InvoiceGenerator:
                 row_height = sheet.row_dimensions[17].height
 
                 # 遍历每个箱子
+
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
@@ -538,13 +542,14 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("叮铛(美洲)")
-    def _fill_ddmz_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_ddmz_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充叮铛卡航限时达模板
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -724,13 +729,14 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("UPS(美洲)")
-    def _fill_ups_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_ups_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充UPS美洲模板
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -911,13 +917,14 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("林道")
-    def _fill_lindao_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_lindao_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
-        填充叮铛卡航限时达模板
-        :param wb: 工作簿对象
+        填充林道模板
+        :param wb: Excel工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -963,7 +970,7 @@ class InvoiceGenerator:
                         box_Reference_id =address_info_detail['amazonReferenceId']
                     try:
                         # 填充收件人信息，这里收件人和
-                       
+                        
                         # 填充地址信息
                         address_parts = []
                         if 'name' in address_info_detail:
@@ -1136,13 +1143,14 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("林道UPS")
-    def _fill_lindaoUPS_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_lindaoUPS_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充林道UPS模板
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         try:
             sheet = wb['发票']
@@ -1540,12 +1548,13 @@ class InvoiceGenerator:
                 raise
     
     @template_handler("德邦美森限时达")
-    def _fill_dbmsxsd_template(self, wb, box_data,code=None, address_info=None):
+    def _fill_dbmsxsd_template(self, wb, box_data,code=None, address_info=None, shipment_id=None):
         """
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
         :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
         """
         with self.db_connector as db:
             try:
@@ -1735,7 +1744,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
-    def _fill_default_template(self, wb, box_data, code=None, address_info=None):
+    def _fill_default_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """默认的模板处理方法"""
         raise ProcessingError("未找到匹配的模板处理方法，请确保模板文件名包含正确的关键字")
 
