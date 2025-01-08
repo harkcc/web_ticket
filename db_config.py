@@ -7,9 +7,9 @@
 """
 import os
 
-# 获取部署环境，默认为生产环境，便于上传部署
-# DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'production')
-DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'development')
+# 获取部署环境，默认为生产环境，便于上传部署，上传是记得切换
+DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'production')
+# DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'development')
 
 # SSH配置（仅开发环境使用）
 SSH_CONFIG = {
