@@ -95,16 +95,17 @@ class InvoiceGenerator:
                 if address_info:
                     address_info_detail = address_info['address_info']
                     try:
-                        # 填充收件人信息，这里收件人和
+                        # 填充收件人信息
+                       
+                        # 填充地址信息
+                        address_parts = []
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=4, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
 
                             cell = sheet.cell(row=3, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
-
-                        # 填充地址信息
-                        address_parts = []
+                            address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
                         if 'city' in address_info_detail:
@@ -277,15 +278,16 @@ class InvoiceGenerator:
                     #     box_Reference_id = address_info['seller_info']['amazonReferenceId']
                     try:
                         # 填充收件人信息
+                       
+                        # 填充地址信息
+                        address_parts = []
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=2, column=2)  
                             cell.value = address_info_detail['name']
 
                             cell = sheet.cell(row=3, column=2)  
                             cell.value = address_info_detail['name']
-                        
-                        # 填充地址信息
-                        address_parts = []
+                            address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
                         if 'city' in address_info_detail:
@@ -580,6 +582,9 @@ class InvoiceGenerator:
                     address_info_detail = address_info['address_info']
                     try:
                         # 填充收件人信息，这里收件人和
+                        
+                        # 填充地址信息
+                        address_parts = []
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=3, column=8)  # B2单元格
                             cell.value = address_info_detail['name']
@@ -589,9 +594,7 @@ class InvoiceGenerator:
 
                             cell = sheet.cell(row=8, column=13)  # B2单元格
                             cell.value = address_info_detail['name']
-
-                        # 填充地址信息
-                        address_parts = []
+                            address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
                         if 'city' in address_info_detail:
@@ -773,6 +776,8 @@ class InvoiceGenerator:
 
                         # 填充地址信息
                         address_parts = []
+                        if 'name' in address_info_detail:
+                            address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
                         if 'city' in address_info_detail:
@@ -958,6 +963,9 @@ class InvoiceGenerator:
                         box_Reference_id =address_info_detail['amazonReferenceId']
                     try:
                         # 填充收件人信息，这里收件人和
+                       
+                        # 填充地址信息
+                        address_parts = []
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=4, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
@@ -967,9 +975,7 @@ class InvoiceGenerator:
 
                             cell = sheet.cell(row=5, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
-
-                        # 填充地址信息
-                        address_parts = []
+                            address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
                         if 'city' in address_info_detail:
@@ -1208,7 +1214,6 @@ class InvoiceGenerator:
                     continue
                 for product_info in box.items:
                     # 获取产品信息
-                    # 获取产品信息
                     db_product_info = self._get_product_info(product_info.msku)
                     if not db_product_info:
                         continue
@@ -1333,6 +1338,38 @@ class InvoiceGenerator:
                 # 删除原来的内容
                 sheet.delete_rows(3, 20)
 
+                address_parts = []
+                adress = ''
+                # 如果有地址信息，填充到相应的单元格
+                if address_info:
+                    address_info_detail = address_info['address_info']
+                    try:
+                        # 填充收件人信息，这里收件人和
+                        
+                        # 填充地址信息
+                       
+                        if 'name' in address_info_detail:
+                            address_parts.append(address_info_detail['name'])
+                        if 'addressLine1' in address_info_detail:
+                            address_parts.append(address_info_detail['addressLine1'])
+                        if 'city' in address_info_detail:
+                            address_parts.append(address_info_detail['city'])
+                        if 'stateOrProvinceCode' in address_info_detail:
+                            address_parts.append(address_info_detail['stateOrProvinceCode'])
+                        if 'postalCode' in address_info_detail:
+                            address_parts.append(address_info_detail['postalCode'])
+                        if 'countryCode' in address_info_detail:
+                            address_parts.append(address_info_detail['countryCode'])
+
+                        if address_parts:
+                            # cell = sheet.cell(row=3, column=14)  # B3单元格
+                            # adress = ', '.join(address_parts)
+                            adress = '\n'.join(address_parts)
+
+                    except Exception as e:
+                        print(f"填充地址信息时发生错误: {str(e)}")
+                
+
                 # 设置行高
                 for r in range(3, 21):
                     sheet.row_dimensions[r].height = sheet.row_dimensions[25].height
@@ -1349,14 +1386,6 @@ class InvoiceGenerator:
                 # 遍历每个箱子
 
                 for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
-                    print(f"处理箱子 {box_number}")
-                    
-                    # 检查box.items是否为空，同时打印更多信息以便调试
-                    print(f"Box {box_number} items: {box.items}")
-                    if not box.items:
-                        print(f"跳过箱子 {box_number} - 没有商品")
-                        continue
-
                     # 计算箱子中的产品数量
                     box_products = box.items
                     print(box_products)
@@ -1392,7 +1421,6 @@ class InvoiceGenerator:
                             (8, box_total_quantity), 
                             (6, getattr(box, 'weight', '')),  # 重量
                             (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 尺寸
-                            
                         ]
 
                         # 处理数量信息
@@ -1404,8 +1432,9 @@ class InvoiceGenerator:
                         # print(f"  - 原始格式: {original_value}")
                         
                         total_quantity = total_quantity + quantity
+
+                        # 只在第一行显示箱子的总数量
                         if quantity:
-                            # 使用原始格式
                             if ' ' in original_value:
                                 prefix, number = original_value.split(' ', 1)
                                 cell_data.extend([
@@ -1415,19 +1444,18 @@ class InvoiceGenerator:
                                 ])
                             else:
                                 cell_data.extend([
-                                    # (8, str(quantity)),  # 数量
-                                    (9, str(quantity)),  # 数量（重复）
-                                    (10, ''),  # 没有前缀
+                                    # (9, str(box_total_quantity)),  # 数量（重复）
+                                    (10, str(box_total_quantity)),  # 数量
                                 ])
                         else:
                             cell_data.extend([
-                                # (8, ''),  # 数量
                                 (9, ''),  # 数量（重复）
                                 (10, ''),  # 没有前缀
                             ])
 
                         # 设置运单号
                         cell_data.append((13, f"{ticket}{box_number}"))  # 运单号
+                        cell_data.append((14, adress))  # 地址信息
 
                         # 设置单元格值和格式
                         for col, value in cell_data:
