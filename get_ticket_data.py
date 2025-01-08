@@ -241,21 +241,9 @@ class SimplePackingListProcessor:
     def _parse_box_dimensions(self, box_spec):
         """解析箱子规格，返回长宽高的元组"""
         try:
-            # 处理 "定制59" 这样的格式
-            if box_spec.startswith('定制'):
-                number = int(box_spec[2:])  # 提取数字部分
-                # 根据箱号返回预定义的尺寸
-                if number == 59:
-                    return (59, 48, 39)
-                elif number == 53:
-                    return (53, 40, 35)
-                # 可以添加更多的箱型
-            
-            # 处理 "59*48*39" 这样的格式
-            if '*' in box_spec:
-                dimensions = box_spec.split('*')
-                if len(dimensions) == 3:
-                    return tuple(int(d.strip()) for d in dimensions)
+            if box_spec in self.BOX_SPECS:
+                specs = self.BOX_SPECS[box_spec]
+                return (specs['length'], specs['width'], specs['height'])
             
             print(f"Warning: Unknown box specification format: {box_spec}")
             return None

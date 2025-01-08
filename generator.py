@@ -1426,6 +1426,7 @@ class InvoiceGenerator:
                         if hasattr(product_info, 'msku') and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"L{row_num}"
+                                sheet.row_dimensions[row_num].height = 100 
                                 self.insert_product_image(sheet, image_cell, product_info.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
