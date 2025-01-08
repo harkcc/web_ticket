@@ -1608,15 +1608,15 @@ class InvoiceGenerator:
                     #     box_Reference_id = address_info['seller_info']['amazonReferenceId']
                     try:
                         # 填充收件人信息
+                       
+                        # 填充地址信息
+                        address_parts = []
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=3, column=3)  
                             cell.value = address_info_detail['name']
-
                             cell = sheet.cell(row=4, column=3)  
                             cell.value = address_info_detail['name']
-                        
-                        # 填充地址信息
-                        address_parts = []
+                            address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
                         if 'city' in address_info_detail:
