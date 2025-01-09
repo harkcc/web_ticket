@@ -527,7 +527,7 @@ class InvoiceGenerator:
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"Q{row_num}"  # 图片列（第14列）
+                                image_cell = f"Q{row_num}"
                                 self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
@@ -537,7 +537,6 @@ class InvoiceGenerator:
                 self.merge_cells_in_range(sheet, 15, 15, 2, 4)
                 self.merge_cells_in_range(sheet, 1, 1, 6, 8)
                 self.merge_cells_in_range(sheet, 2, 2, 6, 8)
-
 
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
