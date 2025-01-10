@@ -12,7 +12,8 @@ from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
 
-#记得切环境
+
+# 记得切环境
 
 
 class ProcessingError(Exception):
@@ -87,7 +88,6 @@ class InvoiceGenerator:
                     'alignment': Alignment(horizontal='center', vertical='center')
                 }
 
-
                 # 在第一行B列填充编码
                 if code:
                     cell = sheet.cell(row=1, column=2)  # B列是第2列
@@ -105,7 +105,6 @@ class InvoiceGenerator:
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=4, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
-
                             cell = sheet.cell(row=3, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
@@ -473,7 +472,7 @@ class InvoiceGenerator:
                 row_num = 17  # 从第18行开始填充
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[17].height
-
+                
                 # 遍历每个箱子
 
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
@@ -1219,14 +1218,12 @@ class InvoiceGenerator:
                 top=cell_page.border.top if cell_page.border.top else Side(style='thin'),
                 bottom=cell_page.border.bottom if cell_page.border.bottom else Side(style='thin')
             )
-            cell_style = sheet.cell(row=19, column=1)
             cell_font = Font(
-                name=cell_style.font.name if cell_style.font.name else 'Arial',
-                size=cell_style.font.size if cell_style.font.size else 11,
-                bold=cell_style.font.bold,
-                italic=cell_style.font.italic,
-                vertAlign=cell_style.font.vertAlign,
-                color=cell_style.font.color
+                name=cell_page.font.name if cell_page.font.name else 'Arial',
+                size=cell_page.font.size if cell_page.font.size else 11,
+                bold=cell_page.font.bold,
+                italic=cell_page.font.italic,
+                vertAlign=cell_page.font.vertAlign
             )
             cell_alignment = Alignment(horizontal='center', vertical='center')
             # 填充数据
@@ -1236,7 +1233,7 @@ class InvoiceGenerator:
                     continue
                 for product_info in box.items:
                     # 获取产品信息
-                    db_product_info = self._get_product_info(product_info.msku)
+                    db_product_info = self._get_product_info(product_info.msku, db)
                     if not db_product_info:
                         continue
 
@@ -1466,8 +1463,8 @@ class InvoiceGenerator:
                                 ])
                             else:
                                 cell_data.extend([
-                                    # (9, str(box_total_quantity)),  # 数量（重复）
-                                    (10, str(box_total_quantity)),  # 数量
+                                    (9, str(box_total_quantity)),  # 数量（重复）
+                                    (10, str(box_total_quantity)),  # 没有前缀
                                 ])
                         else:
                             cell_data.extend([
@@ -1633,7 +1630,6 @@ class InvoiceGenerator:
                             
                             cell = sheet.cell(row=5, column=3)  
                             cell.value = ', '.join(address_parts)
-
   
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
@@ -1757,6 +1753,228 @@ class InvoiceGenerator:
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
+
+    @template_handler("德邦空派")
+    def _fill_dbkp_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
+        """
+        填充德邦空派模板
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
+        """
+        with self.db_connector as db:
+            try:
+                sheet = wb['箱单发票']  # 获取模板工作表
+                
+                # 获取基础单元格样式
+                base_cell = sheet.cell(row=9, column=3)
+                base_border = Border(
+                    left=base_cell.border.left,
+                    right=base_cell.border.right,
+                    top=base_cell.border.top,
+                    bottom=base_cell.border.bottom
+                )
+                base_font = Font(
+                    name=base_cell.font.name,
+                    size=base_cell.font.size,
+                    bold=base_cell.font.bold,
+                    italic=base_cell.font.italic,
+                    vertAlign=base_cell.font.vertAlign
+                )
+                base_alignment = Alignment(horizontal='center', vertical='center')
+                style_info = {'font': base_font, 'border': base_border, 'alignment': base_alignment}
+                
+                # 保存行高信息
+                row_height = sheet.row_dimensions[9].height
+                row_height_low = sheet.row_dimensions[16].height
+                
+                # 计算总数据
+                total_length = 0
+                total_weight = 0
+                for box in box_data.values():
+                    total_length += len(box.items)
+                    total_weight += box.weight if hasattr(box, 'weight') else 0
+                
+                # 插入所需行数
+                if total_length > 5:
+                    sheet.insert_rows(9, total_length - 5)
+                
+                self.unmerge_cells_in_range(sheet, 4, 4, 3, 7)
+                self.unmerge_cells_in_range(sheet, 5, 5, 3, 7)
+                self.unmerge_cells_in_range(sheet, 5, 5, 12, 18)
+
+                # 解除数据区域内的合并单元格
+                print("解除数据区域内的合并单元格...")
+                try:
+                    data_ranges = []
+                    for merged_range in sheet.merged_cells.ranges:
+                        range_str = str(merged_range)
+                        start_row, end_row, _, _ = self._parse_range(range_str)
+                        if start_row >= 9:  # 只解除数据区域的合并单元格
+                            data_ranges.append(range_str)
+                    
+                    for range_str in data_ranges:
+                        sheet.unmerge_cells(range_str)
+                        print(f"解除合并单元格: {range_str}")
+                except Exception as e:
+                    print(f"解除合并单元格时发生错误: {str(e)}")
+                    traceback.print_exc()
+                
+                if code:
+                    cell = sheet.cell(row=4, column=3)  # B列是第2列
+                    cell.value = code
+                    cell.font = Font(name='Arial', size=9)
+
+                # 如果有地址信息，填充到相应的单元格
+                if address_info:
+                    address_info_detail = address_info['address_info']
+                    try:
+                        address_parts = []
+                        if 'name' in address_info_detail:
+                            cell = sheet.cell(row=5, column=3)  # B2单元格
+                            cell.value = address_info_detail['name']
+                            address_parts.append(address_info_detail['name'])
+                        if 'addressLine1' in address_info_detail:
+                            address_parts.append(address_info_detail['addressLine1'])
+                        if 'city' in address_info_detail:
+                            address_parts.append(address_info_detail['city'])
+                        if 'stateOrProvinceCode' in address_info_detail:
+                            address_parts.append(address_info_detail['stateOrProvinceCode'])
+                        if 'postalCode' in address_info_detail:
+                            address_parts.append(address_info_detail['postalCode'])
+                        if 'countryCode' in address_info_detail:
+                            address_parts.append(address_info_detail['countryCode'])
+
+                        if address_parts:
+                            cell = sheet.cell(row=5, column=12)  # B3单元格
+                            cell.value = ', '.join(address_parts)
+                    except Exception as e:
+                        print(f"填充地址信息时发生错误: {str(e)}")
+
+                # 填充数据
+                row_num = 9
+                data_rows = []  # 存储所有产品数据行
+                
+                # 第一步：收集所有产品数据
+                for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
+                    box_start_row = row_num
+                    total_quantity = 0
+                    total_price = 0
+                    
+                    for item in box.items:
+                        product_info = self._get_product_info(item.msku, db)
+                        if not product_info:
+                            continue
+                            
+                        # 序号
+                        self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
+                        # FBA号
+                        fba_number = f"FBA176FB5SRR200000{box_number}"
+                        self._set_cell_value(sheet, row_num, 2, fba_number, style_info)
+                        # 箱号
+                        self._set_cell_value(sheet, row_num, 3, box_number, style_info)
+                        # 产品名称
+                        name = f"{product_info.get('en_name', '')}({product_info.get('cn_name', '')})"
+                        self._set_cell_value(sheet, row_num, 4, name, style_info)
+                        # HS编码
+                        self._set_cell_value(sheet, row_num, 5, product_info.get('hs_code', ''), style_info)
+                        # 数量
+                        quantity = item.quantity if hasattr(item, 'quantity') else 0
+                        self._set_cell_value(sheet, row_num, 6, quantity, style_info)
+                        
+                        # 单价
+                        price_str = product_info.get('price', '')
+                        price = float(price_str) if price_str else 0
+                        self._set_cell_value(sheet, row_num, 7, f"${price}", style_info)
+                        
+                        # 总价
+                        total = round(float(quantity) * price, 2)
+                        self._set_cell_value(sheet, row_num, 8, f"${total}", style_info)
+                        
+                        # 重量相关
+                        box_weight = box.weight if hasattr(box, 'weight') else 0
+                        for col in range(9, 12):
+                            self._set_cell_value(sheet, row_num, col, box_weight, style_info)
+                        
+                        # 箱子尺寸
+                        if hasattr(box, 'length'):
+                            self._set_cell_value(sheet, row_num, 12, box.length, style_info)
+                            self._set_cell_value(sheet, row_num, 13, box.width, style_info)
+                            self._set_cell_value(sheet, row_num, 14, box.height, style_info)
+                            volume = box.length * box.width * box.height * 0.000001
+                            self._set_cell_value(sheet, row_num, 15, volume, style_info)
+                        
+                        # 磁性
+                        self._set_cell_value(sheet, row_num, 17, product_info.get('magnetic', ''), style_info)
+                        
+                        # 插入产品图片
+                        self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
+                        
+                        total_quantity += quantity
+                        total_price += total
+                        
+                        # 保存产品信息用于后续创建申报要素表格
+                        data_rows.append({
+                            'product_info': product_info,
+                            'row': row_num
+                        })
+                        
+                        row_num += 1
+                    
+                    # 合并相同箱号的单元格
+                    if row_num - box_start_row > 1:
+                        for col in [1, 2, 12, 13, 14, 15]:
+                            try:
+                                merge_range = f"{get_column_letter(col)}{box_start_row}:{get_column_letter(col)}{row_num-1}"
+                                sheet.merge_cells(merge_range)
+                            except Exception as e:
+                                print(f"合并单元格失败 {merge_range}: {str(e)}")
+                
+                # 设置原始数据区域的行高
+                for row in range(9, row_num):
+                    sheet.row_dimensions[row].height = row_height
+                
+                # 空一行开始添加申报要素表格
+                row_num += 1
+                
+                # 第二步：为每个产品创建申报要素表格
+                for data_row in data_rows:
+                    product_info = data_row['product_info']
+                    
+                    # 创建申报要素表格
+                    table_height = self._create_declaration_table(sheet, row_num+1, product_info)
+                    
+                    # 设置表格区域的行高
+                    for i in range(row_num, row_num + table_height):
+                        sheet.row_dimensions[i].height = row_height_low
+                    
+                    # 更新行号（表格高度 + 1行间距）
+                    row_num += table_height + 1
+                
+                # 合并底部单元格
+                try:
+                    sheet.merge_cells(f"F{row_num+2}:M{row_num+8}")
+                    sheet.merge_cells(f"B{row_num+2}:D{row_num+2}")
+                    sheet.merge_cells(f"B{row_num+10}:D{row_num+10}")
+                    sheet.merge_cells(f"B{row_num+18}:D{row_num+18}")
+                    
+                    for i in range(3, 9):
+                        sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
+                    
+                    for i in range(11, 17):
+                        sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
+                    
+                    for i in range(19, 25):
+                        sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
+                except Exception as e:
+                    print(f"合并底部单元格时发生错误: {str(e)}")
+            except Exception as e:
+                print(f"填充德邦空派模板时发生错误: {str(e)}")
+                traceback.print_exc()
+                raise ProcessingError(f"填充德邦空派模板失败: {str(e)}")
+                
 
     def _fill_default_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """默认的模板处理方法"""
@@ -2094,3 +2312,45 @@ class InvoiceGenerator:
         end_row = int(end_cell[1:])
         end_col = ord(end_cell[0]) - 64
         return start_row, end_row, start_col, end_col
+
+    def _create_declaration_table(self, sheet, row, product_info):
+        """
+        在指定行创建申报要素表格
+        
+        :param sheet: 工作表对象
+        :param row: 起始行
+        :param product_info: 产品信息
+        :return: 表格占用的行数
+        """
+        # 创建表头
+        cell = sheet.cell(row=row, column=2)  # 从第二列开始
+        cell.value = "申报要素（必填）"
+        cell.font = Font(name='SimSun', bold=True, size=11)
+        cell.fill = PatternFill(start_color="000080", end_color="000080", fill_type="solid")
+        cell.font = Font(color="FFFFFF", bold=True)
+        sheet.merge_cells(start_row=row, start_column=2, end_row=row, end_column=3)  # 合并第二列和第三列
+        
+        # 创建表格内容
+        rows = [
+            ("HS", product_info.get('hs_code', '')),
+            ("品名", f"{product_info.get('cn_name', '')}"),
+            ("材质", product_info.get('material', '')),
+            ("用途", product_info.get('usage', '')),
+            ("品牌", product_info.get('brand', '')),
+            ("型号", product_info.get('model', ''))
+        ]
+        
+        for row_index, (label, value) in enumerate(rows, 1):
+            # 标签列
+            cell = sheet.cell(row=row + row_index, column=2)  # 第二列
+            cell.value = label
+            cell.border = Border(left=Side(style='thin'), right=Side(style='thin'),
+                              top=Side(style='thin'), bottom=Side(style='thin'))
+            
+            # 值列
+            cell = sheet.cell(row=row + row_index, column=3)  # 第三列
+            cell.value = value
+            cell.border = Border(left=Side(style='thin'), right=Side(style='thin'),
+                              top=Side(style='thin'), bottom=Side(style='thin'))
+        
+        return 7  # 返回表格占用的行数（1行表头 + 6行内容）

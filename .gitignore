@@ -28,6 +28,9 @@ uploads/
 test_mongo.py/
 图片文档/
 项目说明文档.md
+check_db.py/
+db_utils.py/
+
 # 允许所有Excel文件
 # *.xlsx
 # !template*.xlsx
