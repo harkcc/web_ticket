@@ -1908,6 +1908,8 @@ class InvoiceGenerator:
                         
                         # 磁性
                         self._set_cell_value(sheet, row_num, 17, product_info.get('magnetic', ''), style_info)
+
+                        self._set_cell_value(sheet, row_num, 18, product_info.get('link', ''), style_info)
                         
                         # 插入产品图片
                         self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
@@ -2333,13 +2335,14 @@ class InvoiceGenerator:
         # 创建表格内容
         rows = [
             ("HS", product_info.get('hs_code', '')),
-            ("品名", f"{product_info.get('cn_name', '')}"),
-            ("材质", product_info.get('material', '')),
-            ("用途", product_info.get('usage', '')),
+            ("品名", f"{product_info.get('en_name', '')}({product_info.get('cn_name', '')})"),
+            ("材质", product_info.get('material_cn', '')),
+            ("用途", product_info.get('usage_cn', '')),
             ("品牌", product_info.get('brand', '')),
             ("型号", product_info.get('model', ''))
         ]
         
+        print(product_info.get('usage_cn', ''))
         for row_index, (label, value) in enumerate(rows, 1):
             # 标签列
             cell = sheet.cell(row=row + row_index, column=2)  # 第二列
