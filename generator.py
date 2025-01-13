@@ -2339,7 +2339,7 @@ class InvoiceGenerator:
             ("材质", product_info.get('material_cn', '')),
             ("用途", product_info.get('usage_cn', '')),
             ("品牌", product_info.get('brand', '')),
-            ("型号", product_info.get('model', ''))
+            ("型号", product_info.get('model', '')),
         ]
         
         print(product_info.get('usage_cn', ''))
