@@ -585,11 +585,6 @@
         loadHistory();
     }
 
-    // 模板配置，只列出不需要编码的模板，后续要改
-    const templateConfig = {
-        "依诺达": {requiresCode: false}
-    };
-
     // 处理模板选择变化
     document.getElementById('templateSelect').addEventListener('change', function (e) {
         const selectedTemplate = e.target.value.split('/').pop().replace('.xlsx', '');
@@ -597,7 +592,9 @@
         const codeInputHelp = document.getElementById('codeInputHelp');
 
         // 如果模板不在配置中，则默认需要编码
-        const templateInfo = templateConfig[selectedTemplate] || {requiresCode: true};
+        const templateInfo = {
+            "依诺达": {requiresCode: false}
+        }[selectedTemplate] || {requiresCode: true};
 
         if (templateInfo.requiresCode) {
             codeInput.required = true;

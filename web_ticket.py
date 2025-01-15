@@ -1,5 +1,5 @@
 from PIL import Image
-from flask import Flask, render_template, request, jsonify, send_file, make_response
+from flask import Flask, render_template, request, jsonify, send_file, make_response, session
 from werkzeug.utils import secure_filename
 from io import BytesIO
 import os
@@ -654,7 +654,7 @@ def process_excel_import(task_id, file_path):
             documents_to_insert = []
             for index, row in df.iterrows():
                 try:
-                    msku = row['MSKU']
+                    msku = str(row['MSKU'])
                     if msku in existing_mskus:
                         task_status[task_id]['skip_count'] += 1
                         logging.info(f'跳过已存在的MSKU: {msku}')
@@ -718,6 +718,7 @@ def process_excel_import(task_id, file_path):
             logging.info(f'临时文件 {file_path} 已删除')
         except Exception as e:
             logging.error(f'删除临时文件失败: {str(e)}')
+
 
 @app.route('/upload_excel', methods=['POST'])
 def upload_excel():
