@@ -30,7 +30,7 @@ test_mongo.py/
 项目说明文档.md
 check_db.py/
 db_utils.py/
-
+history.json/
 # 允许所有Excel文件
 # *.xlsx
 # !template*.xlsx

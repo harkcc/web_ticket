@@ -472,7 +472,7 @@ class InvoiceGenerator:
                 row_num = 17  # 从第18行开始填充
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[17].height
-                sheet.column_dimensions['Q'].width = row_height
+                sheet.column_dimensions['Q'].width = row_height/3
                 
                 # 遍历每个箱子
 

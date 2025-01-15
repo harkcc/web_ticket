@@ -8,8 +8,8 @@
 import os
 
 # 获取部署环境，默认为生产环境，便于上传部署，上传是记得切换
-DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'production')
-# DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'development')
+# DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'production')
+DEPLOY_ENV = os.getenv('DEPLOY_ENV', 'development')
 
 # SSH配置（仅开发环境使用）
 SSH_CONFIG = {
@@ -50,6 +50,7 @@ MONGO_CONFIG = {
         }
     }
 }
+
 
 # 获取当前环境的MongoDB配置
 def get_mongo_config():

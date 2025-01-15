@@ -14,6 +14,13 @@ from generator import InvoiceGenerator, ProcessingError
 from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
 from STA_data import get_address_info
 from db_utils import MongoDBClient
+import traceback
+import logging
+import numpy as np
+
+# 配置日志
+logging.basicConfig(level=logging.INFO,
+                   format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -568,10 +575,13 @@ def transform_data(row):
         """将空值转换为None"""
         if pd.isna(value):  # 检查是否为NaN
             return None
+        # 处理numpy数值类型
+        if isinstance(value, (np.integer, np.floating)):
+            return value.item()  # 转换为Python原生类型
         return value
 
-    return {
-        'msku': convert_to_none(row['MSKU']),
+    document = {
+        'msku': str(convert_to_none(row['MSKU'])),  # 确保MSKU是字符串类型
         'productNameZh': convert_to_none(row['中文品名']),
         'productNameEn': convert_to_none(row['英文品名']),
         'price': convert_to_none(row['价格']),
@@ -590,6 +600,11 @@ def transform_data(row):
         'putAwayFee': convert_to_none(row['上架手续费']),
         'outboundFee': convert_to_none(row['出库手续费'])
     }
+    
+    # 添加创建时间
+    document['created_at'] = datetime.now()
+    
+    return document
 
 def process_excel_import(task_id, file_path):
     """处理Excel导入任务"""
@@ -606,71 +621,103 @@ def process_excel_import(task_id, file_path):
                 'error_records': []
             }
 
+        logging.info(f'开始处理任务 {task_id}')
+        
         # 读取Excel文件
-        df = pd.read_excel(file_path)
+        try:
+            df = pd.read_excel(file_path)
+            logging.info(f'成功读取Excel文件，共 {len(df)} 行数据')
+        except Exception as e:
+            logging.error(f'读取Excel文件失败: {str(e)}')
+            logging.error(traceback.format_exc())
+            raise
+
         total_records = len(df)
 
         # 创建MongoDB连接
-        db_client = MongoDBClient()
-        db_client.connect()
+        try:
+            db_client = MongoDBClient()
+            db_client.connect()
+            logging.info('成功连接到数据库')
+        except Exception as e:
+            logging.error(f'数据库连接失败: {str(e)}')
+            logging.error(traceback.format_exc())
+            raise
 
         try:
             # 获取现有的msku列表
             with db_operation_lock:
                 existing_mskus = set(doc['msku'] for doc in db_client.db['msku_info'].find({}, {'msku': 1}))
+                logging.info(f'获取到 {len(existing_mskus)} 个现有MSKU')
 
-            # 预处理所有数据
+            # 预处理数据
             documents_to_insert = []
             for index, row in df.iterrows():
                 try:
                     msku = row['MSKU']
                     if msku in existing_mskus:
                         task_status[task_id]['skip_count'] += 1
+                        logging.info(f'跳过已存在的MSKU: {msku}')
                     else:
                         document = transform_data(row)
                         documents_to_insert.append(document)
                         task_status[task_id]['success_count'] += 1
+                        logging.info(f'处理MSKU成功: {msku}')
 
                 except Exception as e:
                     task_status[task_id]['error_count'] += 1
+                    error_msg = f'处理MSKU时出错: {str(e)}'
                     task_status[task_id]['error_records'].append({
                         'msku': row.get('MSKU', 'Unknown'),
-                        'error': str(e)
+                        'error': error_msg
                     })
+                    logging.error(error_msg)
+                    logging.error(traceback.format_exc())
 
                 # 更新进度
                 progress = int((index + 1) / total_records * 100)
                 task_status[task_id]['progress'] = progress
                 task_status[task_id]['message'] = f'已处理 {index + 1}/{total_records} 条记录'
 
-            # 批量插入数据（使用锁保护）
+            # 批量插入数据
             if documents_to_insert:
                 with db_operation_lock:
-                    # 再次检查MSKU是否存在（以防在处理过程中有新增）
-                    current_mskus = set(doc['msku'] for doc in db_client.db['msku_info'].find({}, {'msku': 1}))
-                    
-                    documents_to_insert = [doc for doc in documents_to_insert if doc['msku'] not in current_mskus]
-                    
-                    if documents_to_insert:
-                        db_client.db['msku_info'].insert_many(documents_to_insert)
+                    try:
+                        # 再次检查MSKU是否存在
+                        current_mskus = set(doc['msku'] for doc in db_client.db['msku_info'].find({}, {'msku': 1}))
+                        documents_to_insert = [doc for doc in documents_to_insert if doc['msku'] not in current_mskus]
+                        
+                        if documents_to_insert:
+                            db_client.db['msku_info'].insert_many(documents_to_insert)
+                            logging.info(f'成功插入 {len(documents_to_insert)} 条数据')
+                    except Exception as e:
+                        logging.error(f'批量插入数据失败: {str(e)}')
+                        logging.error(traceback.format_exc())
+                        raise
 
         finally:
             db_client.close()
+            logging.info('数据库连接已关闭')
 
         # 完成处理
         task_status[task_id]['status'] = 'completed'
         task_status[task_id]['message'] = '导入完成'
+        logging.info(f'任务 {task_id} 处理完成')
 
     except Exception as e:
+        error_msg = f'导入失败: {str(e)}'
+        logging.error(error_msg)
+        logging.error(traceback.format_exc())
         task_status[task_id]['status'] = 'error'
-        task_status[task_id]['message'] = f'导入失败: {str(e)}'
+        task_status[task_id]['message'] = error_msg
 
     finally:
         # 清理临时文件
         try:
             os.remove(file_path)
-        except:
-            pass
+            logging.info(f'临时文件 {file_path} 已删除')
+        except Exception as e:
+            logging.error(f'删除临时文件失败: {str(e)}')
 
 @app.route('/upload_excel', methods=['POST'])
 def upload_excel():
