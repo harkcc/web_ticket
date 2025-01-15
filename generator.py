@@ -472,6 +472,7 @@ class InvoiceGenerator:
                 row_num = 17  # 从第18行开始填充
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[17].height
+                sheet.column_dimensions['Q'].width = row_height
                 
                 # 遍历每个箱子
 
@@ -521,8 +522,8 @@ class InvoiceGenerator:
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
-
                         sheet.row_dimensions[row_num].height = row_height
+                       
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
@@ -856,6 +857,7 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
+                        sheet.column_dimensions['O'].width = row_height
                         row_num += 1
                     
                     # 如果这个箱子有多个产品,需要合并单元格
@@ -1130,6 +1132,7 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
+                        sheet.column_dimensions['R'].width = row_height
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
@@ -1530,6 +1533,7 @@ class InvoiceGenerator:
                 # 设置所有单元格的边框和行高
                 for row in range(3, row_num + 1):
                     sheet.row_dimensions[row].height = row_height
+                    sheet.column_dimensions['L'].width = row_height
                     for col in range(1, 15):
                         cell = sheet.cell(row=row, column=col)
                         cell.border = cell_border
@@ -1743,7 +1747,7 @@ class InvoiceGenerator:
                 thin_border = Border(left=Side(style='thin'), 
                      right=Side(style='thin'), 
                      top=Side(style='thin'), 
-                     bottom=Side(style='thin'))
+                     bottom=Side(border_style='thin'))
 
                 for row_index in range(total_row-1, total_row+1):  # 行索引从1到3（对应A1:C3中的1到3行）
                     for col_index in range(2, 16):  # 列索引从1到3（对应A、B、C三列）
@@ -1937,6 +1941,7 @@ class InvoiceGenerator:
                 # 设置原始数据区域的行高
                 for row in range(9, row_num):
                     sheet.row_dimensions[row].height = row_height
+                    sheet.column_dimensions['P'].width = row_height
                 
                 # 空一行开始添加申报要素表格
                 row_num += 1
@@ -1976,7 +1981,9 @@ class InvoiceGenerator:
                 print(f"填充德邦空派模板时发生错误: {str(e)}")
                 traceback.print_exc()
                 raise ProcessingError(f"填充德邦空派模板失败: {str(e)}")
-                
+
+
+    @template_handler()
 
     def _fill_default_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """默认的模板处理方法"""
@@ -2263,14 +2270,14 @@ class InvoiceGenerator:
         :param end_col: 结束列
         """
         print("正在解除合并单元格...")
-        merged_ranges = list(sheet.merged_cells.ranges)
-        for merged_range in merged_ranges:
-            min_row, min_col, max_row, max_col = merged_range.bounds
+        merged_cells = list(sheet.merged_cells.ranges)
+        for merged_cell in merged_cells:
+            min_row, min_col, max_row, max_col = merged_cell.bounds
             # 检查合并单元格是否在指定范围内
             if (min_row >= start_row and max_row <= end_row and
                 min_col >= start_col and max_col <= end_col):
                 try:
-                    sheet.unmerge_cells(str(merged_range))
+                    sheet.unmerge_cells(str(merged_cell))
                 except Exception as e:
                     print(f"解除合并单元格时发生错误: {str(e)}")
         print("合并单元格解除完成")
