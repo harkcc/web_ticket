@@ -13,6 +13,7 @@ import pandas as pd
 from generator import InvoiceGenerator, ProcessingError
 from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
 from STA_data import get_address_info
+from db_utils import MongoDBClient
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -35,6 +36,8 @@ task_queue = Queue()
 task_status = {}
 task_lock = threading.Lock()
 
+# 添加数据库操作锁
+db_operation_lock = threading.Lock()
 
 def clean_old_files():
     """清理旧文件和历史记录"""
@@ -558,6 +561,162 @@ def upload_image():
             "url": f"/api/images/{msku}"}, 200
     # return {"code": 200, "name": filename,
     #         "url": f"https://em-erp-1252538772.cos.ap-nanjing.myqcloud.com/{filename}"},  200
+
+def transform_data(row):
+    """转换Excel行数据为MongoDB文档格式"""
+    def convert_to_none(value):
+        """将空值转换为None"""
+        if pd.isna(value):  # 检查是否为NaN
+            return None
+        return value
+
+    return {
+        'msku': convert_to_none(row['MSKU']),
+        'productNameZh': convert_to_none(row['中文品名']),
+        'productNameEn': convert_to_none(row['英文品名']),
+        'price': convert_to_none(row['价格']),
+        'materialZh': convert_to_none(row['中文材质']),
+        'materialEn': convert_to_none(row['英文材质']),
+        'useZh': convert_to_none(row['中文用途']),
+        'useEn': convert_to_none(row['英文用途']),
+        'model': convert_to_none(row['型号']),
+        'HS': convert_to_none(row['海关HS编码']),
+        'productLink': convert_to_none(row['商品链接']),
+        'electrified': convert_to_none(row['是否带电']),
+        'magnetic': convert_to_none(row['是否带磁']),
+        'brand': convert_to_none(row['品牌']),
+        'weight': convert_to_none(row['重量']),
+        'asin': convert_to_none(row['ASIN']),
+        'putAwayFee': convert_to_none(row['上架手续费']),
+        'outboundFee': convert_to_none(row['出库手续费'])
+    }
+
+def process_excel_import(task_id, file_path):
+    """处理Excel导入任务"""
+    try:
+        # 更新任务状态
+        with task_lock:
+            task_status[task_id] = {
+                'status': 'processing',
+                'progress': 0,
+                'message': '正在读取Excel文件...',
+                'success_count': 0,
+                'skip_count': 0,
+                'error_count': 0,
+                'error_records': []
+            }
+
+        # 读取Excel文件
+        df = pd.read_excel(file_path)
+        total_records = len(df)
+
+        # 创建MongoDB连接
+        db_client = MongoDBClient()
+        db_client.connect()
+
+        try:
+            # 获取现有的msku列表
+            with db_operation_lock:
+                existing_mskus = set(doc['msku'] for doc in db_client.db['msku_info'].find({}, {'msku': 1}))
+
+            # 预处理所有数据
+            documents_to_insert = []
+            for index, row in df.iterrows():
+                try:
+                    msku = row['MSKU']
+                    if msku in existing_mskus:
+                        task_status[task_id]['skip_count'] += 1
+                    else:
+                        document = transform_data(row)
+                        documents_to_insert.append(document)
+                        task_status[task_id]['success_count'] += 1
+
+                except Exception as e:
+                    task_status[task_id]['error_count'] += 1
+                    task_status[task_id]['error_records'].append({
+                        'msku': row.get('MSKU', 'Unknown'),
+                        'error': str(e)
+                    })
+
+                # 更新进度
+                progress = int((index + 1) / total_records * 100)
+                task_status[task_id]['progress'] = progress
+                task_status[task_id]['message'] = f'已处理 {index + 1}/{total_records} 条记录'
+
+            # 批量插入数据（使用锁保护）
+            if documents_to_insert:
+                with db_operation_lock:
+                    # 再次检查MSKU是否存在（以防在处理过程中有新增）
+                    current_mskus = set(doc['msku'] for doc in db_client.db['msku_info'].find({}, {'msku': 1}))
+                    
+                    documents_to_insert = [doc for doc in documents_to_insert if doc['msku'] not in current_mskus]
+                    
+                    if documents_to_insert:
+                        db_client.db['msku_info'].insert_many(documents_to_insert)
+
+        finally:
+            db_client.close()
+
+        # 完成处理
+        task_status[task_id]['status'] = 'completed'
+        task_status[task_id]['message'] = '导入完成'
+
+    except Exception as e:
+        task_status[task_id]['status'] = 'error'
+        task_status[task_id]['message'] = f'导入失败: {str(e)}'
+
+    finally:
+        # 清理临时文件
+        try:
+            os.remove(file_path)
+        except:
+            pass
+
+@app.route('/upload_excel', methods=['POST'])
+def upload_excel():
+    """处理Excel文件上传"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': '没有上传文件'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '没有选择文件'}), 400
+
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'error': '请上传Excel文件'}), 400
+
+        # 保存文件
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        temp_filename = f'import_{timestamp}_{filename}'
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        file.save(file_path)
+
+        # 创建任务
+        task_id = f'import_{timestamp}'
+        threading.Thread(target=process_excel_import, args=(task_id, file_path)).start()
+
+        return jsonify({'task_id': task_id})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/import_status/<task_id>')
+def import_status(task_id):
+    """获取导入任务状态"""
+    with task_lock:
+        if task_id not in task_status:
+            return jsonify({'error': '任务不存在'}), 404
+        
+        status_data = task_status[task_id].copy()
+        
+        # 如果任务已完成，清理状态数据
+        if status_data['status'] in ['completed', 'error']:
+            task_status.pop(task_id, None)
+        
+        return jsonify(status_data)
+
 if __name__ == '__main__':
     os.makedirs(invoice_generator.image_folder,exist_ok=True)
     FIELDS = [

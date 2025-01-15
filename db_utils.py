@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from sshtunnel import SSHTunnelForwarder
-from .db_config import get_mongo_config, DEPLOY_ENV, SSH_CONFIG
+from db_config import get_mongo_config, DEPLOY_ENV, SSH_CONFIG
 
 class MongoDBClient:
     def __init__(self):

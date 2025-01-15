@@ -1982,9 +1982,6 @@ class InvoiceGenerator:
                 traceback.print_exc()
                 raise ProcessingError(f"填充德邦空派模板失败: {str(e)}")
 
-
-    @template_handler()
-
     def _fill_default_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """默认的模板处理方法"""
         raise ProcessingError("未找到匹配的模板处理方法，请确保模板文件名包含正确的关键字")

@@ -301,12 +301,36 @@
             background-color: #007bff; /* 鼠标悬停时改变背景色 */
             color: #fff; /* 鼠标悬停时改变文本颜色 */
         }
+
+        /* 进度条样式 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .status-text {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>文件处理系统</h1>
     <a href="/msku_edit" target="_blank" class="link">编辑产品表</a>
+    
     <form id="uploadForm">
         <div class="form-group">
             <label for="templateSelect">选择模板：</label>
@@ -348,6 +372,22 @@
     </form>
     <div id="status"></div>
 </div>
+
+    <!-- 添加批量导入部分 -->
+    <div class="container">
+        <h2>批量导入MSKU数据</h2>
+        <div class="form-group">
+            <label for="excelFile">选择Excel文件：</label>
+            <input type="file" id="excelFile" accept=".xlsx,.xls" />
+        </div>
+        <button onclick="uploadExcel()" class="btn-primary">开始导入</button>
+        <div id="importProgress" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div id="importStatus" class="status-text"></div>
+        </div>
+    </div>
 
 <div class="container history-container">
     <h2>处理历史</h2>
@@ -702,6 +742,81 @@
                     location.reload();
                 }, 2000);
             });
+    }
+
+    // 添加Excel上传处理函数
+    async function uploadExcel() {
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showNotification('请选择Excel文件', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // 显示进度条
+        const progressDiv = document.getElementById('importProgress');
+        const progressFill = document.querySelector('.progress-fill');
+        const statusText = document.getElementById('importStatus');
+        progressDiv.style.display = 'block';
+        
+        try {
+            const response = await fetch('/upload_excel', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.task_id) {
+                checkImportStatus(result.task_id);
+            } else {
+                showNotification(result.error || '上传失败', 'error');
+            }
+        } catch (error) {
+            showNotification('上传失败: ' + error.message, 'error');
+            progressDiv.style.display = 'none';
+        }
+    }
+
+    // 检查导入状态
+    async function checkImportStatus(taskId) {
+        const progressDiv = document.getElementById('importProgress');
+        const progressFill = document.querySelector('.progress-fill');
+        const statusText = document.getElementById('importStatus');
+        
+        try {
+            const response = await fetch(`/import_status/${taskId}`);
+            const result = await response.json();
+            
+            if (result.status === 'processing') {
+                // 更新进度
+                if (result.progress) {
+                    progressFill.style.width = `${result.progress}%`;
+                }
+                statusText.textContent = result.message || '正在处理...';
+                
+                // 继续检查状态
+                setTimeout(() => checkImportStatus(taskId), 1000);
+            } else if (result.status === 'completed') {
+                progressFill.style.width = '100%';
+                showNotification(
+                    `导入完成！成功：${result.success_count}，跳过：${result.skip_count}，失败：${result.error_count}`, 
+                    'success'
+                );
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                showNotification(result.error || '导入失败', 'error');
+                progressDiv.style.display = 'none';
+            }
+        } catch (error) {
+            showNotification('检查状态失败: ' + error.message, 'error');
+            progressDiv.style.display = 'none';
+        }
     }
 </script>
 </body>
