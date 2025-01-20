@@ -867,7 +867,7 @@ class InvoiceGenerator:
                             self.merge_cells_in_range(sheet, start_row, row_num-1, col, col)
 
                 # 添加总计行
-                total_row = row_num
+                total_row = row_num  # 直接使用当前行号，不再加1
                 self._set_cell_value(sheet, total_row, 1, "总件数", style_info)
                 self._set_cell_value(sheet, total_row, 2, len(box_data), style_info)
                 self._set_cell_value(sheet, total_row, 6, total_quantity, style_info)
@@ -1729,7 +1729,7 @@ class InvoiceGenerator:
                         )
                                # 添加总计行
 
-                total_row = row_num+1
+                total_row = row_num  # 直接使用当前行号，不再加1
                 self._set_cell_value(sheet, total_row, 2, "TOTAL", style_info)
                 self._set_cell_value(sheet, total_row, 12, len(box_data), style_info)
                 self._set_cell_value(sheet, total_row, 5, total_quantity, style_info)
@@ -1791,8 +1791,9 @@ class InvoiceGenerator:
                 style_info = {'font': base_font, 'border': base_border, 'alignment': base_alignment}
                 
                 # 保存行高信息
-                row_height = sheet.row_dimensions[9].height
-                row_height_low = sheet.row_dimensions[16].height
+                # row_height = sheet.row_dimensions[9].height
+                row_height = 60
+                row_height_low = 30
                 
                 # 计算总数据
                 total_length = 0
@@ -1860,6 +1861,7 @@ class InvoiceGenerator:
                 # 填充数据
                 row_num = 9
                 data_rows = []  # 存储所有产品数据行
+                sheet.delete_rows(9)
                 
                 # 第一步：收集所有产品数据
                 for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
@@ -1872,8 +1874,8 @@ class InvoiceGenerator:
                         if not product_info:
                             continue
                             
-                        # 序号
-                        self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
+                        # # 序号
+                        # self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
                         # FBA号
                         fba_number = f"FBA176FB5SRR200000{box_number}"
                         self._set_cell_value(sheet, row_num, 2, fba_number, style_info)
@@ -1887,6 +1889,8 @@ class InvoiceGenerator:
                         # 数量
                         quantity = item.quantity if hasattr(item, 'quantity') else 0
                         self._set_cell_value(sheet, row_num, 6, quantity, style_info)
+
+                        self._set_cell_value(sheet,row_num,16,'',style_info)
                         
                         # 单价
                         price_str = product_info.get('price', '')
@@ -1937,14 +1941,14 @@ class InvoiceGenerator:
                                 sheet.merge_cells(merge_range)
                             except Exception as e:
                                 print(f"合并单元格失败 {merge_range}: {str(e)}")
-                
+
                 # 设置原始数据区域的行高
                 for row in range(9, row_num):
                     sheet.row_dimensions[row].height = row_height
                     sheet.column_dimensions['P'].width = row_height
                 
                 # 空一行开始添加申报要素表格
-                row_num += 1
+                row_num += 2
                 
                 # 第二步：为每个产品创建申报要素表格
                 for data_row in data_rows:
@@ -1953,7 +1957,7 @@ class InvoiceGenerator:
                     # 创建申报要素表格
                     table_height = self._create_declaration_table(sheet, row_num+1, product_info)
                     
-                    # 设置表格区域的行高
+                    # 设置表格区域的行高，暂时先不用
                     for i in range(row_num, row_num + table_height):
                         sheet.row_dimensions[i].height = row_height_low
                     
@@ -1966,6 +1970,11 @@ class InvoiceGenerator:
                     sheet.merge_cells(f"B{row_num+2}:D{row_num+2}")
                     sheet.merge_cells(f"B{row_num+10}:D{row_num+10}")
                     sheet.merge_cells(f"B{row_num+18}:D{row_num+18}")
+
+                    # sheet.merge_cells(f"F{row_num-2}:M{row_num+4}")
+                    # sheet.merge_cells(f"B{row_num-2}:D{row_num-2}")
+                    # sheet.merge_cells(f"B{row_num+6}:D{row_num+6}")
+                    # sheet.merge_cells(f"B{row_num+14}:D{row_num+14}")
                     
                     for i in range(3, 9):
                         sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
@@ -1975,6 +1984,7 @@ class InvoiceGenerator:
                     
                     for i in range(19, 25):
                         sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
+
                 except Exception as e:
                     print(f"合并底部单元格时发生错误: {str(e)}")
             except Exception as e:
