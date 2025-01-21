@@ -472,7 +472,7 @@ class InvoiceGenerator:
                 row_num = 17  # 从第18行开始填充
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[17].height
-                sheet.column_dimensions['Q'].width = row_height/3
+                sheet.column_dimensions['Q'].width = row_height/4
                 
                 # 遍历每个箱子
 
@@ -1680,7 +1680,7 @@ class InvoiceGenerator:
                             (6,''),
                             (11, product_info.get('model', '') if product_info else ''),                   # 型号
                             # 产品材料和用途
-
+                            (7,''),
                             (8, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
                             (9, str(product_info.get('usage_en', '') + '/' +
                                    product_info.get('usage_cn', '')) if product_info else ''),            # 用途
@@ -1709,24 +1709,25 @@ class InvoiceGenerator:
                         (12, box_number_str),  
                         (13, box.weight if box.weight is not None else ""),     # 重量
                         (14, box.weight if box.weight is not None else ""),     # 重量
-                        (15, volume if box.weight is not None else "")          # 体积
+                        (15, volume if volume is not None else "")          # 体积
                     ]
 
-                # 设置箱子信息
-                for column, value in box_info_data:
-                    cell = sheet.cell(row=first_row_of_box, column=column, value=value)
-                    cell.font = style_info['font']
-                    cell.border = style_info['border']
-                    cell.alignment = style_info['alignment']
+                    # 设置箱子信息
+                    for column, value in box_info_data:
+                        cell = sheet.cell(row=first_row_of_box, column=column, value=value)
+                        cell.font = style_info['font']
+                        cell.border = style_info['border']
+                        cell.alignment = style_info['alignment']
 
-                 # 使用箱子中的产品数量来确定合并范围
+                    # 使用箱子中的产品数量来确定合并范围
                     if len(box.items) > 1:  # 只有当箱子中有多个产品时才合并
-                        sheet.merge_cells(
-                            start_row=first_row_of_box,
-                            start_column=column,
-                            end_row=first_row_of_box + len(box.items) - 1,
-                            end_column=column
-                        )
+                        for column, _ in box_info_data:
+                            sheet.merge_cells(
+                                start_row=first_row_of_box,
+                                start_column=column,
+                                end_row=first_row_of_box + len(box.items) - 1,
+                                end_column=column
+                            )
                                # 添加总计行
 
                 total_row = row_num  # 直接使用当前行号，不再加1
@@ -1970,11 +1971,6 @@ class InvoiceGenerator:
                     sheet.merge_cells(f"B{row_num+2}:D{row_num+2}")
                     sheet.merge_cells(f"B{row_num+10}:D{row_num+10}")
                     sheet.merge_cells(f"B{row_num+18}:D{row_num+18}")
-
-                    # sheet.merge_cells(f"F{row_num-2}:M{row_num+4}")
-                    # sheet.merge_cells(f"B{row_num-2}:D{row_num-2}")
-                    # sheet.merge_cells(f"B{row_num+6}:D{row_num+6}")
-                    # sheet.merge_cells(f"B{row_num+14}:D{row_num+14}")
                     
                     for i in range(3, 9):
                         sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
