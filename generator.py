@@ -528,7 +528,8 @@ class InvoiceGenerator:
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"Q{row_num}"
-                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -1977,12 +1978,13 @@ class InvoiceGenerator:
                     
                     for i in range(11, 17):
                         sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
-                    
+
                     for i in range(19, 25):
                         sheet.merge_cells(f"C{row_num+i}:D{row_num+i}")
 
                 except Exception as e:
                     print(f"合并底部单元格时发生错误: {str(e)}")
+
             except Exception as e:
                 print(f"填充德邦空派模板时发生错误: {str(e)}")
                 traceback.print_exc()
@@ -2251,6 +2253,61 @@ class InvoiceGenerator:
             print(f"处理产品图片时发生错误: {str(e)}")
             return False
 
+    def insert_original_image(self, worksheet, cell_address, image_path):
+        """
+        在指定的单元格中插入原始图片，不进行压缩处理
+        :param worksheet: 工作表对象
+        :param cell_address: 单元格地址（例如'A1'）
+        :param image_path: 图片文件路径
+        :return: 是否成功插入图片
+        """
+        try:
+            # 读取原始图片
+            img = PILImage.open(image_path)
+            
+            # 将图片直接保存到BytesIO对象，不进行任何处理
+            img_byte_arr = BytesIO()
+            img.save(img_byte_arr, format=img.format if img.format else 'PNG')
+            img_byte_arr.seek(0)
+            
+            # 创建Excel图片对象
+            xl_img = XLImage(img_byte_arr)
+            xl_img.anchor = cell_address
+            worksheet.add_image(xl_img)
+            
+            print(f"成功插入原始图片，尺寸: {img.size}")
+            return True
+        except Exception as e:
+            print(f"插入原始图片时发生错误: {str(e)}")
+            return False
+
+    def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
+        """
+        在Excel工作表中插入原始产品图片，不进行压缩处理
+        :param worksheet: openpyxl工作表对象
+        :param cell_address: 单元格地址
+        :param msku: 产品MSKU
+        :param image_folder: 图片文件夹路径
+        """
+        try:
+            # 构建图片文件路径
+            image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
+            image_path_png = os.path.join(image_folder, f"{msku}.png")
+            print(f"尝试加载原始图片: {image_path_jpg}")
+            
+            # 检查JPEG图片文件是否存在
+            if os.path.exists(image_path_jpg):
+                return self.insert_original_image(worksheet, cell_address, image_path_jpg)
+            elif os.path.exists(image_path_png):
+                print(f"尝试加载PNG原始图片: {image_path_png}")
+                return self.insert_original_image(worksheet, cell_address, image_path_png)
+            else:
+                print(f"图片文件不存在: {image_path_jpg} 和 {image_path_png}")
+                return False
+        except Exception as e:
+            print(f"处理原始产品图片时发生错误: {str(e)}")
+            return False
+
     def extract_data(self, ticket_str):
         import re
         # 定义正则表达式，修改为提取斜杠后的数字
@@ -2274,6 +2331,7 @@ class InvoiceGenerator:
         """
         print("正在解除合并单元格...")
         merged_cells = list(sheet.merged_cells.ranges)
+        cells_to_unmerge = []
         for merged_cell in merged_cells:
             min_row, min_col, max_row, max_col = merged_cell.bounds
             # 检查合并单元格是否在指定范围内
