@@ -235,7 +235,8 @@ class InvoiceGenerator:
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"N{row_num}"  # 图片列（第14列）
-                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -391,7 +392,8 @@ class InvoiceGenerator:
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"U{row_num}"  # 图片列（第14列）
-                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -711,7 +713,8 @@ class InvoiceGenerator:
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"O{row_num}"  # 图片列（第14列）
-                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -1138,7 +1141,8 @@ class InvoiceGenerator:
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"R{row_num}" 
-                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -1490,7 +1494,8 @@ class InvoiceGenerator:
                             try:
                                 image_cell = f"L{row_num}"
                                 sheet.row_dimensions[row_num].height = 95
-                                self.insert_product_image(sheet, image_cell, product_info.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, product_info.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -1700,7 +1705,8 @@ class InvoiceGenerator:
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
                                 image_cell = f"D{row_num}"  # 图片列（第14列）
-                                self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -1922,7 +1928,8 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 18, product_info.get('link', ''), style_info)
                         
                         # 插入产品图片
-                        self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
+                        # self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
+                        self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                         
                         total_quantity += quantity
                         total_price += total
