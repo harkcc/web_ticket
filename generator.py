@@ -1929,7 +1929,7 @@ class InvoiceGenerator:
                         
                         # 插入产品图片
                         # self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
-                        self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
+                        self.insert_original_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
                         
                         total_quantity += quantity
                         total_price += total
