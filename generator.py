@@ -12,11 +12,6 @@ from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
 from openpyxl.packaging import manifest
-import mimetypes
-# 确保mimetypes中已添加webp类型
-mimetypes.add_type('image/webp', '.webp')
-# 修补openpyxl的register_mimetypes方法
-original_register_mimetypes = manifest.Manifest._register_mimetypes
 
 
 def patched_register_mimetypes(self, filenames):
@@ -2327,7 +2322,7 @@ class InvoiceGenerator:
             print(f"插入原始图片时发生错误: {str(e)}")
             return False
 
-    # def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
+    def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
         """
         在Excel工作表中插入原始产品图片，不进行压缩处理
         :param worksheet: openpyxl工作表对象
@@ -2353,7 +2348,7 @@ class InvoiceGenerator:
         except Exception as e:
             print(f"处理原始产品图片时发生错误: {str(e)}")
             return False
-    def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
+    # def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
         """
         在Excel工作表中插入原始产品图片，不进行压缩处理
         :param worksheet: openpyxl工作表对象
