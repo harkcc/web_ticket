@@ -11,6 +11,8 @@ from db_connector import MongoDBConnector
 from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
+import mimetypes
+mimetypes.add_type('image/webp', '.webp')
 
 
 # 记得切环境
@@ -2245,7 +2247,7 @@ class InvoiceGenerator:
             # 构建图片文件路径
             image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
             image_path_png = os.path.join(image_folder, f"{msku}.png")
-            print(f"尝试加载图片: {image_path_jpg}")
+            print(f"尝试加载图片: {image_path_jpg}") 
             
             # 检查JPEG图片文件是否存在
             if os.path.exists(image_path_jpg):
@@ -2362,7 +2364,7 @@ class InvoiceGenerator:
         except Exception as e:
             print(f"处理原始产品图片时发生错误: {str(e)}")
             return False
-            
+
     def extract_data(self, ticket_str):
         import re
         # 定义正则表达式，修改为提取斜杠后的数字
