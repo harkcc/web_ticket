@@ -12,7 +12,7 @@ from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
 import mimetypes
-mimetypes.add_type('image/webp', '.webp')
+
 
 
 # 记得切环境
@@ -2317,53 +2317,37 @@ class InvoiceGenerator:
             print(f"处理原始产品图片时发生错误: {str(e)}")
             return False
     def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
-        """
-        在Excel工作表中插入原始产品图片，不进行压缩处理
-        :param worksheet: openpyxl工作表对象
-        :param cell_address: 单元格地址
-        :param msku: 产品MSKU
-        :param image_folder: 图片文件夹路径
-        """
         try:
-            # 构建图片文件路径
+            # 检查是否有jpg或png文件存在
             image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
             image_path_png = os.path.join(image_folder, f"{msku}.png")
             image_path_webp = os.path.join(image_folder, f"{msku}.webp")
-            print(f"尝试加载原始图片: {image_path_jpg}")
             
-            # 检查图片文件是否存在
+            # 预先转换所有webp文件
+            if os.path.exists(image_path_webp) and not (os.path.exists(image_path_jpg) or os.path.exists(image_path_png)):
+                try:
+                    from PIL import Image
+                    # 永久转换，而不是临时转换
+                    permanent_png_path = os.path.join(image_folder, f"{msku}.png")
+                    with Image.open(image_path_webp) as img:
+                        img.save(permanent_png_path, 'PNG')
+                    return self.insert_original_image(worksheet, cell_address, permanent_png_path)
+                except Exception as e:
+                    print(f"转换WEBP图片失败: {str(e)}")
+                    pass
+            
+            # 正常流程 - 只处理jpg和png
             if os.path.exists(image_path_jpg):
                 return self.insert_original_image(worksheet, cell_address, image_path_jpg)
             elif os.path.exists(image_path_png):
-                print(f"尝试加载PNG原始图片: {image_path_png}")
                 return self.insert_original_image(worksheet, cell_address, image_path_png)
-            elif os.path.exists(image_path_webp):
-                print(f"检测到WEBP格式图片，正在转换为PNG格式: {image_path_webp}")
-                try:
-                    from PIL import Image
-                    # 生成转换后的PNG文件路径
-                    converted_path = os.path.join(image_folder, f"{msku}_converted.png")
-                    # 转换WEBP为PNG
-                    with Image.open(image_path_webp) as img:
-                        img.save(converted_path, 'PNG')
-                    # 插入转换后的图片
-                    result = self.insert_original_image(worksheet, cell_address, converted_path)
-                    # 删除临时转换文件
-                    if os.path.exists(converted_path):
-                        os.remove(converted_path)
-                    return result
-                except ImportError:
-                    print("警告：需要安装Pillow库来处理WEBP格式图片")
-                    return False
-                except Exception as e:
-                    print(f"转换WEBP格式图片时发生错误: {str(e)}")
-                    return False
             else:
-                print(f"图片文件不存在: {image_path_jpg}、{image_path_png} 和 {image_path_webp}")
+                print(f"未找到支持的图片格式: {image_path_jpg}或{image_path_png}")
                 return False
         except Exception as e:
-            print(f"处理原始产品图片时发生错误: {str(e)}")
+            print(f"处理产品图片时发生错误: {str(e)}")
             return False
+
 
     def extract_data(self, ticket_str):
         import re
