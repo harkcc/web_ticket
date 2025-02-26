@@ -12,8 +12,12 @@ from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
 from openpyxl.packaging import manifest
+import mimetypes
+# 确保mimetypes中已添加webp类型
+mimetypes.add_type('image/webp', '.webp')
 # 修补openpyxl的register_mimetypes方法
 original_register_mimetypes = manifest.Manifest._register_mimetypes
+
 
 def patched_register_mimetypes(self, filenames):
     """处理.webp等特殊文件格式的修补方法"""
@@ -23,15 +27,22 @@ def patched_register_mimetypes(self, filenames):
         # 如果是.webp导致的错误
         if str(e) == "'.webp'":
             print("检测到.webp文件，正在应用补丁...")
-            # 找出所有.webp文件
-            webp_files = [f for f in filenames if f.endswith('.webp')]
-            # 手动注册这些文件
-            for filename in webp_files:
-                self._register(filename, 'image/webp')
-            # 重新处理剩余文件
+            # 找出所有不是.webp的文件
             non_webp_files = [f for f in filenames if not f.endswith('.webp')]
+            # 先处理非webp文件
             if non_webp_files:
-                return original_register_mimetypes(self, non_webp_files)
+                original_register_mimetypes(self, non_webp_files)
+            
+            # 手动为.webp文件添加到manifest
+            for filename in filenames:
+                if filename.endswith('.webp'):
+                    # 使用公开的register方法而不是_register
+                    ct = self.Default
+                    if filename.endswith('.xml'):
+                        ct = 'application/xml'
+                    elif filename.endswith('.webp'):
+                        ct = 'image/webp'
+                    self.Override[filename] = ct
             return
         else:
             # 其他错误正常抛出
@@ -39,7 +50,6 @@ def patched_register_mimetypes(self, filenames):
 
 # 应用补丁
 manifest.Manifest._register_mimetypes = patched_register_mimetypes
-
 
 
 # 记得切环境
