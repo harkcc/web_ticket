@@ -11,7 +11,34 @@ from db_connector import MongoDBConnector
 from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
-import mimetypes
+from openpyxl.packaging import manifest
+# 修补openpyxl的register_mimetypes方法
+original_register_mimetypes = manifest.Manifest._register_mimetypes
+
+def patched_register_mimetypes(self, filenames):
+    """处理.webp等特殊文件格式的修补方法"""
+    try:
+        return original_register_mimetypes(self, filenames)
+    except KeyError as e:
+        # 如果是.webp导致的错误
+        if str(e) == "'.webp'":
+            print("检测到.webp文件，正在应用补丁...")
+            # 找出所有.webp文件
+            webp_files = [f for f in filenames if f.endswith('.webp')]
+            # 手动注册这些文件
+            for filename in webp_files:
+                self._register(filename, 'image/webp')
+            # 重新处理剩余文件
+            non_webp_files = [f for f in filenames if not f.endswith('.webp')]
+            if non_webp_files:
+                return original_register_mimetypes(self, non_webp_files)
+            return
+        else:
+            # 其他错误正常抛出
+            raise
+
+# 应用补丁
+manifest.Manifest._register_mimetypes = patched_register_mimetypes
 
 
 
@@ -2317,32 +2344,30 @@ class InvoiceGenerator:
             print(f"处理原始产品图片时发生错误: {str(e)}")
             return False
     def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
+        """
+        在Excel工作表中插入原始产品图片，不进行压缩处理
+        :param worksheet: openpyxl工作表对象
+        :param cell_address: 单元格地址
+        :param msku: 产品MSKU
+        :param image_folder: 图片文件夹路径
+        """
         try:
-            # 检查是否有jpg或png文件存在
+            # 构建图片文件路径，支持多种格式
             image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
             image_path_png = os.path.join(image_folder, f"{msku}.png")
             image_path_webp = os.path.join(image_folder, f"{msku}.webp")
             
-            # 预先转换所有webp文件
-            if os.path.exists(image_path_webp) and not (os.path.exists(image_path_jpg) or os.path.exists(image_path_png)):
-                try:
-                    from PIL import Image
-                    # 永久转换，而不是临时转换
-                    permanent_png_path = os.path.join(image_folder, f"{msku}.png")
-                    with Image.open(image_path_webp) as img:
-                        img.save(permanent_png_path, 'PNG')
-                    return self.insert_original_image(worksheet, cell_address, permanent_png_path)
-                except Exception as e:
-                    print(f"转换WEBP图片失败: {str(e)}")
-                    pass
-            
-            # 正常流程 - 只处理jpg和png
+            # 按优先级尝试不同格式
             if os.path.exists(image_path_jpg):
                 return self.insert_original_image(worksheet, cell_address, image_path_jpg)
             elif os.path.exists(image_path_png):
+                print(f"尝试加载PNG图片: {image_path_png}")
                 return self.insert_original_image(worksheet, cell_address, image_path_png)
+            elif os.path.exists(image_path_webp):
+                print(f"尝试加载WEBP图片: {image_path_webp}")
+                return self.insert_original_image(worksheet, cell_address, image_path_webp)
             else:
-                print(f"未找到支持的图片格式: {image_path_jpg}或{image_path_png}")
+                print(f"未找到支持的图片: {image_path_jpg}、{image_path_png}、{image_path_webp}")
                 return False
         except Exception as e:
             print(f"处理产品图片时发生错误: {str(e)}")
