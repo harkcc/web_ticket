@@ -14,39 +14,6 @@ import re
 from openpyxl.packaging import manifest
 
 
-def patched_register_mimetypes(self, filenames):
-    """处理.webp等特殊文件格式的修补方法"""
-    try:
-        return original_register_mimetypes(self, filenames)
-    except KeyError as e:
-        # 如果是.webp导致的错误
-        if str(e) == "'.webp'":
-            print("检测到.webp文件，正在应用补丁...")
-            # 找出所有不是.webp的文件
-            non_webp_files = [f for f in filenames if not f.endswith('.webp')]
-            # 先处理非webp文件
-            if non_webp_files:
-                original_register_mimetypes(self, non_webp_files)
-            
-            # 手动为.webp文件添加到manifest
-            for filename in filenames:
-                if filename.endswith('.webp'):
-                    # 使用公开的register方法而不是_register
-                    ct = self.Default
-                    if filename.endswith('.xml'):
-                        ct = 'application/xml'
-                    elif filename.endswith('.webp'):
-                        ct = 'image/webp'
-                    self.Override[filename] = ct
-            return
-        else:
-            # 其他错误正常抛出
-            raise
-
-# 应用补丁
-manifest.Manifest._register_mimetypes = patched_register_mimetypes
-
-
 # 记得切环境
 
 
@@ -139,6 +106,7 @@ class InvoiceGenerator:
                         if 'name' in address_info_detail:
                             cell = sheet.cell(row=4, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
+
                             cell = sheet.cell(row=3, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
@@ -694,7 +662,7 @@ class InvoiceGenerator:
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[12].height
                 Reference_id = ''
-
+                
                 # 遍历每个箱子
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
                 
@@ -715,6 +683,7 @@ class InvoiceGenerator:
                             price = product_info.get('price', 0)
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
+                        
                         Reference_id = address_info['address_info'].get('amazonReferenceId','')
 
                         # 设置单元格值和样式
@@ -742,7 +711,7 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
-
+                        
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
@@ -855,20 +824,18 @@ class InvoiceGenerator:
                     
                     for item in box.items:
                         # 获取产品信息
-                        product_info = self._get_product_info(item.msku, db)
-                        # 处理产品信息为None的情况
-                        if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
-                            price = 0
-                            total_price = 0
-                        else:
-                            price = product_info.get('price', 0)
-                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
-                            item.product_name = product_info.get('cn_name', item.product_name)
-                        
+                        db_product_info = self._get_product_info(item.msku, db)
+                        if not db_product_info:
+                            continue
+
+                        # 构建产品名称和获取数量、价格
+                        name = f"{db_product_info.get('en_name', '')}({db_product_info.get('cn_name', '')})"
+                        quantity = item.box_quantities.get(box_number, 0)
+                        price = db_product_info.get('price', 0)
+
                         # 累计总数和总金额
-                        total_quantity += item.box_quantities.get(box_number, 0)
-                        total_amount += total_price
+                        total_quantity += quantity
+                        total_amount += float(price) * quantity
                         total_weight += box.weight
 
                         # 设置单元格值
@@ -879,7 +846,7 @@ class InvoiceGenerator:
                             (4, product_info.get('en_name', '') if product_info else ''),  # 英文品名
                             (5, price),  # 单价
                             (6, item.box_quantities.get(box_number, 0)),  # 数量
-                            (7, total_price),  # 总价
+                            (7, float(price) * quantity),  # 总价
                             (8, f"{product_info.get('material_cn', '')}/{product_info.get('material_en', '')}" if product_info else ''),  # 材质
                             (9, f"{product_info.get('usage_cn', '')}/{product_info.get('usage_en', '')}" if product_info else ''),  # 用途
                             (10, box.weight if item == box.items[0] else ""),  # 毛重,只在第一行显示
@@ -1273,6 +1240,7 @@ class InvoiceGenerator:
             for box_number, box in box_data.items():
                 if not box.items:
                     continue
+                
                 for product_info in box.items:
                     # 获取产品信息
                     db_product_info = self._get_product_info(product_info.msku, db)
@@ -1283,6 +1251,10 @@ class InvoiceGenerator:
                     name = f"{db_product_info.get('en_name', '')}({db_product_info.get('cn_name', '')})"
                     quantity = product_info.box_quantities.get(box_number, 0)
                     price = db_product_info.get('price', 0)
+
+                    # 累计总数和总金额
+                    total_quantity = quantity
+                    total_amount = float(price) * quantity
 
                     # 设置单元格值
                     cell_values = [
@@ -1518,7 +1490,7 @@ class InvoiceGenerator:
                         cell_data.append((13, f"{ticket}{box_number}"))  # 运单号
                         cell_data.append((14, adress))  # 地址信息
 
-                        # 设置单元格值和格式
+                        # 设置单元格值
                         for col, value in cell_data:
                             cell = sheet.cell(row=row_num, column=col, value=value)
                             cell.alignment = center_alignment
@@ -1915,7 +1887,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         if not product_info:
                             continue
-                            
+
                         # # 序号
                         # self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
                         # FBA号
@@ -1960,7 +1932,7 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 17, product_info.get('magnetic', ''), style_info)
 
                         self._set_cell_value(sheet, row_num, 18, product_info.get('link', ''), style_info)
-                        
+
                         # 插入产品图片
                         # self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
                         self.insert_original_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
@@ -2306,9 +2278,23 @@ class InvoiceGenerator:
             # 读取原始图片
             img = PILImage.open(image_path)
             
-            # 将图片直接保存到BytesIO对象，不进行任何处理
+            # 如果是webp格式，转换为PNG
+            if image_path.lower().endswith('.webp'):
+                print(f"检测到webp格式图片，将转换为PNG...")
+                # 将图片转换为RGB模式（如果是RGBA，保留透明度）
+                if img.mode in ('RGBA', 'LA'):
+                    # 保留透明度
+                    img_format = 'PNG'
+                else:
+                    # 转换为RGB
+                    img = img.convert('RGB')
+                    img_format = 'PNG'
+            else:
+                img_format = img.format if img.format else 'PNG'
+            
+            # 将图片保存到BytesIO对象
             img_byte_arr = BytesIO()
-            img.save(img_byte_arr, format=img.format if img.format else 'PNG')
+            img.save(img_byte_arr, format=img_format)
             img_byte_arr.seek(0)
             
             # 创建Excel图片对象
@@ -2334,7 +2320,7 @@ class InvoiceGenerator:
             # 构建图片文件路径
             image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
             image_path_png = os.path.join(image_folder, f"{msku}.png")
-            print(f"尝试加载原始图片: {image_path_jpg}")
+            print(f"尝试加载原始图片: {image_path_jpg}") 
             
             # 检查JPEG图片文件是否存在
             if os.path.exists(image_path_jpg):
@@ -2347,35 +2333,6 @@ class InvoiceGenerator:
                 return False
         except Exception as e:
             print(f"处理原始产品图片时发生错误: {str(e)}")
-            return False
-    # def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
-        """
-        在Excel工作表中插入原始产品图片，不进行压缩处理
-        :param worksheet: openpyxl工作表对象
-        :param cell_address: 单元格地址
-        :param msku: 产品MSKU
-        :param image_folder: 图片文件夹路径
-        """
-        try:
-            # 构建图片文件路径，支持多种格式
-            image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
-            image_path_png = os.path.join(image_folder, f"{msku}.png")
-            image_path_webp = os.path.join(image_folder, f"{msku}.webp")
-            
-            # 按优先级尝试不同格式
-            if os.path.exists(image_path_jpg):
-                return self.insert_original_image(worksheet, cell_address, image_path_jpg)
-            elif os.path.exists(image_path_png):
-                print(f"尝试加载PNG图片: {image_path_png}")
-                return self.insert_original_image(worksheet, cell_address, image_path_png)
-            elif os.path.exists(image_path_webp):
-                print(f"尝试加载WEBP图片: {image_path_webp}")
-                return self.insert_original_image(worksheet, cell_address, image_path_webp)
-            else:
-                print(f"未找到支持的图片: {image_path_jpg}、{image_path_png}、{image_path_webp}")
-                return False
-        except Exception as e:
-            print(f"处理产品图片时发生错误: {str(e)}")
             return False
 
 
