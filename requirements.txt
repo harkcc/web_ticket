@@ -11,3 +11,4 @@ requests==2.31.0
 pymongo==4.10.1
 pycryptodome==3.17
 Pillow==8.0.0
+webp==0.4.0

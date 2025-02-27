@@ -949,6 +949,10 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 14, 14, 6, 8)
                 self.unmerge_cells_in_range(sheet, 15, 15, 6, 8)
                 print("开始写入林道模版信息")
+                current_date = datetime.now().strftime("%Y.%m.%d")
+                cell = sheet.cell(row=1, column=4)
+                cell.value = current_date
+                cell.font = Font(name='Arial', size=12)
 
                 box_Reference_id = '' 
 
@@ -1195,7 +1199,7 @@ class InvoiceGenerator:
             default_height = sheet.row_dimensions[60].height if 60 in sheet.row_dimensions else 15
             for r in range(19, 22):
                 sheet.row_dimensions[r].height = default_height
-
+            
             # 记录E24单元格的格式
             cell_e24 = sheet.cell(row=24, column=5)
             cell_font_e24 = Font(
@@ -2094,6 +2098,10 @@ class InvoiceGenerator:
             # 处理模板
             template_handler(wb, box_data, code, address_info, shipment_id)
 
+            # 注册webp MIME类型，防止出现KeyError: '.webp'错误
+            import mimetypes
+            mimetypes.add_type('image/webp', '.webp')
+            
             # 保存文件
             wb.save(output_path)
             print(f"发票已生成: {output_path}")
@@ -2275,37 +2283,55 @@ class InvoiceGenerator:
         :return: 是否成功插入图片
         """
         try:
-            # 读取原始图片
-            img = PILImage.open(image_path)
-            
-            # 如果是webp格式，转换为PNG
+            # 检查是否为webp格式
             if image_path.lower().endswith('.webp'):
-                print(f"检测到webp格式图片，将转换为PNG...")
-                # 将图片转换为RGB模式（如果是RGBA，保留透明度）
-                if img.mode in ('RGBA', 'LA'):
-                    # 保留透明度
-                    img_format = 'PNG'
-                else:
-                    # 转换为RGB
-                    img = img.convert('RGB')
-                    img_format = 'PNG'
+                print(f"检测到webp格式图片，将转换为PNG: {image_path}")
+                try:
+                    # 尝试使用webp库处理
+                    from webp import WebPHandler
+                    # 将WebP转换为PNG并保存到BytesIO
+                    img_byte_arr = BytesIO()
+                    with open(image_path, 'rb') as webp_file:
+                        webp_data = webp_file.read()
+                        webp_handler = WebPHandler(webp_data)
+                        rgb_data = webp_handler.decode_rgb()
+                        # 创建PIL图像
+                        width, height = webp_handler.get_info()['width'], webp_handler.get_info()['height']
+                        img = PILImage.frombytes('RGB', (width, height), rgb_data)
+                        img.save(img_byte_arr, format='PNG')
+                        img_byte_arr.seek(0)
+                except (ImportError, Exception) as e:
+                    print(f"使用webp库处理失败: {str(e)}，尝试使用PIL直接处理")
+                    # 退回到使用PIL直接处理
+                    img = PILImage.open(image_path)
+                    # 将图片转换为RGB模式
+                    if img.mode in ('RGBA', 'LA'):
+                        img_format = 'PNG'  # 保留透明度
+                    else:
+                        img = img.convert('RGB')
+                        img_format = 'PNG'
+                    # 将图片保存到BytesIO对象
+                    img_byte_arr = BytesIO()
+                    img.save(img_byte_arr, format=img_format)
+                    img_byte_arr.seek(0)
             else:
+                # 非webp格式处理
+                img = PILImage.open(image_path)
                 img_format = img.format if img.format else 'PNG'
-            
-            # 将图片保存到BytesIO对象
-            img_byte_arr = BytesIO()
-            img.save(img_byte_arr, format=img_format)
-            img_byte_arr.seek(0)
-            
+                img_byte_arr = BytesIO()
+                img.save(img_byte_arr, format=img_format)
+                img_byte_arr.seek(0)
+        
             # 创建Excel图片对象
             xl_img = XLImage(img_byte_arr)
             xl_img.anchor = cell_address
             worksheet.add_image(xl_img)
-            
-            print(f"成功插入原始图片，尺寸: {img.size}")
+        
+            print(f"成功插入图片: {image_path}")
             return True
         except Exception as e:
             print(f"插入原始图片时发生错误: {str(e)}")
+            traceback.print_exc()
             return False
 
     def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
