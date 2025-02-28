@@ -1240,5 +1240,93 @@
     "template_name": "依诺达",
     "status": "completed",
     "result_file": "20250225173239.xlsx"
+  },
+  {
+    "task_id": "20250228174016",
+    "type": "packing_list",
+    "timestamp": "20250228_174055",
+    "input_file": "20250228174016_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228174236",
+    "type": "packing_list",
+    "timestamp": "20250228_174244",
+    "input_file": "20250228174236_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228174628",
+    "type": "packing_list",
+    "timestamp": "20250228_174631",
+    "input_file": "20250228174628_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228175233",
+    "type": "packing_list",
+    "timestamp": "20250228_175235",
+    "input_file": "20250228175233_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228175336",
+    "type": "packing_list",
+    "timestamp": "20250228_175339",
+    "input_file": "20250228175336_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228175432",
+    "type": "packing_list",
+    "timestamp": "20250228_175434",
+    "input_file": "20250228175432_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228175514",
+    "type": "packing_list",
+    "timestamp": "20250228_175516",
+    "input_file": "20250228175514_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250228175640",
+    "type": "packing_list",
+    "timestamp": "20250228_175645",
+    "input_file": "20250228175640_packing_list.xlsx",
+    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
   }
 ]

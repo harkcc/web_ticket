@@ -832,6 +832,8 @@ class InvoiceGenerator:
                         name = f"{db_product_info.get('en_name', '')}({db_product_info.get('cn_name', '')})"
                         quantity = item.box_quantities.get(box_number, 0)
                         price = db_product_info.get('price', 0)
+                        if price == '':
+                            price = 0
 
                         # 累计总数和总金额
                         total_quantity += quantity
@@ -842,19 +844,19 @@ class InvoiceGenerator:
                         cell_data = [
                             (1, f"{code}U00000{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
                             (2, box_number if item == box.items[0] else ""),  # 箱号,只在第一行显示
-                            (3, product_info.get('cn_name', '') if product_info else ''),  # 中文品名
-                            (4, product_info.get('en_name', '') if product_info else ''),  # 英文品名
+                            (3, db_product_info.get('cn_name', '') if db_product_info else ''),  # 中文品名
+                            (4, db_product_info.get('en_name', '') if db_product_info else ''),  # 英文品名
                             (5, price),  # 单价
                             (6, item.box_quantities.get(box_number, 0)),  # 数量
                             (7, float(price) * quantity),  # 总价
-                            (8, f"{product_info.get('material_cn', '')}/{product_info.get('material_en', '')}" if product_info else ''),  # 材质
-                            (9, f"{product_info.get('usage_cn', '')}/{product_info.get('usage_en', '')}" if product_info else ''),  # 用途
+                            (8, f"{db_product_info.get('material_cn', '')}/{db_product_info.get('material_en', '')}" if db_product_info else ''),  # 材质
+                            (9, f"{db_product_info.get('usage_cn', '')}/{db_product_info.get('usage_en', '')}" if db_product_info else ''),  # 用途
                             (10, box.weight if item == box.items[0] else ""),  # 毛重,只在第一行显示
                             (11, box.length if item == box.items[0] else ""),  # 长,只在第一行显示
                             (12, box.width if item == box.items[0] else ""),  # 宽,只在第一行显示
                             (13, box.height if item == box.items[0] else ""),  # 高,只在第一行显示
-                            (14, product_info.get('brand', '') if product_info else ''),  # 品牌
-                            (15, product_info.get('hs_code', '') if product_info else '')  # HS编码
+                            (14, db_product_info.get('brand', '') if db_product_info else ''),  # 品牌
+                            (15, db_product_info.get('hs_code', '') if db_product_info else '')  # HS编码
                         ]
                         
                         # 批量设置单元格值和样式
