@@ -268,8 +268,8 @@ class SimplePackingListProcessor:
             print("前5行数据预览:")
             print(df.head())
 
-            # 如果是依诺达模板，删除第一列
-            if template_name and "依诺达" in template_name:
+            # 如果是依诺达模板或罗马尼亚鹏城模板，删除第一列
+            if template_name and ("依诺达" in template_name or "罗马尼亚鹏城" in template_name):
                 df = df.iloc[:, 1:]
 
             # 获取Shipment ID（第1行第2列）

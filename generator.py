@@ -48,7 +48,8 @@ class InvoiceGenerator:
         
         # 定义模板配置，只列出不需要编码的模板
         self.template_config = {
-            "依诺达": {"requires_code": False}  # 不需要编码的模板
+            "依诺达": {"requires_code": False},  # 不需要编码的模板
+            "罗马尼亚鹏城": {"requires_code": False}  # 不需要编码的模板
         }
         
         # 初始化模板处理器字典
@@ -2008,6 +2009,142 @@ class InvoiceGenerator:
                 print(f"填充德邦空派模板时发生错误: {str(e)}")
                 traceback.print_exc()
                 raise ProcessingError(f"填充德邦空派模板失败: {str(e)}")
+
+
+    @template_handler("罗马尼亚鹏城")
+    def _fill_ropc_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
+        """填充罗马尼亚鹏程模板"""
+        with self.db_connector as db:
+            try:
+                sheet = wb['模板']  # 获取模板工作表
+                # 拆开合并单元格
+                # self.unmerge_cells_in_range(sheet, 15, 15, 2, 4)
+                # self.unmerge_cells_in_range(sheet, 1, 1, 6, 8)
+                # self.unmerge_cells_in_range(sheet, 2, 2, 6, 8)
+                print("开始写入模版信息")
+
+                # 定义样式信息
+                style_info = {
+                    'font': Font(name='Arial', size=10),
+                    'border': Border(left=Side(border_style='thin'),
+                                     right=Side(border_style='thin'),
+                                     top=Side(border_style='thin'),
+                                     bottom=Side(border_style='thin')),
+                    'alignment': Alignment(horizontal='center', vertical='center')
+                }
+
+                try:
+                    total_boxes = len(box_data.keys())
+                    cell = sheet.cell(row=1, column=6)  #填充箱数
+                    cell.value = str(total_boxes)
+                    cell.font = Font(name='Arial', size=9)
+                except Exception as e:
+                    print(f"填充箱数时发生错误: {str(e)}")
+
+                # 检查所有产品的电磁属性
+                has_electric = False
+                has_magnetic = False
+                for box in box_data.values():
+                    for item in box.items:
+                        product_info = self._get_product_info(item.msku, db)
+                        if product_info:
+                            if product_info.get('electrified', '') == '是':
+                                has_electric = True
+                            if product_info.get('magnetic', '') == '是':
+                                has_magnetic = True
+                            if has_electric and has_magnetic:
+                                break
+                    if has_electric and has_magnetic:
+                        break
+
+                # 在表格顶部添加电磁属性标记
+                if has_electric:
+                    cell = sheet.cell(row=2, column=6)  # F列第1行
+                    cell.value = "是"
+                    cell.font = Font(name='Arial', size=9)
+                
+                if has_magnetic:
+                    cell = sheet.cell(row=3, column=6)  # F列第2行
+                    cell.value = "是"
+                    cell.font = Font(name='Arial', size=9)
+
+                # 填充数据
+                row_num = 20  # 从第20行开始填充
+                index = 1    # 添加序号计数器，从1开始
+                row_height = sheet.row_dimensions[20].height
+                # sheet.column_dimensions['Q'].width = row_height/4
+                
+                # 遍历每个箱子
+
+                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                
+                # 遍历排序后的箱子
+                for box_number, box in sorted_boxes:
+                    print(f"处理箱子 {box_number}")
+
+                    # 遍历箱子中的每个产品
+                    for item in box.items:
+                        # 从数据库获取产品信息
+                        product_info = self._get_product_info(item.msku, db)
+                        # 处理产品信息为None的情况
+                        if product_info is None:
+                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            price = 0
+                            total_price = 0
+                        else:
+                            price = product_info.get('price', 0)
+                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
+                            item.product_name = product_info.get('cn_name', item.product_name)
+                        
+                        # 设置单元格值和样式ç
+                        cell_data = [
+                            (1, box_number),                    # 货箱编号 (A列)
+                            (10, box.weight if box.weight is not None else ""),  # 重量 
+                            (11, box.weight if box.weight is not None else ""),  # 重量 
+                            (12, box.length if box.length is not None else ""),  # 长度 
+                            (13, box.width if box.width is not None else ""),    # 宽度 
+                            (14, box.height if box.height is not None else "") ,  # 高度 
+                            (6, item.msku),                    
+                            (3,product_info.get('en_name', '') if product_info else ''),  
+                            (2, product_info.get('cn_name', '') if product_info else ''),  
+                            # (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
+                            (5, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
+                            (8, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (4, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
+                            (9, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (17, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
+                            (18, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
+                            (16, product_info.get('link', '') if product_info else ''),
+                            (15, ''),  
+                            (22,item.sku),
+                            # (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                          
+                        ]
+
+                        # 批量设置单元格值和样式
+                        for column, value in cell_data:
+                            self._set_cell_value(sheet, row_num, column, value, style_info)
+                        sheet.row_dimensions[row_num].height = row_height
+                       
+                        # 插入产品图片
+                        if item.msku and hasattr(self, 'image_folder'):
+                            try:
+                                image_cell = f"O{row_num}"
+                                # self.insert_product_image(sheet, image_cellO item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
+                            except Exception as e:
+                                print(f"插入图片时发生错误: {str(e)}")
+
+                        row_num += 1
+
+                # self.merge_cells_in_range(sheet, 15, 15, 2, 4)
+                # self.merge_cells_in_range(sheet, 1, 1, 6, 8)
+                # self.merge_cells_in_range(sheet, 2, 2, 6, 8)
+
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                raise
+        
 
     def _fill_default_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """默认的模板处理方法"""

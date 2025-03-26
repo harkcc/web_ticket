@@ -346,7 +346,7 @@
                 <option value="表格模版/林道UPS.xlsx">林道UPS</option>
                 <option value="表格模版/递信.xlsx">递信</option>
                 <option value="表格模版/德邦空派.xlsx">德邦空派</option>
-
+                <option value="表格模版/罗马尼亚鹏城.xlsx">罗马尼亚鹏城</option>
             </select>
         </div>
 
@@ -593,7 +593,8 @@
 
         // 如果模板不在配置中，则默认需要编码
         const templateInfo = {
-            "依诺达": {requiresCode: false}
+            "依诺达": {requiresCode: false},
+            "罗马尼亚鹏城": {requiresCode: false}
         }[selectedTemplate] || {requiresCode: true};
 
         if (templateInfo.requiresCode) {
