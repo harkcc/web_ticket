@@ -2010,7 +2010,6 @@ class InvoiceGenerator:
                 traceback.print_exc()
                 raise ProcessingError(f"填充德邦空派模板失败: {str(e)}")
 
-
     @template_handler("罗马尼亚鹏城")
     def _fill_ropc_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """填充罗马尼亚鹏程模板"""
@@ -2146,7 +2145,7 @@ class InvoiceGenerator:
                 raise
     
     @template_handler("运达通")
-    def _fill_ropc_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
+    def _fill_ydt_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充运达通模板
         :param wb: 工作簿对象
@@ -2279,7 +2278,7 @@ class InvoiceGenerator:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         box_number_str = code+'U00000'+str(box_number)
-                        # 设置单元格值和样式ç
+                        # 设置单元格值和样式
                         cell_data = [
                             (1, box_number_str),                    # 货箱编号 (A列)
                             (15, box.weight if box.weight is not None else ""),  # 重量 (B列)
@@ -2291,14 +2290,16 @@ class InvoiceGenerator:
                             (4, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
                             (5, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
                             (9, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
-                            (12, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
+                            # (12, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
+                            (12, ''),
                             (13, product_info.get('link', '') if product_info else ''),
                             (14, ''),  
                             # (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
                             (16, box.length if box.length is not None else ""),  # 长度 (Q列)
                             (17, box.width if box.width is not None else ""),    # 宽度 (R列)
                             (18, box.height if box.height is not None else ""),  # 高度 (S列)
-                            (6,"个")
+                            (6,'')
+                            # (6,"")
                         ]
 
                         # 批量设置单元格值和样式
