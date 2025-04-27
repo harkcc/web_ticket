@@ -2168,6 +2168,10 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 11, 11, 2, 4)
                 print("开始写入模版信息")
 
+                cell = sheet.cell(row=9, column=2)  # B15单元格
+                cell.value = ''
+
+
                 # 定义样式信息
                 style_info = {
                     'font': Font(name='Arial', size=10),
@@ -2187,6 +2191,7 @@ class InvoiceGenerator:
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
                     address_info_detail = address_info['address_info']
+                    print("地址信息:", address_info_detail)
                     try:
                         # 填充收件人信息
                        
@@ -2235,6 +2240,10 @@ class InvoiceGenerator:
                         if 'countryCode' in address_info_detail:
                             cell = sheet.cell(row=13, column=2)  # B7单元格
                             cell.value = address_info_detail['countryCode']
+
+                        if 'stateOrProvinceCode' in address_info_detail:
+                            cell = sheet.cell(row=11, column=2)  # B8单元格
+                            cell.value = address_info_detail['stateOrProvinceCode']
 
                         if address_parts:
                             cell = sheet.cell(row=6, column=2)  # B3单元格
