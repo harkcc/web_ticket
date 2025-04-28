@@ -2102,11 +2102,10 @@ class InvoiceGenerator:
                             (11, box.weight if box.weight is not None else ""),  # 重量 
                             (12, box.length if box.length is not None else ""),  # 长度 
                             (13, box.width if box.width is not None else ""),    # 宽度 
-                            (14, box.height if box.height is not None else "") ,  # 高度 
-                            (6, item.msku),                    
+                            (14, box.height if box.height is not None else "") ,  # 高度                  
                             (3,product_info.get('en_name', '') if product_info else ''),  
                             (2, product_info.get('cn_name', '') if product_info else ''),  
-                            # (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
+                            (6, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (5, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
                             (8, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
                             (4, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
