@@ -14,6 +14,7 @@ from generator import InvoiceGenerator, ProcessingError
 from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
 from STA_data import get_address_info
 from db_utils import MongoDBClient
+from image_extractor import ImageExtractor
 import traceback
 import logging
 import numpy as np
@@ -753,6 +754,113 @@ def upload_excel():
 @app.route('/import_status/<task_id>')
 def import_status(task_id):
     """获取导入任务状态"""
+    with task_lock:
+        if task_id not in task_status:
+            return jsonify({'error': '任务不存在'}), 404
+        
+        status_data = task_status[task_id].copy()
+        
+        # 如果任务已完成，清理状态数据
+        if status_data['status'] in ['completed', 'error']:
+            task_status.pop(task_id, None)
+        
+        return jsonify(status_data)
+
+
+# 图片上传功能路由
+@app.route('/extract_images', methods=['POST'])
+def extract_images():
+    """处理图片上传任务"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': '没有上传文件'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '没有选择文件'}), 400
+
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'error': '请上传Excel文件'}), 400
+
+        # 保存文件
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        temp_filename = f'images_{timestamp}_{filename}'
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        file.save(file_path)
+
+        # 创建任务
+        task_id = f'images_{timestamp}'
+        with task_lock:
+            task_status[task_id] = {
+                'status': 'processing',
+                'progress': 0,
+                'message': '准备处理...',
+                'timestamp': timestamp
+            }
+
+        # 启动后台线程处理任务
+        threading.Thread(target=process_image_extraction, args=(task_id, file_path)).start()
+
+        return jsonify({'task_id': task_id})
+
+    except Exception as e:
+        logging.error(f"图片上传任务创建失败: {str(e)}")
+        logging.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+
+def process_image_extraction(task_id, file_path):
+    """处理图片上传任务"""
+    try:
+        # 初始化图片提取器
+        image_extractor = ImageExtractor(app.config['UPLOAD_FOLDER'])
+        
+        # 获取任务状态引用
+        with task_lock:
+            if task_id not in task_status:
+                task_status[task_id] = {
+                    'status': 'processing',
+                    'progress': 0,
+                    'message': '准备处理...',
+                }
+        
+        # 执行图片提取
+        result = image_extractor.extract_images_from_excel(file_path, task_status[task_id])
+        
+        # 更新任务状态
+        with task_lock:
+            if result['success']:
+                task_status[task_id]['status'] = 'completed'
+                task_status[task_id]['progress'] = 100
+                task_status[task_id]['message'] = '处理完成'
+                task_status[task_id]['success_count'] = result['success_count']
+                task_status[task_id]['error_count'] = result['error_count']
+            else:
+                task_status[task_id]['status'] = 'error'
+                task_status[task_id]['message'] = result.get('error', '处理失败')
+    
+    except Exception as e:
+        logging.error(f"图片上传处理失败: {str(e)}")
+        logging.error(traceback.format_exc())
+        with task_lock:
+            if task_id in task_status:
+                task_status[task_id]['status'] = 'error'
+                task_status[task_id]['message'] = f'处理失败: {str(e)}'
+    
+    finally:
+        # 清理临时文件
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                logging.info(f'临时文件 {file_path} 已删除')
+        except Exception as e:
+            logging.error(f'删除临时文件失败: {str(e)}')
+
+
+@app.route('/extract_images_status/<task_id>')
+def extract_images_status(task_id):
+    """获取图片上传任务状态"""
     with task_lock:
         if task_id not in task_status:
             return jsonify({'error': '任务不存在'}), 404

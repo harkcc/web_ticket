@@ -390,6 +390,22 @@
         </div>
     </div>
 
+    <!-- 添加图片上传功能部分 -->
+    <div class="container">
+        <h2>上传产品图片</h2>
+        <div class="form-group">
+            <label for="imageExcelFile">选择包含图片URL的Excel文件：</label>
+            <input type="file" id="imageExcelFile" name="imageExcelFile" accept=".xlsx,.xls">
+        </div>
+        <button type="button" onclick="uploadImageExcel()">开始上传图片</button>
+        <div id="imageExtractProgress" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="imageProgressFill"></div>
+            </div>
+            <div id="imageExtractStatus" class="status-text"></div>
+        </div>
+    </div>
+
 <div class="container history-container">
     <h2>处理历史</h2>
 
@@ -810,6 +826,84 @@
                 }, 3000);
             } else {
                 showNotification(result.error || '导入失败', 'error');
+                progressDiv.style.display = 'none';
+            }
+        } catch (error) {
+            showNotification('检查状态失败: ' + error.message, 'error');
+            progressDiv.style.display = 'none';
+        }
+    }
+
+    // 图片提取功能 - 上传Excel文件
+    async function uploadImageExcel() {
+        const fileInput = document.getElementById('imageExcelFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showNotification('请选择Excel文件', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // 显示进度条
+        const progressDiv = document.getElementById('imageExtractProgress');
+        const progressFill = document.getElementById('imageProgressFill');
+        const statusText = document.getElementById('imageExtractStatus');
+        progressDiv.style.display = 'block';
+        progressFill.style.width = '0%';
+        statusText.textContent = '正在处理...';
+        
+        try {
+            const response = await fetch('/extract_images', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.task_id) {
+                checkImageExtractStatus(result.task_id);
+            } else {
+                showNotification(result.error || '上传失败', 'error');
+                progressDiv.style.display = 'none';
+            }
+        } catch (error) {
+            showNotification('上传失败: ' + error.message, 'error');
+            progressDiv.style.display = 'none';
+        }
+    }
+
+    // 检查图片提取状态
+    async function checkImageExtractStatus(taskId) {
+        const progressDiv = document.getElementById('imageExtractProgress');
+        const progressFill = document.getElementById('imageProgressFill');
+        const statusText = document.getElementById('imageExtractStatus');
+        
+        try {
+            const response = await fetch(`/extract_images_status/${taskId}`);
+            const result = await response.json();
+            
+            if (result.status === 'processing') {
+                // 更新进度
+                if (result.progress) {
+                    progressFill.style.width = `${result.progress}%`;
+                }
+                statusText.textContent = result.message || '正在处理...';
+                
+                // 继续检查状态
+                setTimeout(() => checkImageExtractStatus(taskId), 1000);
+            } else if (result.status === 'completed') {
+                progressFill.style.width = '100%';
+                showNotification(
+                    `图片上传完成！成功：${result.success_count}，失败：${result.error_count}`, 
+                    'success'
+                );
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                showNotification(result.error || '图片上传失败', 'error');
                 progressDiv.style.display = 'none';
             }
         } catch (error) {
