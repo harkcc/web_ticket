@@ -2376,13 +2376,16 @@ class InvoiceGenerator:
                     cell.value = code
                     cell.font = Font(name='Arial', size=12)
 
+                    cell = sheet.cell(row=7, column=4)  # B列是第2列
+                    cell.value = "亚马逊地址"
+                    cell.font = Font(name='Arial', size=12)
+
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
                     address_info_detail = address_info['address_info']
                     print("地址信息:", address_info_detail)
                     try:
-                        # 填充收件人信息
                        
                         # 填充地址信息
                         address_parts = []
@@ -2407,7 +2410,7 @@ class InvoiceGenerator:
 
                         # 填充名字信息
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=7, column=2)  # B2单元格
+                            cell = sheet.cell(row=8, column=2)  # B2单元格
                             cell.value = address_info_detail['name']
                             
                         # 填充地址信息
@@ -2430,13 +2433,14 @@ class InvoiceGenerator:
                             cell = sheet.cell(row=13, column=2)  # B7单元格
                             cell.value = address_info_detail['countryCode']
 
+                        #省份
                         if 'stateOrProvinceCode' in address_info_detail:
-                            cell = sheet.cell(row=11, column=2)  # B8单元格
+                            cell = sheet.cell(row=13, column=2)  # B8单元格
                             cell.value = address_info_detail['stateOrProvinceCode']
 
-                        if address_parts:
-                            cell = sheet.cell(row=6, column=2)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                        # if address_parts:
+                        #     cell = sheet.cell(row=15, column=2)  # B3单元格
+                        #     cell.value = ', '.join(address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -2457,7 +2461,8 @@ class InvoiceGenerator:
                 # 遍历每个箱子
 
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
-                row_height = sheet.row_dimensions[16].height
+                row_height = sheet.row_dimensions[19].height
+                Reference_id = ''
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -2478,28 +2483,29 @@ class InvoiceGenerator:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         box_number_str = code+'U00000'+str(box_number)
+                        Reference_id = address_info['address_info'].get('amazonReferenceId','')
                         # 设置单元格值和样式
                         cell_data = [
                             (1, box_number_str),                    # 货箱编号 (A列)
-                            (15, box.weight if box.weight is not None else ""),  # 重量 (B列)
-                            (3,product_info.get('en_name', '') if product_info else ''),  
-                            (2, product_info.get('cn_name', '') if product_info else ''),  
-                            (8, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
-                            (7, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (10, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
-                            (4, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (5, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
-                            (9, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
-                            # (12, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
-                            (12, ''),
-                            (13, product_info.get('link', '') if product_info else ''),
-                            (14, ''),  
-                            # (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
-                            (16, box.length if box.length is not None else ""),  # 长度 (Q列)
-                            (17, box.width if box.width is not None else ""),    # 宽度 (R列)
-                            (18, box.height if box.height is not None else ""),  # 高度 (S列)
-                            (6,'')
-                            # (6,"")
+                            (2,Reference_id),
+                            (9,item.box_quantities.get(box_number, 0)),
+                            (10,'1'),
+                            (13, box.weight if box.weight is not None else ""),  # 重量 (B列)
+                            (4,product_info.get('en_name', '') if product_info else ''),  
+                            (3, product_info.get('cn_name', '') if product_info else ''),  
+                            (12, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
+                            (19, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
+                            (20,''),
+                            (5, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (7, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
+                            (8,''),
+
+                            (6, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (15, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
+                            (17, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
+                            (18, product_info.get('link', '') if product_info else ''),
+                            (11,'美金'),
+                            
                         ]
 
                         # 批量设置单元格值和样式
@@ -2510,27 +2516,19 @@ class InvoiceGenerator:
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"K{row_num}"  # 图片列
+                                image_cell = f"N{row_num}"  # 图片列
                                 # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                                 self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
                         row_num += 1
-                
-                self.merge_cells_in_range(sheet, 10, 10, 2, 4)
-                self.merge_cells_in_range(sheet, 11, 11, 2, 4)
-                self.merge_cells_in_range(sheet, 12, 12, 2, 4)
-                self.merge_cells_in_range(sheet, 13, 13, 2, 4)
-                self.merge_cells_in_range(sheet, 14, 14, 2, 4)
-                self.merge_cells_in_range(sheet, 4, 4, 2, 4)
-                self.merge_cells_in_range(sheet, 6, 6, 2, 4)
-                self.merge_cells_in_range(sheet, 8, 8, 2, 4)
-                self.merge_cells_in_range(sheet, 7, 7, 2, 4)
 
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
+
+
 
     def _fill_default_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """默认的模板处理方法"""
