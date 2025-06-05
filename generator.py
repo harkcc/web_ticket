@@ -839,7 +839,11 @@ class InvoiceGenerator:
                         # 累计总数和总金额
                         total_quantity += quantity
                         total_amount += float(price) * quantity
-                        total_weight += box.weight
+                        # 检查重量是否为None
+                        if box.weight is not None:
+                            total_weight += box.weight
+                        else:
+                            print(f"警告：UPS模板中箱子 {box_number} 的重量数据为None")
 
                         # 设置单元格值
                         cell_data = [
@@ -1675,13 +1679,22 @@ class InvoiceGenerator:
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        volume = box.length * box.width * box.height*0.000001
+                        # 检查长宽高是否为None，如果是则使用默认值0或跳过计算
+                        if box.length is None or box.width is None or box.height is None:
+                            print(f"警告：箱子 {box_number} 的尺寸数据不完整：length={box.length}, width={box.width}, height={box.height}")
+                            volume = 0  # 设置默认值为0
+                        else:
+                            volume = box.length * box.width * box.height * 0.000001
                         price = 0
                         total_price = 0
 
                         total_quantity += item.box_quantities.get(box_number, 0)
                         total_amount += total_price
-                        total_weight += box.weight
+                        # 检查重量是否为None
+                        if box.weight is not None:
+                            total_weight += box.weight
+                        else:
+                            print(f"警告：箱子 {box_number} 的重量数据为None")
     
                         if product_info is not None:
                             item.product_name = product_info.get('cn_name', item.product_name)
