@@ -1834,7 +1834,7 @@ class InvoiceGenerator:
                 total_weight = 0
                 for box in box_data.values():
                     total_length += len(box.items)
-                    total_weight += box.weight if hasattr(box, 'weight') else 0
+                    total_weight += box.weight if (hasattr(box, 'weight') and box.weight is not None) else 0
                 
                 # 插入所需行数
                 if total_length > 5:
@@ -1921,7 +1921,7 @@ class InvoiceGenerator:
                         # HS编码
                         self._set_cell_value(sheet, row_num, 5, product_info.get('hs_code', ''), style_info)
                         # 数量
-                        quantity = item.quantity if hasattr(item, 'quantity') else 0
+                        quantity = item.quantity if (hasattr(item, 'quantity') and item.quantity is not None) else 0
                         self._set_cell_value(sheet, row_num, 6, quantity, style_info)
 
                         self._set_cell_value(sheet,row_num,16,'',style_info)
@@ -1936,12 +1936,14 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 8, f"${total}", style_info)
                         
                         # 重量相关
-                        box_weight = box.weight if hasattr(box, 'weight') else 0
+                        # 修改后
+                        box_weight = box.weight if (hasattr(box, 'weight') and box.weight is not None) else 0
                         for col in range(9, 12):
                             self._set_cell_value(sheet, row_num, col, box_weight, style_info)
                         
                         # 箱子尺寸
-                        if hasattr(box, 'length'):
+                        if (hasattr(box, 'length') and hasattr(box, 'width') and hasattr(box, 'height') and 
+                            box.length is not None and box.width is not None and box.height is not None):
                             self._set_cell_value(sheet, row_num, 12, box.length, style_info)
                             self._set_cell_value(sheet, row_num, 13, box.width, style_info)
                             self._set_cell_value(sheet, row_num, 14, box.height, style_info)
