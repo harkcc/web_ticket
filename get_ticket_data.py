@@ -219,12 +219,17 @@ class SimplePackingListProcessor:
         "2号": {"length": 54, "width": 24, "height": 30, "weight": 0.631},
         "3号": {"length": 44, "width": 22, "height": 28, "weight": 0.458},
         "4号": {"length": 36, "width": 20, "height": 24, "weight": 0.283},
+        "5号": {"length": 29, "width": 17, "height": 19, "weight": 0.283},
         "定制49": {"length": 50, "width": 50, "height": 40, "weight": 1.2},
         "定制55": {"length": 56, "width": 46, "height": 51, "weight": 1.6},
         "搬家大": {"length": 61, "width": 41, "height": 51, "weight": 1.45},
-        "定制64": {"length": 65, "width": 40, "height": 45, "weight": 1.4},
+        "定制64": {"length": 65, "width": 40, "height": 45, "weight": 1.5},
         "圣诞树": {"length": 91, "width": 49.5, "height": 37, "weight": 1.7},
-        "定制59": {"length": 59, "width": 48, "height": 39, "weight": 1.35}
+        "定制59": {"length": 59, "width": 48, "height": 39, "weight": 1.4},
+        "定制53": {"length": 53, "width": 33, "height": 43, "weight": 1.35},
+        "定制69": {"length": 69, "width": 42, "height": 48, "weight": 1.55},
+        "搬家中": {"length": 50, "width": 40, "height": 40, "weight": 1.15},
+        "定制中": {"length": 50, "width": 40, "height": 40, "weight": 1.15},
     }
 
     def __init__(self, file_path: str):

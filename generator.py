@@ -1364,11 +1364,19 @@ class InvoiceGenerator:
                 sheet = wb['FBA对应贴标资料']  # 获取模板工作表
                 print("开始写入递信模版信息")
                 current_date = datetime.now().strftime("%Y.%m.%d")
+
                 cell = sheet.cell(row=1, column=4)
                 cell.value = current_date
                 cell.font = Font(name='Arial', size=12)
+                
+                # 正确访问shipmentName
+                shipment_Name = ''
+                if address_info and 'address_info' in address_info and 'shipmentName' in address_info['address_info']:
+                    shipment_parts = address_info['address_info']['shipmentName'].split('-')
+                    if len(shipment_parts) > 1:
+                        shipment_Name = shipment_parts[-2]
 
-                sheet_shipment_id = shipment_id if shipment_id else ''
+
                 # 记录第3行的格式信息
                 row_height = sheet.row_dimensions[3].height
 
@@ -1418,7 +1426,6 @@ class InvoiceGenerator:
 
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
-                
 
                 # 设置行高
                 for r in range(3, 21):
@@ -1441,7 +1448,8 @@ class InvoiceGenerator:
                     print(box_products)
                     is_mixed = len(box_products) >= 2
                     # identifier = f"{len(box_data)}-{box_number}{'(混装)' if is_mixed else ''}"
-                    identifier = f"{sheet_shipment_id}0{box_number}"
+                    # 如果箱号是个位数则补零，否则不补零
+                    identifier = f"{shipment_Name}0{box_number}" if int(box_number) < 10 else f"{shipment_Name}{box_number}"
 
                     merge_start_row = row_num
                     
@@ -1464,10 +1472,12 @@ class InvoiceGenerator:
                         # 设置单元格值
                         cell_data = [
                             (1, identifier),  # 标识符
-                            (2, f"{getattr(product_info, 'cn_name', '')}\n{getattr(product_info, 'en_name', '')}"),  # 品名
+                            # (2, f"{getattr(product_info, 'cn_name', '')}\n{getattr(product_info, 'en_name', '')}"),  # 品名
+                            # (2, f"{getattr(product_info, 'cn_name', '')} ({getattr(product_info, 'box_quantities', {}).get(box_number, 0)}双) {getattr(product_info, 'en_name', '')}" if getattr(product_info, 'cn_name', '') == '袜子' else f"{getattr(product_info, 'cn_name', '')}\n{getattr(product_info, 'en_name', '')}"),
+                            (2, f"{getattr(product_info, 'cn_name', '')} ({self._get_quantity_from_sku(getattr(product_info, 'sku', ''))}双) {getattr(product_info, 'en_name', '')}" if getattr(product_info, 'cn_name', '') == '袜子' else f"{getattr(product_info, 'cn_name', '')}\n{getattr(product_info, 'en_name', '')}"),
                             (3, f"{getattr(product_info, 'material_cn', '')}\n{getattr(product_info, 'material_en', '')}"),  # 材质
                             (4, f"{getattr(product_info, 'usage_en', '')}, {getattr(product_info, 'usage_cn', '')}"),  # 用途
-                            (5, box_number),  # 箱号
+                            (5, 1),  # 箱号
                             (8, box_total_quantity), 
                             (6, getattr(box, 'weight', '')),  # 重量
                             (7, f"{getattr(box, 'length', '')}*{getattr(box, 'width', '')}*{getattr(box, 'height', '')}"),  # 尺寸
@@ -2372,7 +2382,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
     
-    @template_handler("一八供应链")
+    @template_handler("一八美森")
     def _fill_yiba_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充运达通模板
@@ -2531,7 +2541,7 @@ class InvoiceGenerator:
                             (5, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
                             (7, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
                             (8,''),
-
+                            (14,''),
                             (6, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
                             (15, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (17, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
@@ -3229,3 +3239,24 @@ class InvoiceGenerator:
                               top=Side(style='thin'), bottom=Side(style='thin'))
         
         return 7  # 返回表格占用的行数（1行表头 + 6行内容）
+
+    def _get_quantity_from_sku(self, sku):
+        """从SKU中提取数量信息
+        如果SKU用-分割后的最后一个部分是数字，就使用这个数字；否则使用默认值5
+        """
+        default_quantity = 5
+        if not sku:
+            return default_quantity
+        
+        parts = sku.split('-')
+        if not parts:
+            return default_quantity
+        
+        last_part = parts[-1]
+        try:
+            # 尝试将最后一部分转换为整数
+            quantity = int(last_part)
+            return quantity
+        except (ValueError, TypeError):
+            # 如果转换失败，返回默认值
+            return default_quantity

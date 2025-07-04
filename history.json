@@ -658,5 +658,123 @@
     "template_name": "德邦美森限时达",
     "status": "completed",
     "result_file": "20250702165709.xlsx"
+  },
+  {
+    "task_id": "20250704144201",
+    "type": "packing_list",
+    "timestamp": "20250704_144201",
+    "input_file": "20250704144201_packing_list.xlsx",
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250704144310",
+    "type": "packing_list",
+    "timestamp": "20250704_144310",
+    "input_file": "20250704144310_packing_list.xlsx",
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250704144434",
+    "type": "packing_list",
+    "timestamp": "20250704_144437",
+    "input_file": "20250704144434_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250704145009",
+    "type": "packing_list",
+    "timestamp": "20250704_145011",
+    "input_file": "20250704145009_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250704145119",
+    "type": "packing_list",
+    "timestamp": "20250704_145121",
+    "input_file": "20250704145119_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250704150051",
+    "type": "packing_list",
+    "timestamp": "20250704_150054",
+    "input_file": "20250704150051_invoice_info.xlsx",
+    "output_file": "20250704150052.xlsx",
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "20250704150052.xlsx"
+  },
+  {
+    "task_id": "20250704150911",
+    "type": "packing_list",
+    "timestamp": "20250704_150914",
+    "input_file": "20250704150911_invoice_info.xlsx",
+    "output_file": "20250704150912.xlsx",
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "20250704150912.xlsx"
+  },
+  {
+    "task_id": "20250704154220",
+    "type": "packing_list",
+    "timestamp": "20250704_154223",
+    "input_file": "20250704154220_invoice_info.xlsx",
+    "output_file": null,
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250704154421",
+    "type": "packing_list",
+    "timestamp": "20250704_154424",
+    "input_file": "20250704154421_invoice_info.xlsx",
+    "output_file": "20250704154422.xlsx",
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "递信",
+    "status": "completed",
+    "result_file": "20250704154422.xlsx"
+  },
+  {
+    "task_id": "20250704174422",
+    "type": "packing_list",
+    "timestamp": "20250704_174422",
+    "input_file": "20250704174422_packing_list.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "一八美森",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250704174633",
+    "type": "packing_list",
+    "timestamp": "20250704_174636",
+    "input_file": "20250704174633_invoice_info.xlsx",
+    "output_file": "20250704174633.xlsx",
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "一八美森",
+    "status": "completed",
+    "result_file": "20250704174633.xlsx"
   }
 ]
