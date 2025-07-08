@@ -229,7 +229,7 @@ class SimplePackingListProcessor:
         "定制53": {"length": 53, "width": 33, "height": 43, "weight": 1.35},
         "定制69": {"length": 69, "width": 42, "height": 48, "weight": 1.55},
         "搬家中": {"length": 50, "width": 40, "height": 40, "weight": 1.15},
-        "定制中": {"length": 50, "width": 40, "height": 40, "weight": 1.15},
+        "定制中号": {"length": 50, "width": 40, "height": 40, "weight": 1.15},
     }
 
     def __init__(self, file_path: str):

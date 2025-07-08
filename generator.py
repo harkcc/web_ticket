@@ -1670,6 +1670,10 @@ class InvoiceGenerator:
                             if address_parts:
                                 cell = sheet.cell(row=2, column=3)  
                                 cell.value = ', '.join(address_parts)
+
+                                cell = sheet.cell(row=5, column=3)  
+                                cell.value = ', '.join(address_parts)
+
                                 
                         else:
                             if 'addressLine2' in address_info_detail: 
@@ -1853,17 +1857,23 @@ class InvoiceGenerator:
                 # 计算总数据
                 total_length = 0
                 total_weight = 0
-                for box in box_data.values():
-                    total_length += len(box.items)
+                
+                for box_number, box in box_data.items():
+                    # 每个箱子中的产品种类数
+                    box_product_count = len(box.items)
+                    total_length += box_product_count
+                    print(f"箱子 {box_number} 有 {box_product_count} 种产品")
                     total_weight += box.weight if (hasattr(box, 'weight') and box.weight is not None) else 0
                 
+                print("需要添加行数为total_length:", total_length)
                 # 插入所需行数
-                if total_length > 5:
-                    sheet.insert_rows(9, total_length - 5)
+                if total_length > 1:
+                    sheet.insert_rows(9, total_length+9)
                 
                 self.unmerge_cells_in_range(sheet, 4, 4, 3, 7)
                 self.unmerge_cells_in_range(sheet, 5, 5, 3, 7)
                 self.unmerge_cells_in_range(sheet, 5, 5, 12, 18)
+                self.unmerge_cells_in_range(sheet, 4, 4, 12, 13)
 
                 # 解除数据区域内的合并单元格
                 print("解除数据区域内的合并单元格...")
@@ -1881,11 +1891,15 @@ class InvoiceGenerator:
                 except Exception as e:
                     print(f"解除合并单元格时发生错误: {str(e)}")
                     traceback.print_exc()
+
+                # 填充日期
+                self._set_cell_value(sheet, 4, 12, datetime.now().strftime('%Y-%m-%d'), style_info)
+                self.merge_cells_in_range(sheet, 4, 4, 12, 13)        
                 
-                if code:
-                    cell = sheet.cell(row=4, column=3)  # B列是第2列
-                    cell.value = code
-                    cell.font = Font(name='Arial', size=9)
+                # if code:
+                #     cell = sheet.cell(row=4, column=3)  # B列是第2列
+                #     cell.value = code
+                #     cell.font = Font(name='Arial', size=9)
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
@@ -1893,8 +1907,8 @@ class InvoiceGenerator:
                     try:
                         address_parts = []
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=5, column=3)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=5, column=3)  # B2单元格
+                            # cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
@@ -1935,13 +1949,19 @@ class InvoiceGenerator:
                         if not product_info:
                             continue
 
+                        # 定义price变量
+                        price_value = product_info.get('price', 0)
+                        # 确保price是浮点数
+                        price = float(price_value) if price_value else 0
+
                         # # 序号
                         # self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
+                        
                         # FBA号
-                        fba_number = f"FBA176FB5SRR200000{box_number}"
+                        fba_number = code+'U00000'+str(box_number)
                         self._set_cell_value(sheet, row_num, 2, fba_number, style_info)
                         # 箱号
-                        self._set_cell_value(sheet, row_num, 3, box_number, style_info)
+                        self._set_cell_value(sheet, row_num, 3, 1, style_info)
                         # 产品名称
                         name = f"{product_info.get('en_name', '')}({product_info.get('cn_name', '')})"
                         self._set_cell_value(sheet, row_num, 4, name, style_info)
@@ -1951,11 +1971,7 @@ class InvoiceGenerator:
                         quantity = item.quantity if (hasattr(item, 'quantity') and item.quantity is not None) else 0
                         self._set_cell_value(sheet, row_num, 6, quantity, style_info)
 
-                        self._set_cell_value(sheet,row_num,16,'',style_info)
-                        
-                        # 单价
-                        price_str = product_info.get('price', '')
-                        price = float(price_str) if price_str else 0
+                        self._set_cell_value(sheet,row_num,16,'',style_info)  
                         self._set_cell_value(sheet, row_num, 7, f"${price}", style_info)
                         
                         # 总价
@@ -1976,11 +1992,16 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, 14, box.height, style_info)
                             volume = box.length * box.width * box.height * 0.000001
                             self._set_cell_value(sheet, row_num, 15, volume, style_info)
+                        else:
+                            self._set_cell_value(sheet, row_num, 12, 0, style_info)
+                            self._set_cell_value(sheet, row_num, 13, 0, style_info)
+                            self._set_cell_value(sheet, row_num, 14, 0, style_info)
+                            self._set_cell_value(sheet, row_num, 15, 0, style_info)
                         
                         # 磁性
                         self._set_cell_value(sheet, row_num, 17, product_info.get('magnetic', ''), style_info)
 
-                        self._set_cell_value(sheet, row_num, 18, product_info.get('link', ''), style_info)
+                        # self._set_cell_value(sheet, row_num, 18, product_info.get('link', ''), style_info)
 
                         # 插入产品图片
                         # self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
@@ -1999,7 +2020,7 @@ class InvoiceGenerator:
                     
                     # 合并相同箱号的单元格
                     if row_num - box_start_row > 1:
-                        for col in [1, 2, 12, 13, 14, 15]:
+                        for col in [2, 3, 12, 13, 14, 15]:
                             try:
                                 merge_range = f"{get_column_letter(col)}{box_start_row}:{get_column_letter(col)}{row_num-1}"
                                 sheet.merge_cells(merge_range)
@@ -2570,8 +2591,6 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
     
-
-    @template_handler("德邦澳大利亚")
     def _fill_debang_australia_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充叮铛卡航限时达模板
