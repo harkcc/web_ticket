@@ -1862,13 +1862,13 @@ class InvoiceGenerator:
                     # 每个箱子中的产品种类数
                     box_product_count = len(box.items)
                     total_length += box_product_count
-                    print(f"箱子 {box_number} 有 {box_product_count} 种产品")
+                    # print(f"箱子 {box_number} 有 {box_product_count} 种产品")
                     total_weight += box.weight if (hasattr(box, 'weight') and box.weight is not None) else 0
                 
                 print("需要添加行数为total_length:", total_length)
                 # 插入所需行数
                 if total_length > 1:
-                    sheet.insert_rows(9, total_length+9)
+                    sheet.insert_rows(9, total_length)
                 
                 self.unmerge_cells_in_range(sheet, 4, 4, 3, 7)
                 self.unmerge_cells_in_range(sheet, 5, 5, 3, 7)
@@ -1946,8 +1946,20 @@ class InvoiceGenerator:
                     
                     for item in box.items:
                         product_info = self._get_product_info(item.msku, db)
+                        # 即使查询不到产品信息，也要生成一行
                         if not product_info:
-                            continue
+                            print(f"警告: 未找到产品信息 {item.msku}，使用默认值")
+                            # 创建默认的产品信息
+                            product_info = {
+                                'en_name': f'Product-{item.msku}',
+                                'cn_name': '待补充数据',
+                                'hs_code': '',
+                                'price': 0,
+                                'magnetic': '',
+                                'brand': '',
+                                'model': '',
+                                'link': ''
+                            }
 
                         # 定义price变量
                         price_value = product_info.get('price', 0)
@@ -2926,7 +2938,12 @@ class InvoiceGenerator:
                 # 如果没有传入db连接，创建新的连接
                 with self.db_connector as db:
                     return self._get_product_info(msku, db)
-            
+
+            # 检查db是否为None
+            if db is None:
+                print(f"警告: 数据库连接对象为None，无法获取产品信息: {msku}")
+                return None
+
             # 使用传入的db连接
             collection = db['msku_info']
             product = collection.find_one({'msku': msku})
