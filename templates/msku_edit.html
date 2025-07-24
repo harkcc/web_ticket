@@ -23,6 +23,7 @@
             <vxe-button status="primary" icon="vxe-icon-search" @click="search">搜索</vxe-button>
             <vxe-button status="primary" icon="vxe-icon-refresh" @click="()=>{msku='';search()}">重置</vxe-button>
             <vxe-button status="primary" icon="vxe-icon-add" @click="addEvent">新增</vxe-button>
+            <vxe-button status="success" icon="vxe-icon-download" @click="exportData">导出数据</vxe-button>
         </p>
 
         <div style="flex:1">
@@ -348,6 +349,13 @@
                 imgList1.value.url = `/api/images/${msku}`
                 showUploadImage.value = true
             }
+            const exportData = () => {
+                // 显示加载状态
+                VxeUI.modal.message({content: '正在导出数据，请稍候...', status: 'info'})
+                
+                // 直接下载后端导出的Excel文件
+                window.open('/export_data', '_blank')
+            }
             onMounted(() => {
                 search()
             })
@@ -374,7 +382,8 @@
                 pageConfig,
                 page_change,
                 search,
-                msku
+                msku,
+                exportData
             }
         }
     }).use(ElementPlus).use(VxeUI).use(VXETable).mount('#app')

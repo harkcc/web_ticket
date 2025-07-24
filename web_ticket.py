@@ -47,6 +47,35 @@ task_lock = threading.Lock()
 # 添加数据库操作锁
 db_operation_lock = threading.Lock()
 
+# 数据字段映射定义
+DATA_FIELD_MAPPING = {
+    "msku": "MSKU",
+    "productNameZh": "中文品名",
+    "productNameEn": "英文品名",
+    "price": "价格",
+    "brand": "品牌",
+    "model": "型号",
+    "HS": "海关编码",
+    "image_url": "图片链接",
+    "asin": "ASIN",
+    "askPrice": "",  # 留空
+    "electrified": "电",
+    "magnetic": "磁",
+    "materialEn": "英文材质",
+    "materialZh": "中文材质",
+    "outboundFee": "出库手续费",
+    "productLink": "销售链接",
+    "putAwayFee": "上架手续费",
+    "useEn": "英文用途",
+    "useZh": "中文用途",
+    "weight": "重量",
+    "X_ROW_K": "",  # 留空
+    "created_at": "创建时间"
+}
+
+# 反向映射（Excel列名到数据库字段）
+EXCEL_TO_DB_MAPPING = {v: k for k, v in DATA_FIELD_MAPPING.items() if v}
+
 def clean_old_files():
     """清理旧文件和历史记录"""
     try:
@@ -872,6 +901,97 @@ def extract_images_status(task_id):
             task_status.pop(task_id, None)
         
         return jsonify(status_data)
+
+
+@app.route('/export_data')
+def export_data():
+    """导出数据库数据为Excel文件"""
+    try:
+        # 创建 MongoDB连接
+        db_client = MongoDBClient()
+        db_client.connect()
+        
+        try:
+            # 查询所有MSKU数据
+            cursor = db_client.db['msku_info'].find({})
+            
+            # 创建Excel工作簿
+            from openpyxl import Workbook
+            
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "MSKU数据"
+            
+            # 写入第一行：数据库字段名（隐藏的元数据）
+            db_fields = list(DATA_FIELD_MAPPING.keys())
+            ws.append(db_fields)
+            
+            # 写入第二行：中文列名（用户看到的表头）
+            chinese_headers = [DATA_FIELD_MAPPING[field] for field in db_fields]
+            ws.append(chinese_headers)
+            
+            # 写入数据行
+            row_count = 0
+            for doc in cursor:
+                row_data = []
+                for field in db_fields:
+                    value = doc.get(field, "")
+                    
+                    # 特殊字段处理
+                    if field == "created_at":
+                        if isinstance(value, datetime):
+                            value = value.strftime('%Y-%m-%d %H:%M:%S')
+                        elif value:
+                            value = str(value)
+                        else:
+                            value = ""
+                    elif field in ["askPrice", "X_ROW_K"]:
+                        value = ""  # 留空字段
+                    else:
+                        value = str(value) if value is not None else ""
+                    
+                    row_data.append(value)
+                
+                ws.append(row_data)
+                row_count += 1
+            
+            # 调整列宽
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)  # 最大宽度50
+                ws.column_dimensions[column_letter].width = adjusted_width
+            
+            # 保存文件
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'msku_export_{timestamp}.xlsx'
+            file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            wb.save(file_path)
+            
+            logging.info(f'成功导出 {row_count} 条MSKU记录到 {filename}')
+            
+            # 返回文件下载
+            return send_file(
+                file_path,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            
+        finally:
+            db_client.close()
+            
+    except Exception as e:
+        logging.error(f'数据导出失败: {str(e)}')
+        logging.error(traceback.format_exc())
+        return jsonify({'error': f'导出失败: {str(e)}'}), 500
+
 
 if __name__ == '__main__':
     os.makedirs(invoice_generator.image_folder,exist_ok=True)
