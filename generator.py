@@ -98,7 +98,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:
                         # 填充收件人信息
                        
@@ -280,7 +280,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     # if 'seller_info' in address_info:
                     #     box_Reference_id = address_info['seller_info']['amazonReferenceId']
                     try:
@@ -591,7 +591,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:
                         # 填充收件人信息，这里收件人和
                         
@@ -685,7 +685,7 @@ class InvoiceGenerator:
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
-                        Reference_id = address_info['address_info'].get('amazonReferenceId','')
+                        Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
 
                         # 设置单元格值和样式
                         cell_data = [
@@ -786,7 +786,7 @@ class InvoiceGenerator:
                 
                   # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:
 
                         # 填充地址信息
@@ -989,7 +989,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     
                     if address_info_detail['amazonReferenceId']:
                         box_Reference_id =address_info_detail['amazonReferenceId']
@@ -1400,7 +1400,7 @@ class InvoiceGenerator:
                 adress = ''
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:
                         # 填充收件人信息，这里收件人和
                         
@@ -1642,7 +1642,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     # if 'seller_info' in address_info:
                     #     box_Reference_id = address_info['seller_info']['amazonReferenceId']
                     try:
@@ -1903,7 +1903,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:
                         address_parts = []
                         if 'name' in address_info_detail:
@@ -2264,7 +2264,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     print("地址信息:", address_info_detail)
                     try:
                         # 填充收件人信息
@@ -2458,7 +2458,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     print("地址信息:", address_info_detail)
                     try:
                        
@@ -2558,7 +2558,7 @@ class InvoiceGenerator:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         box_number_str = code+'U00000'+str(box_number)
-                        Reference_id = address_info['address_info'].get('amazonReferenceId','')
+                        Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                         # 设置单元格值和样式
                         cell_data = [
                             (1, box_number_str),                    # 货箱编号 (A列)
@@ -2603,6 +2603,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
     
+    @template_handler("德邦澳大利亚")
     def _fill_debang_australia_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充叮铛卡航限时达模板
@@ -2652,7 +2653,7 @@ class InvoiceGenerator:
 
                 # 如果有地址信息，填充到相应的单元格
                 if address_info:
-                    address_info_detail = address_info['address_info']
+                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:                     
                         # 填充地址信息
                         address_parts = []
@@ -2718,9 +2719,13 @@ class InvoiceGenerator:
 
 
                 # 填充数据
-                row_num = 12  # 从第18行开始填充
+                row_num = 12  # 从第12行开始填充
                 index = 1    # 添加序号计数器，从1开始
                 Reference_id = ''
+                
+                # 记录第12行的行高，用于后续行的统一设置
+                template_row_height = sheet.row_dimensions[12].height
+             
 
                 # 遍历每个箱子
 
@@ -2745,7 +2750,7 @@ class InvoiceGenerator:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
 
-                        Reference_id = address_info['address_info'].get('amazonReferenceId','')
+                        Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                         box_number_str = code+'U00000'+str(box_number)
                         # 设置单元格值和样式ç
                         cell_data = [
@@ -2753,27 +2758,27 @@ class InvoiceGenerator:
                             (2, Reference_id if Reference_id is not None else ""),  
                             (3,f"{box.length}*{box.width}*{box.height}"),  #箱子的尺寸
                             (4, box_number), 
-
-                            (3,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
-                            (4, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
-                            (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
-                            (6, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (7, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
-                            (8, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (9, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
-                            (10, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
-                            (11, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
-                            (12, product_info.get('link', '') if product_info else ''),
-                            (14, ''),  # 图片列 (N列)
-                            (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
-                            (17, box.length if box.length is not None else ""),  # 长度 (Q列)
-                            (18, box.width if box.width is not None else ""),    # 宽度 (R列)
-                            (19, box.height if box.height is not None else "")   # 高度 (S列)
+                            (5,box.weight),
+                            (6, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
+                            (7, product_info.get('cn_name', '') if product_info else ''),  
+                            (8,product_info.get('en_name', '') if product_info else ''),  #
+                            (9, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
+                            (10, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
+                            (11, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
+                            (13, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (14, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (12, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
+                            (15, ''),  # 图片列 (N列)
+                            (16, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                            # (17, box.length if box.length is not None else ""),  # 长度 (Q列)
+                            # (18, box.width if box.width is not None else ""),    # 宽度 (R列)
+                            # (19, box.height if box.height is not None else "")   # 高度 (S列)
                         ]
 
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
+                            sheet.row_dimensions[row_num].height = template_row_height
 
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
@@ -2850,7 +2855,7 @@ class InvoiceGenerator:
             # 构建输出文件路径
             if address_info:
                 try:
-                    shipment_name = address_info['address_info']['shipmentName']
+                    shipment_name = address_info['address_info']['shipmentName'] if address_info and address_info.get('address_info') else ''
                     # 使用正则表达式提取数据
                     time, logistics, number = self.extract_data(shipment_name)
                     
@@ -2862,7 +2867,8 @@ class InvoiceGenerator:
                     # 获取code
                     code_suffix = f"-{code}" if code else ""
 
-                    output_filename = f'百泰{code_suffix}-{time}-{logistics}票-{number}件-{address_info["seller_info"]["country_name"]}-发票装箱单.xlsx'
+                    country_name = address_info["seller_info"]["country_name"] if address_info and address_info.get("seller_info") else ''
+                    output_filename = f'百泰{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单.xlsx'
                     # 替换任何可能导致路径问题的字符
                     output_filename = "".join(c for c in output_filename if c not in r'<>:"/\|?*')
                     output_path = os.path.join(self.output_folder, output_filename)
@@ -2936,8 +2942,8 @@ class InvoiceGenerator:
         try:
             if db is None:
                 # 如果没有传入db连接，创建新的连接
-                with self.db_connector as db:
-                    return self._get_product_info(msku, db)
+                with self.db_connector as database:
+                    return self._get_product_info(msku, database)
 
             # 检查db是否为None
             if db is None:

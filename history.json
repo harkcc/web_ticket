@@ -1020,5 +1020,64 @@
     "status": "completed",
     "result_file": "20250708173056.xlsx",
     "address_info_status": "failed"
+  },
+  {
+    "task_id": "20250724101825",
+    "type": "packing_list",
+    "timestamp": "20250724_101832",
+    "input_file": "20250724101825_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "德邦澳大利亚",
+    "status": "error",
+    "result_file": null,
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20250724102323",
+    "type": "packing_list",
+    "timestamp": "20250724_102330",
+    "input_file": "20250724102323_packing_list.xlsx",
+    "output_file": "20250724102328.xlsx",
+    "code_input": "FBA18NXMB5RK",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250724102328.xlsx",
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20250724104148",
+    "type": "packing_list",
+    "timestamp": "20250724_104155",
+    "input_file": "20250724104148_packing_list.xlsx",
+    "output_file": "20250724104153.xlsx",
+    "code_input": "FBA18ZFNLGY8",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250724104153.xlsx",
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20250724104335",
+    "type": "packing_list",
+    "timestamp": "20250724_104342",
+    "input_file": "20250724104335_packing_list.xlsx",
+    "output_file": "20250724104340.xlsx",
+    "code_input": "FBA18ZFNLGY8",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250724104340.xlsx",
+    "address_info_status": "failed"
+  },
+  {
+    "task_id": "20250724105332",
+    "type": "packing_list",
+    "timestamp": "20250724_105336",
+    "input_file": "20250724105332_packing_list.xlsx",
+    "output_file": "20250724105333.xlsx",
+    "code_input": "FBA18ZFNLGY8",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250724105333.xlsx"
   }
 ]
