@@ -2814,7 +2814,7 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                sheet = wb['模版']  # 获取模板工作表
+                sheet = wb['2025.3.12 最新发票模板']  # 获取模板工作表
             
                 print("开始写入模版信息")
 
@@ -2963,8 +2963,8 @@ class InvoiceGenerator:
                             (7, box.weight if box.weight is not None else ""),  # 重量 
                             (8, box.length if box.length is not None else ""),  # 长度 
                             (9, box.width if box.width is not None else ""),    # 宽度 
-                            (7, box.height if box.height is not None else "") ,  # 高度 
-                            (19, item.sku),
+                            (10, box.height if box.height is not None else "") ,  # 高度 
+                            # (19, item.sku),
 
                             (2,product_info.get('en_name', '') if product_info else ''),  # 链接 (D列)
                             (3, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
@@ -2975,13 +2975,13 @@ class InvoiceGenerator:
                             # (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (4, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
 
-                            (13, str(product_info.get('material_en', '')+'+'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
-                            (10, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (12, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (13, product_info.get('material_cn', '') if product_info else ''),  # 材料 (D列) 
+                            (11, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
+                            (15, product_info.get('usage_en', '')if product_info else ''),    # 用途 (H列)
                             (12, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (14, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
-                            (15, product_info.get('link', '') if product_info else ''),
-                            (16, ''),  # 图片列 (N列)
+                            (16, product_info.get('link', '') if product_info else ''),
+                            (17, ''),  # 图片列 (N列)
 
                             (6, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
                           
