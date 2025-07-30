@@ -2956,10 +2956,11 @@ class InvoiceGenerator:
                             price = product_info.get('price', 0)
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
-                        
+
+                        box_number_str = code+'U00000'+str(box_number)
                         # 设置单元格值和样式ç
                         cell_data = [
-                            (1, box_number),                    # 货箱编号 (A列)
+                            (1, box_number_str),                    # 货箱编号 (A列)
                             (7, box.weight if box.weight is not None else ""),  # 重量 
                             (8, box.length if box.length is not None else ""),  # 长度 
                             (9, box.width if box.width is not None else ""),    # 宽度 
