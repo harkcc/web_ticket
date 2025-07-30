@@ -24,6 +24,7 @@
             <vxe-button status="primary" icon="vxe-icon-refresh" @click="()=>{msku='';search()}">重置</vxe-button>
             <vxe-button status="primary" icon="vxe-icon-add" @click="addEvent">新增</vxe-button>
             <vxe-button status="success" icon="vxe-icon-download" @click="exportData">导出数据</vxe-button>
+            <vxe-button status="warning" icon="vxe-icon-edit" @click="showImportModalFunc">数据更新</vxe-button>
         </p>
 
         <div style="flex:1">
@@ -91,6 +92,54 @@
                 :confirm-closable="false">
              <vxe-upload v-model="imgList1" mode="image" single-mode auto-hidden-button show-progress :upload-method="uploadMethod"></vxe-upload>
         </vxe-modal>
+        
+        <!-- 导入更新模态框 -->
+        <vxe-modal
+                resize
+                destroy-on-close
+                show-footer
+                show-confirm-button
+                show-cancel-button
+                v-model="showImportModal"
+                title="导入更新数据"
+                width="600px"
+                height="400px"
+                :confirm-closable="false"
+                @confirm="confirmImport">
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <h4>使用说明：</h4>
+                    <ul>
+                        <li>请使用导出的Excel文件格式进行导入</li>
+                        <li>以MSKU为主键，存在则更新，不存在则插入</li>
+                        <li>支持批量更新和新增数据</li>
+                        <li>导入前会自动备份，支持回滚操作</li>
+                    </ul>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <vxe-upload 
+                        v-model="importFileList" 
+                        mode="manual" 
+                        :file-types="['.xlsx', '.xls']"
+                        :multiple="false"
+                        show-progress>
+                        <template #default>
+                            <vxe-button icon="vxe-icon-upload">选择Excel文件</vxe-button>
+                        </template>
+                    </vxe-upload>
+                </div>
+                <div v-if="importProgress.show" style="margin-top: 20px;">
+                    <div style="margin-bottom: 10px;">{{ importProgress.message }}</div>
+                    <vxe-progress :percentage="importProgress.percentage" :status="importProgress.status"></vxe-progress>
+                    <div v-if="importProgress.details" style="margin-top: 10px; font-size: 12px; color: #666;">
+                        成功: {{ importProgress.details.success_count || 0 }} | 
+                        更新: {{ importProgress.details.update_count || 0 }} | 
+                        插入: {{ importProgress.details.insert_count || 0 }} | 
+                        错误: {{ importProgress.details.error_count || 0 }}
+                    </div>
+                </div>
+            </div>
+        </vxe-modal>
     </div>
 
 </div>
@@ -112,6 +161,15 @@
                 url: ''
             })
             const selectMsku = ref("")
+            const showImportModal = ref(false)
+            const importFileList = ref([])
+            const importProgress = reactive({
+                show: false,
+                message: '',
+                percentage: 0,
+                status: 'normal',
+                details: null
+            })
             const pageConfig = reactive({
                 total: 0,
                 currentPage: 1,
@@ -356,6 +414,101 @@
                 // 直接下载后端导出的Excel文件
                 window.open('/export_data', '_blank')
             }
+            const showImportModalFunc = () => {
+                showImportModal.value = true
+                importFileList.value = []
+                importProgress.show = false
+                importProgress.percentage = 0
+                importProgress.message = ''
+                importProgress.status = 'normal'
+                importProgress.details = null
+            }
+            const confirmImport = async () => {
+                if (!importFileList.value || importFileList.value.length === 0) {
+                    VxeUI.modal.message({content: '请选择要导入的Excel文件', status: 'warning'})
+                    return false
+                }
+                
+                const file = importFileList.value[0]
+                if (!file) {
+                    VxeUI.modal.message({content: '请选择要导入的Excel文件', status: 'warning'})
+                    return false
+                }
+                
+                try {
+                    // 显示进度
+                    importProgress.show = true
+                    importProgress.message = '正在上传文件...'
+                    importProgress.percentage = 0
+                    importProgress.status = 'normal'
+                    
+                    // 创建表单数据
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    
+                    // 上传文件
+                    const response = await axios.post('/upload_update', formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    })
+                    
+                    if (response.data.task_id) {
+                        // 开始轮询任务状态
+                        pollImportStatus(response.data.task_id)
+                    } else {
+                        throw new Error('上传失败')
+                    }
+                    
+                    return false // 不关闭模态框
+                } catch (error) {
+                    importProgress.show = true
+                    importProgress.message = '导入失败: ' + (error.response?.data?.error || error.message)
+                    importProgress.status = 'exception'
+                    VxeUI.modal.message({content: '导入失败: ' + (error.response?.data?.error || error.message), status: 'error'})
+                    return false
+                }
+            }
+            const pollImportStatus = (taskId) => {
+                const checkStatus = () => {
+                    axios.get(`/update_status/${taskId}`)
+                        .then(response => {
+                            const data = response.data
+                            importProgress.message = data.message || '处理中...'
+                            importProgress.percentage = data.progress || 0
+                            importProgress.details = {
+                                success_count: data.success_count || 0,
+                                update_count: data.update_count || 0,
+                                insert_count: data.insert_count || 0,
+                                error_count: data.error_count || 0
+                            }
+                            
+                            if (data.status === 'completed') {
+                                importProgress.status = 'success'
+                                importProgress.percentage = 100
+                                importProgress.message = '导入完成'
+                                VxeUI.modal.message({content: '数据导入完成', status: 'success'})
+                                search() // 刷新表格数据
+                                setTimeout(() => {
+                                    showImportModal.value = false
+                                }, 2000)
+                            } else if (data.status === 'error') {
+                                importProgress.status = 'exception'
+                                importProgress.message = data.message || '导入失败'
+                                VxeUI.modal.message({content: '导入失败: ' + data.message, status: 'error'})
+                            } else {
+                                // 继续轮询
+                                setTimeout(checkStatus, 1000)
+                            }
+                        })
+                        .catch(error => {
+                            importProgress.status = 'exception'
+                            importProgress.message = '获取状态失败'
+                            VxeUI.modal.message({content: '获取任务状态失败', status: 'error'})
+                        })
+                }
+                checkStatus()
+            }
             onMounted(() => {
                 search()
             })
@@ -383,7 +536,12 @@
                 page_change,
                 search,
                 msku,
-                exportData
+                exportData,
+                showImportModal,
+                importFileList,
+                importProgress,
+                showImportModalFunc,
+                confirmImport
             }
         }
     }).use(ElementPlus).use(VxeUI).use(VXETable).mount('#app')

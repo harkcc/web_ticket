@@ -993,6 +993,255 @@ def export_data():
         return jsonify({'error': f'导出失败: {str(e)}'}), 500
 
 
+@app.route('/upload_update', methods=['POST'])
+def upload_update():
+    """处理数据更新上传"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': '没有上传文件'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '没有选择文件'}), 400
+
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'error': '请上传Excel文件'}), 400
+
+        # 保存文件
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        temp_filename = f'update_{timestamp}_{filename}'
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        file.save(file_path)
+
+        # 创建任务
+        task_id = f'update_{timestamp}'
+        with task_lock:
+            task_status[task_id] = {
+                'status': 'processing',
+                'progress': 0,
+                'message': '准备处理...',
+                'success_count': 0,
+                'update_count': 0,
+                'insert_count': 0,
+                'error_count': 0,
+                'error_records': [],
+                'timestamp': timestamp
+            }
+
+        # 启动后台线程处理任务
+        threading.Thread(target=process_data_update, args=(task_id, file_path)).start()
+
+        return jsonify({'task_id': task_id})
+
+    except Exception as e:
+        logging.error(f"数据更新任务创建失败: {str(e)}")
+        logging.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+
+def process_data_update(task_id, file_path):
+    """处理数据更新任务"""
+    try:
+        logging.info(f'开始处理数据更新任务 {task_id}')
+        
+        # 更新任务状态
+        with task_lock:
+            task_status[task_id]['message'] = '正在读取Excel文件...'
+        
+        # 读取Excel文件
+        try:
+            df = pd.read_excel(file_path)
+            logging.info(f'成功读取Excel文件，共 {len(df)} 行数据')
+        except Exception as e:
+            logging.error(f'读取Excel文件失败: {str(e)}')
+            raise
+        
+        # 验证Excel格式
+        if len(df) < 2:
+            raise ValueError('Excel文件格式错误：至少需要2行（字段映射行和数据行）')
+        
+        # 读取第一行作为字段映射
+        try:
+            db_fields = df.iloc[0].tolist()  # 第一行：数据库字段名
+            excel_headers = df.iloc[1].tolist()  # 第二行：Excel列名
+            
+            # 验证必需字段
+            if 'msku' not in db_fields:
+                raise ValueError('Excel文件格式错误：缺少msku字段')
+            
+            # 创建字段映射
+            field_mapping = {}
+            for i, db_field in enumerate(db_fields):
+                if db_field and db_field in DATA_FIELD_MAPPING:
+                    field_mapping[i] = db_field
+            
+            logging.info(f'识别到字段映射: {field_mapping}')
+            
+        except Exception as e:
+            raise ValueError(f'Excel文件格式错误：无法解析字段映射 - {str(e)}')
+        
+        # 获取数据行（从第三行开始）
+        data_rows = df.iloc[2:]
+        total_records = len(data_rows)
+        
+        if total_records == 0:
+            raise ValueError('Excel文件中没有数据行')
+        
+        # 创建MongoDB连接
+        db_client = MongoDBClient()
+        db_client.connect()
+        
+        # 创建备份（用于回滚）
+        backup_id = f'backup_{task_id}'
+        backup_data = []
+        
+        try:
+            with db_operation_lock:
+                # 处理每一行数据
+                for index, row in data_rows.iterrows():
+                    try:
+                        # 解析数据
+                        document = {}
+                        msku = None
+                        
+                        for col_idx, db_field in field_mapping.items():
+                            value = row.iloc[col_idx] if col_idx < len(row) else None
+                            
+                            # 数据清理和转换
+                            if pd.isna(value):
+                                value = None
+                            elif db_field == "created_at":
+                                if value and str(value).strip():
+                                    try:
+                                        # 尝试解析时间格式
+                                        if isinstance(value, str):
+                                            value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+                                        elif not isinstance(value, datetime):
+                                            value = datetime.now()
+                                    except:
+                                        value = datetime.now()
+                                else:
+                                    value = datetime.now()
+                            elif db_field in ["askPrice", "X_ROW_K"]:
+                                continue  # 跳过留空字段
+                            else:
+                                value = str(value).strip() if value is not None else ""
+                            
+                            document[db_field] = value
+                            
+                            if db_field == "msku":
+                                msku = value
+                        
+                        if not msku:
+                            task_status[task_id]['error_count'] += 1
+                            task_status[task_id]['error_records'].append({
+                                'row': index + 3,  # Excel行号
+                                'error': 'MSKU不能为空'
+                            })
+                            continue
+                        
+                        # 查找现有记录
+                        existing_doc = db_client.db['msku_info'].find_one({'msku': msku})
+                        
+                        if existing_doc:
+                            # 备份原数据
+                            backup_data.append({
+                                'operation': 'update',
+                                'msku': msku,
+                                'original_data': existing_doc
+                            })
+                            
+                            # 更新记录（完全替换）
+                            document['updated_at'] = datetime.now()
+                            if 'created_at' not in document:
+                                document['created_at'] = existing_doc.get('created_at', datetime.now())
+                            
+                            db_client.db['msku_info'].replace_one({'msku': msku}, document)
+                            task_status[task_id]['update_count'] += 1
+                            logging.info(f'更新MSKU: {msku}')
+                            
+                        else:
+                            # 插入新记录
+                            backup_data.append({
+                                'operation': 'insert',
+                                'msku': msku,
+                                'original_data': None
+                            })
+                            
+                            document['created_at'] = document.get('created_at', datetime.now())
+                            document['updated_at'] = datetime.now()
+                            
+                            db_client.db['msku_info'].insert_one(document)
+                            task_status[task_id]['insert_count'] += 1
+                            logging.info(f'插入新MSKU: {msku}')
+                        
+                        task_status[task_id]['success_count'] += 1
+                        
+                    except Exception as e:
+                        task_status[task_id]['error_count'] += 1
+                        error_msg = f'处理第{index + 3}行数据时出错: {str(e)}'
+                        task_status[task_id]['error_records'].append({
+                            'row': index + 3,
+                            'msku': row.iloc[0] if len(row) > 0 else 'Unknown',
+                            'error': error_msg
+                        })
+                        logging.error(error_msg)
+                    
+                    # 更新进度
+                    progress = int((index + 1) / total_records * 100)
+                    task_status[task_id]['progress'] = progress
+                    task_status[task_id]['message'] = f'已处理 {index + 1}/{total_records} 条记录'
+                
+                # 保存备份数据（用于回滚）
+                if backup_data:
+                    db_client.db['operation_backups'].insert_one({
+                        'backup_id': backup_id,
+                        'task_id': task_id,
+                        'timestamp': datetime.now(),
+                        'backup_data': backup_data
+                    })
+                    logging.info(f'备份数据已保存，备份ID: {backup_id}')
+        
+        finally:
+            db_client.close()
+        
+        # 完成处理
+        task_status[task_id]['status'] = 'completed'
+        task_status[task_id]['message'] = '数据更新完成'
+        task_status[task_id]['backup_id'] = backup_id
+        logging.info(f'数据更新任务 {task_id} 处理完成')
+        
+    except Exception as e:
+        error_msg = f'数据更新失败: {str(e)}'
+        logging.error(error_msg)
+        logging.error(traceback.format_exc())
+        task_status[task_id]['status'] = 'error'
+        task_status[task_id]['message'] = error_msg
+    
+    finally:
+        # 清理临时文件
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                logging.info(f'临时文件 {file_path} 已删除')
+        except Exception as e:
+            logging.error(f'删除临时文件失败: {str(e)}')
+
+
+@app.route('/update_status/<task_id>')
+def update_status(task_id):
+    """获取数据更新任务状态"""
+    with task_lock:
+        if task_id not in task_status:
+            return jsonify({'error': '任务不存在'}), 404
+        
+        status_data = task_status[task_id].copy()
+        
+        # 如果任务已完成，不立即清理状态数据（保留用于回滚）
+        return jsonify(status_data)
+
+
 if __name__ == '__main__':
     os.makedirs(invoice_generator.image_folder,exist_ok=True)
     FIELDS = [
