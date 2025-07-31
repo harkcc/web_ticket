@@ -129,13 +129,13 @@
                     </vxe-upload>
                 </div>
                 <div v-if="importProgress.show" style="margin-top: 20px;">
-                    <div style="margin-bottom: 10px;">{{ importProgress.message }}</div>
+                    <div style="margin-bottom: 10px;">[[ importProgress.message ]]</div>
                     <vxe-progress :percentage="importProgress.percentage" :status="importProgress.status"></vxe-progress>
                     <div v-if="importProgress.details" style="margin-top: 10px; font-size: 12px; color: #666;">
-                        成功: {{ importProgress.details.success_count || 0 }} | 
-                        更新: {{ importProgress.details.update_count || 0 }} | 
-                        插入: {{ importProgress.details.insert_count || 0 }} | 
-                        错误: {{ importProgress.details.error_count || 0 }}
+                        成功: [[ importProgress.details.success_count || 0 ]] | 
+                        更新: [[ importProgress.details.update_count || 0 ]] | 
+                        插入: [[ importProgress.details.insert_count || 0 ]] | 
+                        错误: [[ importProgress.details.error_count || 0 ]]
                     </div>
                 </div>
             </div>
