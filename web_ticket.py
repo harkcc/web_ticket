@@ -1066,9 +1066,10 @@ def process_data_update(task_id, file_path):
             db_fields = df.iloc[0].tolist()  # 第一行：数据库字段名
             excel_headers = df.iloc[1].tolist()  # 第二行：Excel列名
             
-            # 验证必需字段
+            # 验证必需字段，这里
             if 'msku' not in db_fields:
                 raise ValueError('Excel文件格式错误：缺少msku字段')
+            
             
             # 创建字段映射
             field_mapping = {}
@@ -1096,9 +1097,12 @@ def process_data_update(task_id, file_path):
         backup_id = f'backup_{task_id}'
         backup_data = []
         
+        # 准备事务操作列表
+        operations = []
+        
         try:
             with db_operation_lock:
-                # 处理每一行数据
+                # 第一阶段：数据验证和操作准备
                 for index, row in data_rows.iterrows():
                     try:
                         # 解析数据
@@ -1108,10 +1112,22 @@ def process_data_update(task_id, file_path):
                         for col_idx, db_field in field_mapping.items():
                             value = row.iloc[col_idx] if col_idx < len(row) else None
                             
-                            # 数据清理和转换
-                            if pd.isna(value):
-                                value = None
-                            elif db_field == "created_at":
+                            # 跳过留空字段
+                            if db_field in ["askPrice", "X_ROW_K"]:
+                                continue
+                            
+                            # 使用与现有批量上传相同的数据处理方式
+                            def convert_to_none(val):
+                                """将空值转换为None"""
+                                if pd.isna(val):  # 检查是否为NaN
+                                    return None
+                                # 处理numpy数值类型
+                                if isinstance(val, (np.integer, np.floating)):
+                                    return val.item()  # 转换为Python原生类型
+                                return val
+                            
+                            # 特殊处理created_at字段
+                            if db_field == "created_at":
                                 if value and str(value).strip():
                                     try:
                                         # 尝试解析时间格式
@@ -1123,10 +1139,9 @@ def process_data_update(task_id, file_path):
                                         value = datetime.now()
                                 else:
                                     value = datetime.now()
-                            elif db_field in ["askPrice", "X_ROW_K"]:
-                                continue  # 跳过留空字段
                             else:
-                                value = str(value).strip() if value is not None else ""
+                                # 其他字段使用统一的转换方式
+                                value = convert_to_none(value)
                             
                             document[db_field] = value
                             
@@ -1145,38 +1160,37 @@ def process_data_update(task_id, file_path):
                         existing_doc = db_client.db['msku_info'].find_one({'msku': msku})
                         
                         if existing_doc:
-                            # 备份原数据
-                            backup_data.append({
-                                'operation': 'update',
-                                'msku': msku,
-                                'original_data': existing_doc
-                            })
-                            
-                            # 更新记录（完全替换）
+                            # 准备更新操作
                             document['updated_at'] = datetime.now()
                             if 'created_at' not in document:
                                 document['created_at'] = existing_doc.get('created_at', datetime.now())
                             
-                            db_client.db['msku_info'].replace_one({'msku': msku}, document)
-                            task_status[task_id]['update_count'] += 1
-                            logging.info(f'更新MSKU: {msku}')
-                            
-                        else:
-                            # 插入新记录
-                            backup_data.append({
-                                'operation': 'insert',
+                            operations.append({
+                                'type': 'update',
                                 'msku': msku,
-                                'original_data': None
+                                'document': document,
+                                'backup_data': {
+                                    'operation': 'update',
+                                    'msku': msku,
+                                    'original_data': existing_doc
+                                }
                             })
                             
+                        else:
+                            # 准备插入操作
                             document['created_at'] = document.get('created_at', datetime.now())
                             document['updated_at'] = datetime.now()
                             
-                            db_client.db['msku_info'].insert_one(document)
-                            task_status[task_id]['insert_count'] += 1
-                            logging.info(f'插入新MSKU: {msku}')
-                        
-                        task_status[task_id]['success_count'] += 1
+                            operations.append({
+                                'type': 'insert',
+                                'msku': msku,
+                                'document': document,
+                                'backup_data': {
+                                    'operation': 'insert',
+                                    'msku': msku,
+                                    'original_data': None
+                                }
+                            })
                         
                     except Exception as e:
                         task_status[task_id]['error_count'] += 1
@@ -1187,21 +1201,68 @@ def process_data_update(task_id, file_path):
                             'error': error_msg
                         })
                         logging.error(error_msg)
-                    
-                    # 更新进度
-                    progress = int((index + 1) / total_records * 100)
-                    task_status[task_id]['progress'] = progress
-                    task_status[task_id]['message'] = f'已处理 {index + 1}/{total_records} 条记录'
                 
-                # 保存备份数据（用于回滚）
-                if backup_data:
-                    db_client.db['operation_backups'].insert_one({
-                        'backup_id': backup_id,
-                        'task_id': task_id,
-                        'timestamp': datetime.now(),
-                        'backup_data': backup_data
-                    })
-                    logging.info(f'备份数据已保存，备份ID: {backup_id}')
+                # 第二阶段：使用事务执行所有操作
+                if operations:
+                    with db_client.client.start_session() as session:
+                        with session.start_transaction():
+                            try:
+                                for i, op in enumerate(operations):
+                                    if op['type'] == 'update':
+                                        # 执行更新操作
+                                        result = db_client.db['msku_info'].replace_one(
+                                            {'msku': op['msku']}, 
+                                            op['document'],
+                                            session=session
+                                        )
+                                        if result.matched_count == 0:
+                                            raise Exception(f"更新MSKU {op['msku']} 失败：记录不存在")
+                                        
+                                        task_status[task_id]['update_count'] += 1
+                                        logging.info(f'更新MSKU: {op["msku"]}')
+                                        
+                                    elif op['type'] == 'insert':
+                                        # 执行插入操作
+                                        result = db_client.db['msku_info'].insert_one(
+                                            op['document'],
+                                            session=session
+                                        )
+                                        if not result.inserted_id:
+                                            raise Exception(f"插入MSKU {op['msku']} 失败")
+                                        
+                                        # 记录插入的ID用于回滚
+                                        op['backup_data']['inserted_id'] = result.inserted_id
+                                        
+                                        task_status[task_id]['insert_count'] += 1
+                                        logging.info(f'插入新MSKU: {op["msku"]}')
+                                    
+                                    # 记录备份数据
+                                    backup_data.append(op['backup_data'])
+                                    task_status[task_id]['success_count'] += 1
+                                    
+                                    # 更新进度
+                                    progress = int((i + 1) / len(operations) * 100)
+                                    task_status[task_id]['progress'] = progress
+                                    task_status[task_id]['message'] = f'已处理 {i + 1}/{len(operations)} 条记录'
+                                
+                                # 保存备份数据（在同一事务中）
+                                if backup_data:
+                                    db_client.db['operation_backups'].insert_one({
+                                        'backup_id': backup_id,
+                                        'task_id': task_id,
+                                        'timestamp': datetime.now(),
+                                        'backup_data': backup_data,
+                                        'status': 'completed'
+                                    }, session=session)
+                                    logging.info(f'备份数据已保存，备份ID: {backup_id}')
+                                
+                                # 提交事务
+                                logging.info(f'所有操作成功，提交事务。共处理 {len(operations)} 条记录')
+                                
+                            except Exception as e:
+                                # 事务会自动回滚
+                                logging.error(f'事务执行失败，自动回滚: {str(e)}')
+                                raise e
         
         finally:
             db_client.close()
