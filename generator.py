@@ -46,6 +46,10 @@ class InvoiceGenerator:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.image_folder = os.path.join(current_dir, '产品图片(1)')  # 图片文件夹路径
         
+        # 调试开关和统计
+        self.debug_mode = False  # 可以通过环境变量控制
+        self.missing_products = set()  # 记录缺失的产品信息
+        
         # 定义模板配置，只列出不需要编码的模板
         self.template_config = {
             "依诺达": {"requires_code": False},  # 不需要编码的模板
@@ -63,6 +67,26 @@ class InvoiceGenerator:
                 self._template_handlers[keyword] = method
                 print(f"注册模板处理器: {name} -> {keyword}")
         print(f"已注册的模板处理器: {list(self._template_handlers.keys())}")
+
+    def _log_missing_product(self, msku, template_name=""):
+        """统一处理产品信息缺失的日志"""
+        self.missing_products.add(msku)
+        if self.debug_mode:
+            print(f"警告: 未找到产品 {msku} 的信息 (模板: {template_name})")
+    
+    def _log_debug(self, message):
+        """调试信息输出"""
+        if self.debug_mode:
+            print(f"[DEBUG] {message}")
+    
+    def _log_info(self, message):
+        """重要信息输出"""
+        print(f"[INFO] {message}")
+    
+    def _print_missing_summary(self):
+        """打印缺失产品信息的汇总"""
+        if self.missing_products:
+            print(f"汇总: 共有 {len(self.missing_products)} 个产品缺失信息: {', '.join(sorted(self.missing_products))}")
 
     @template_handler("叮铛卡航限时达")
     def _fill_dingdang_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
@@ -199,7 +223,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -207,7 +231,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -334,29 +358,21 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
                         # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        # print(f"产品信息：{product_info}")
-                        # price = product_info.get('price', 0)
-                        # total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                         price = 0
                         total_price = 0
-                        # if product_info:
-                        #     item.product_name = product_info.get('cn_name', item.product_name)
 
-
-                        # print(f"产品信息：{product_info}")
                         if product_info is not None:
                             item.product_name = product_info.get('cn_name', item.product_name)
-                            print(f"产品信息：{product_info}")
                         else:
-                        # 处理未找到产品信息的情况
-                            print(f"未找到产品信息，MSKU: {item.msku}")
-                            item.product_name = "需要补数据"  # 可以设置一个默认值
+                            # 处理未找到产品信息的情况
+                            self._log_missing_product(item.msku)
+                            item.product_name = "需要补数据"
                         
                         # box_number_str = code+f"{box_number:05d}" 
                         box_number_str = code+'U00000'+str(box_number)
@@ -497,7 +513,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -505,7 +521,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -687,7 +703,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -695,7 +711,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -979,7 +995,7 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 13, 13, 6, 8)
                 self.unmerge_cells_in_range(sheet, 14, 14, 6, 8)
                 self.unmerge_cells_in_range(sheet, 15, 15, 6, 8)
-                print("开始写入林道模版信息")
+                self._log_info("开始处理林道模板")
                 current_date = datetime.now().strftime("%Y.%m.%d")
                 cell = sheet.cell(row=1, column=4)
                 cell.value = current_date
@@ -1132,7 +1148,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -1144,7 +1160,7 @@ class InvoiceGenerator:
                             Reference_id = box_Reference_id
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -1392,7 +1408,7 @@ class InvoiceGenerator:
             try:
                 
                 sheet = wb['FBA对应贴标资料']  # 获取模板工作表
-                print("开始写入递信模版信息")
+                self._log_info("开始处理递信模板")
                 current_date = datetime.now().strftime("%Y.%m.%d")
 
                 cell = sheet.cell(row=1, column=4)
@@ -1517,9 +1533,7 @@ class InvoiceGenerator:
                         quantity = getattr(product_info, 'box_quantities', {}).get(box_number, 0)
                         original_value = getattr(product_info, 'box_original_values', {}).get(box_number, str(quantity))
                         
-                        # print("数量信息:")
-                        # print(f"  - 数字形式: {quantity}")
-                        # print(f"  - 原始格式: {original_value}")
+
                         
                         total_quantity = total_quantity + quantity
 
@@ -1733,7 +1747,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
                     first_row_of_box = row_num  # 记录这个箱子的第一行
                     box_number_str = code + 'U00000' + str(box_number)
 
@@ -1899,7 +1913,7 @@ class InvoiceGenerator:
                     # 每个箱子中的产品种类数
                     box_product_count = len(box.items)
                     total_length += box_product_count
-                    # print(f"箱子 {box_number} 有 {box_product_count} 种产品")
+
                     total_weight += box.weight if (hasattr(box, 'weight') and box.weight is not None) else 0
                 
                 print("需要添加行数为total_length:", total_length)
@@ -1991,7 +2005,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 即使查询不到产品信息，也要生成一行
                         if not product_info:
-                            print(f"警告: 未找到产品信息 {item.msku}，使用默认值")
+                            self._log_missing_product(item.msku)
                             # 创建默认的产品信息
                             product_info = {
                                 'en_name': f'Product-{item.msku}',
@@ -2197,7 +2211,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -2205,7 +2219,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -2393,7 +2407,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -2401,7 +2415,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -2596,7 +2610,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -2604,7 +2618,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -2794,7 +2808,7 @@ class InvoiceGenerator:
 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -2802,7 +2816,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -3008,7 +3022,7 @@ class InvoiceGenerator:
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
-                    print(f"处理箱子 {box_number}")
+                    self._log_debug(f"处理箱子 {box_number}")
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -3016,7 +3030,7 @@ class InvoiceGenerator:
                         product_info = self._get_product_info(item.msku, db)
                         # 处理产品信息为None的情况
                         if product_info is None:
-                            print(f"警告: 未找到产品 {item.msku} 的信息")
+                            self._log_missing_product(item.msku)
                             price = 0
                             total_price = 0
                         else:
@@ -3092,6 +3106,8 @@ class InvoiceGenerator:
         :return: 生成的发票文件路径
         """
         try:
+            # 清空之前的缺失产品记录
+            self.missing_products.clear()
             print(f"开始处理模板文件: {template_path}")
             if not os.path.exists(template_path):
                 raise ProcessingError(f"模板文件不存在: {template_path}")
@@ -3176,6 +3192,9 @@ class InvoiceGenerator:
             # 保存文件
             wb.save(output_path)
             print(f"发票已生成: {output_path}")
+            
+            # 打印缺失产品信息汇总
+            self._print_missing_summary()
 
             return output_path
 
@@ -3189,13 +3208,10 @@ class InvoiceGenerator:
         """根据模板文件名选择对应的处理方法"""
         try:
             template_name = os.path.basename(template_path).lower()
-            # print(f"正在查找模板处理器，模板路径: {template_path}")
-            # print(f"模板文件名: {template_name}")
-            # print(f"已注册的处理器: {self._template_handlers}")
+
             
             for keyword, handler in self._template_handlers.items():
-                # print(f"检查关键字: {keyword}, 类型: {type(keyword)}")
-                # print(f"模板名称: {template_name}, 类型: {type(template_name)}")
+
                 keyword_lower = keyword.lower()
                 if keyword_lower in template_name:
                     print(f"找到匹配的处理器: {handler.__name__}")
