@@ -2415,7 +2415,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
     
-    @template_handler("一八美森")
+    @template_handler("一八供应链")
     def _fill_yiba_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充运达通模板
@@ -2427,7 +2427,7 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                sheet = wb['模板']  # 获取模板工作表
+                sheet = wb['专线箱单 ']  # 获取模板工作表
                
                 print("开始写入模版信息")
 
@@ -2658,11 +2658,11 @@ class InvoiceGenerator:
                         # 填充地址信息
                         address_parts = []
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=4, column=2)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=4, column=2)  # B2单元格
+                            # cell.value = address_info_detail['name']
 
-                            cell = sheet.cell(row=3, column=2)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=3, column=2)  # B2单元格
+                            # cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
@@ -2681,9 +2681,9 @@ class InvoiceGenerator:
                         #     cell.value = address_info_detail['addressLine1']
 
                         # 城市
-                        if 'city' in address_info_detail:
-                            cell = sheet.cell(row=7, column=8)  # B4单元格
-                            cell.value = address_info_detail['city']
+                        # if 'city' in address_info_detail:
+                        #     cell = sheet.cell(row=7, column=8)  # B4单元格
+                        #     cell.value = address_info_detail['city']
 
                         #邮政编码
                         if 'postalCode' in address_info_detail:
@@ -2704,7 +2704,7 @@ class InvoiceGenerator:
                             cell.value = address_info_detail['name']  
 
                         if address_parts:
-                            cell = sheet.cell(row=5, column=2)  # B3单元格
+                            cell = sheet.cell(row=6, column=8)  # B3单元格
                             cell.value = ', '.join(address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
@@ -2783,7 +2783,7 @@ class InvoiceGenerator:
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"N{row_num}"  # 图片列（第14列）
+                                image_cell = f"O{row_num}"  # 图片列（第14列）
                                 # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                                 self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
