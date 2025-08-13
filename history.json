@@ -1134,5 +1134,114 @@
     "template_name": "一八供应链",
     "status": "completed",
     "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件--发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250813110908",
+    "type": "packing_list",
+    "timestamp": "20250813_110912",
+    "input_file": "20250813110908_invoice_info.xlsx",
+    "output_file": "20250813110908.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "completed",
+    "result_file": "20250813110908.xlsx"
+  },
+  {
+    "task_id": "20250813151833",
+    "type": "packing_list",
+    "timestamp": "20250813_151837",
+    "input_file": "20250813151833_packing_list.xlsx",
+    "output_file": "20250813151834.xlsx",
+    "code_input": "FBA1903F9X5F",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250813151834.xlsx"
+  },
+  {
+    "task_id": "20250813152113",
+    "type": "packing_list",
+    "timestamp": "20250813_152118",
+    "input_file": "20250813152113_packing_list.xlsx",
+    "output_file": "20250813152114.xlsx",
+    "code_input": "FBA1903F9X5F",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250813152114.xlsx"
+  },
+  {
+    "task_id": "20250813152745",
+    "type": "packing_list",
+    "timestamp": "20250813_152803",
+    "input_file": "20250813152745_packing_list.xlsx",
+    "output_file": "20250813152746.xlsx",
+    "code_input": "FBA1903F9X5F",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "20250813152746.xlsx",
+    "output_files": [
+      "20250813152746.xlsx",
+      "20250813152749.xlsx",
+      "20250813152752.xlsx",
+      "20250813152756.xlsx",
+      "20250813152759.xlsx"
+    ],
+    "files_count": 5
+  },
+  {
+    "task_id": "20250813154613",
+    "type": "packing_list",
+    "timestamp": "20250813_154634",
+    "input_file": "20250813154613_packing_list.xlsx",
+    "output_file": "FBA1903F9X5F_多地址发票_20250813_154614",
+    "code_input": "FBA1903F9X5F",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "FBA1903F9X5F_多地址发票_20250813_154614",
+    "output_files": [
+      "20250813154614.xlsx",
+      "20250813154617.xlsx",
+      "20250813154621.xlsx",
+      "20250813154626.xlsx",
+      "20250813154630.xlsx"
+    ],
+    "files_count": 5
+  },
+  {
+    "task_id": "20250813165934",
+    "type": "packing_list",
+    "timestamp": "20250813_165951",
+    "input_file": "20250813165934_packing_list.xlsx",
+    "output_file": "FBA1903F9X5F_多地址发票_20250813_165935",
+    "code_input": "FBA1903F9X5F",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "FBA1903F9X5F_多地址发票_20250813_165935",
+    "output_files": [
+      "百泰-FBA1903F9X5F-2025.8.13-一八供应链美国空派QF票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-一八供应链美国空派QG票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-一八供应链美国空派QH票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-德邦美国空派经济线QI票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-德邦美国空派经济线QJ票-1件--发票装箱单.xlsx"
+    ],
+    "files_count": 5
+  },
+  {
+    "task_id": "20250813170855",
+    "type": "packing_list",
+    "timestamp": "20250813_170912",
+    "input_file": "20250813170855_packing_list.xlsx",
+    "output_file": "FBA1903F9X5F_多地址发票_20250813_170856",
+    "code_input": "FBA1903F9X5F",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "FBA1903F9X5F_多地址发票_20250813_170856",
+    "output_files": [
+      "百泰-FBA1903F9X5F-2025.8.13-一八供应链美国空派QF票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-一八供应链美国空派QG票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-一八供应链美国空派QH票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-德邦美国空派经济线QI票-1件--发票装箱单.xlsx",
+      "百泰-FBA1903F9X5F-2025.8.13-德邦美国空派经济线QJ票-1件--发票装箱单.xlsx"
+    ],
+    "files_count": 5
   }
 ]

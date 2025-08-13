@@ -194,15 +194,67 @@ def process_task(task_info):
         # 生成发票
         template_path = os.path.join(app.config['TEMPLATE_FOLDER'], f"{task_info['template_type']}.xlsx")
         try:
-            output_path = invoice_generator.generate_invoice(template_path, box_data, code, address_info, shipment_id=shipment_id)
-            if output_path:
-                print(f"发票生成成功: {output_path}")
-                with task_lock:
-                    task_status[task_id]['status'] = 'completed'
-                    task_status[task_id]['message'] = 'Processing completed'
-                    task_status[task_id]['output_file'] = os.path.basename(output_path)
+            output_paths = []
+            
+            # 检查是否为多地址
+            if address_info and isinstance(address_info, list):
+                # 多地址情况：创建专门的文件夹来组织多个文件
+                print(f"检测到多地址情况，共 {len(address_info)} 个地址")
+                
+                # 创建多地址文件夹
+                multi_folder_name = f"{code}_多地址发票_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                multi_folder_path = os.path.join(app.config['OUTPUT_FOLDER'], multi_folder_name)
+                os.makedirs(multi_folder_path, exist_ok=True)
+                print(f"创建多地址文件夹: {multi_folder_path}")
+                
+                # 临时修改输出文件夹到多地址专用文件夹
+                original_output_folder = invoice_generator.output_folder
+                invoice_generator.output_folder = multi_folder_path
+                
+                try:
+                    for i, addr in enumerate(address_info):
+                        print(f"正在处理第 {i+1}/{len(address_info)} 个地址...")
+                        output_path = invoice_generator.generate_invoice(template_path, box_data, code, addr, shipment_id=shipment_id)
+                        if output_path:
+                            output_paths.append(output_path)
+                            print(f"第 {i+1} 个地址的发票生成成功: {output_path}")
+                        else:
+                            print(f"第 {i+1} 个地址的发票生成失败")
+                finally:
+                    # 恢复原始输出文件夹
+                    invoice_generator.output_folder = original_output_folder
+                
+                if output_paths:
+                    print(f"多地址发票生成完成，共生成 {len(output_paths)} 个文件")
+                    print(f"所有文件已保存到文件夹: {multi_folder_name}")
+                    
+                    with task_lock:
+                        task_status[task_id]['status'] = 'completed'
+                        task_status[task_id]['message'] = f'Processing completed - {len(output_paths)} files generated in folder: {multi_folder_name}'
+                        task_status[task_id]['output_files'] = [os.path.basename(path) for path in output_paths]
+                        task_status[task_id]['output_folder'] = multi_folder_name  # 新增：记录文件夹名称
+                        # 为了兼容性，设置文件夹作为主输出
+                        task_status[task_id]['output_file'] = multi_folder_name
+                else:
+                    # 如果没有生成任何文件，删除空文件夹
+                    try:
+                        os.rmdir(multi_folder_path)
+                        print(f"删除空文件夹: {multi_folder_path}")
+                    except:
+                        pass
+                    raise ProcessingError("所有地址的发票生成都失败")
             else:
-                raise ProcessingError("发票生成失败")
+                # 单地址情况：保持原有逻辑
+                output_path = invoice_generator.generate_invoice(template_path, box_data, code, address_info, shipment_id=shipment_id)
+                if output_path:
+                    output_paths.append(output_path)
+                    print(f"发票生成成功: {output_path}")
+                    with task_lock:
+                        task_status[task_id]['status'] = 'completed'
+                        task_status[task_id]['message'] = 'Processing completed'
+                        task_status[task_id]['output_file'] = os.path.basename(output_path)
+                else:
+                    raise ProcessingError("发票生成失败")
         except Exception as e:
             error_msg = f"处理任务时发生错误: {str(e)}"
             print(error_msg)
@@ -217,12 +269,17 @@ def process_task(task_info):
             'type': 'packing_list',
             'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S"),
             'input_file': os.path.basename(task_info['files']),
-            'output_file': os.path.basename(output_path) if 'output_file' in task_status[task_id] else None,
+            'output_file': task_status[task_id].get('output_file'),
             'code_input': code,
             'template_name': task_info.get('template_type', ''),
             'status': task_status[task_id]['status'],
-            'result_file': os.path.basename(output_path) if 'output_file' in task_status[task_id] else None
+            'result_file': task_status[task_id].get('output_file')
         }
+        
+        # 如果是多地址情况，记录所有生成的文件
+        if 'output_files' in task_status[task_id]:
+            history_record['output_files'] = task_status[task_id]['output_files']
+            history_record['files_count'] = len(task_status[task_id]['output_files'])
 
         # 如果获取地址信息失败，记录到历史记录中
         if code and not address_info:
@@ -325,13 +382,56 @@ def get_history():
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    """下载处理结果文件"""
+    """下载处理结果文件或文件夹"""
     try:
-        return send_file(
-            os.path.join(app.config['OUTPUT_FOLDER'], filename),
-            as_attachment=True,
-            download_name=filename
-        )
+        file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        
+        # 检查是否为文件夹（多地址情况）
+        if os.path.isdir(file_path):
+            # 创建ZIP文件
+            import zipfile
+            zip_filename = f"{filename}.zip"
+            zip_path = os.path.join(app.config['OUTPUT_FOLDER'], zip_filename)
+            
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, dirs, files in os.walk(file_path):
+                    for file in files:
+                        file_path_in_zip = os.path.join(root, file)
+                        # 在ZIP中保持相对路径结构
+                        arcname = os.path.relpath(file_path_in_zip, file_path)
+                        zipf.write(file_path_in_zip, arcname)
+            
+            print(f"创建ZIP文件: {zip_path}")
+            
+            def remove_zip():
+                """下载完成后删除临时ZIP文件"""
+                try:
+                    if os.path.exists(zip_path):
+                        os.remove(zip_path)
+                        print(f"删除临时ZIP文件: {zip_path}")
+                except:
+                    pass
+            
+            # 使用Flask的after_request来在响应发送后删除临时文件
+            response = send_file(
+                zip_path,
+                as_attachment=True,
+                download_name=zip_filename
+            )
+            
+            # 注册清理函数
+            @response.call_on_close
+            def cleanup():
+                remove_zip()
+            
+            return response
+        else:
+            # 普通文件下载
+            return send_file(
+                file_path,
+                as_attachment=True,
+                download_name=filename
+            )
     except Exception as e:
         return jsonify({'error': f'下载文件失败: {str(e)}'}), 404
 

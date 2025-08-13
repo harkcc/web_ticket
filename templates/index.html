@@ -567,7 +567,9 @@
                             <td class="status-${item.status}">${item.status}</td>
                             <td>
                                 ${item.status === 'completed' ?
-                        `<a href="/download/${item.result_file}" class="download-link">下载</a>` :
+                        (item.result_file.includes('多地址发票') ?
+                            `<a href="/download/${item.result_file}" class="download-link">下载文件夹 (ZIP)</a>` :
+                            `<a href="/download/${item.result_file}" class="download-link">下载</a>`) :
                         (item.status === 'processing' ?
                             `<button onclick="checkStatus('${item.task_id}')" class="check-status-btn">检查状态</button>` :
                             '')}

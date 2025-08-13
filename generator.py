@@ -144,7 +144,13 @@ class InvoiceGenerator:
 
                         if address_parts:
                             cell = sheet.cell(row=6, column=2)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -308,7 +314,13 @@ class InvoiceGenerator:
 
                         if address_parts:
                             cell = sheet.cell(row=4, column=2)  
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
   
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
@@ -422,7 +434,7 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                sheet = wb['模板']  # 获取模板工作表
+                sheet = wb['Sheet1']  # 获取模板工作表
                 self.unmerge_cells_in_range(sheet, 15, 15, 2, 4)
                 self.unmerge_cells_in_range(sheet, 1, 1, 6, 8)
                 self.unmerge_cells_in_range(sheet, 2, 2, 6, 8)
@@ -645,7 +657,13 @@ class InvoiceGenerator:
 
                         if address_parts:
                             cell = sheet.cell(row=6, column=8)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -806,7 +824,13 @@ class InvoiceGenerator:
 
                         if address_parts:
                             cell = sheet.cell(row=7, column=4)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                             cell.font = Font(name='Arial', size=12)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
@@ -1047,7 +1071,13 @@ class InvoiceGenerator:
                         if address_info_detail['type'] == 'amz':
                             if address_parts:
                                 cell = sheet.cell(row=7, column=2)  # B3单元格
-                                cell.value = ', '.join(address_parts)
+                                # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                         else:
                             if 'addressLine2' in address_info_detail: 
                                 cell = sheet.cell(row=7, column=2)  # B3单元格
@@ -1668,11 +1698,18 @@ class InvoiceGenerator:
 
                         if address_info_detail['type'] == 'amz':
                             if address_parts:
+                                # 检查warehouseId并添加到最前面
+                                final_address_parts = address_parts.copy()
+                                if 'warehouseId' in address_info_detail:
+                                    warehouse_id = str(address_info_detail['warehouseId'])
+                                    if warehouse_id not in address_parts:
+                                        final_address_parts.insert(0, warehouse_id)
+                                
                                 cell = sheet.cell(row=2, column=3)  
-                                cell.value = ', '.join(address_parts)
+                                cell.value = ', '.join(final_address_parts)
 
                                 cell = sheet.cell(row=5, column=3)  
-                                cell.value = ', '.join(address_parts)
+                                cell.value = ', '.join(final_address_parts)
 
                                 
                         else:
@@ -1924,7 +1961,13 @@ class InvoiceGenerator:
                         if address_info_detail['type'] == 'amz':
                             if address_parts:
                                 cell = sheet.cell(row=5, column=12)  # B3单元格
-                                cell.value = ', '.join(address_parts)
+                                # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                         else:
                             if 'addressLine2' in address_info_detail: 
                                 cell = sheet.cell(row=5, column=12)  # B3单元格
@@ -2321,7 +2364,13 @@ class InvoiceGenerator:
 
                         if address_parts:
                             cell = sheet.cell(row=6, column=2)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -2515,7 +2564,13 @@ class InvoiceGenerator:
 
                         # if address_parts:
                         #     cell = sheet.cell(row=15, column=2)  # B3单元格
-                        #     cell.value = ', '.join(address_parts)
+                        #     # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -2705,7 +2760,13 @@ class InvoiceGenerator:
 
                         if address_parts:
                             cell = sheet.cell(row=6, column=8)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -2898,7 +2959,13 @@ class InvoiceGenerator:
         
                         if address_parts:
                             cell = sheet.cell(row=5, column=2)  # B3单元格
-                            cell.value = ', '.join(address_parts)
+                            # 检查warehouseId并添加到最前面
+                            final_address_parts = address_parts.copy()
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                if warehouse_id not in address_parts:
+                                    final_address_parts.insert(0, warehouse_id)
+                            cell.value = ', '.join(final_address_parts)
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -3372,15 +3439,28 @@ class InvoiceGenerator:
 
 
     def extract_data(self, ticket_str):
-        import re
-        # 定义正则表达式，修改为提取斜杠后的数字
-        pattern = r'(?P<time>\d{4}\.\d{2}\.\d{2})-(?P<logistics>[^-]+(?:-[^-]+)*)-(?P<number>\d+)/(\d+)'
-        match = re.search(pattern, ticket_str)
+        # 支持两种格式的shipmentName解析
+        # 格式1: XX-XX-YYYY.MM.DD-物流公司-数字/数字 (新格式，带前缀)
+        # 格式2: YYYY.MM.DD-物流公司-数字/数字 (原格式)
+        
+        # 先尝试新格式：XX-XX-YYYY.MM.DD-物流公司-数字/数字
+        # 匹配两个任意前缀段，然后是日期，物流公司，最后是数字/数字
+        new_pattern = r'[^-]+-[^-]+-(?P<time>\d{4}\.\d{1,2}\.\d{1,2})-(?P<logistics>[^-]+(?:-[^-]+)*)-(?P<number>\d+)/(\d+)'
+        match = re.search(new_pattern, ticket_str)
         if match:
-            # 使用第四个捕获组（斜杠后的数字）作为件数
+            print(f"使用新格式解析shipmentName: {ticket_str}")
             return match.group('time'), match.group('logistics').replace('-', ''), match.group(4)
-        else:
-            return None, None, None
+        
+        # 再尝试原格式：YYYY.MM.DD-物流公司-数字/数字
+        old_pattern = r'(?P<time>\d{4}\.\d{2}\.\d{2})-(?P<logistics>[^-]+(?:-[^-]+)*)-(?P<number>\d+)/(\d+)'
+        match = re.search(old_pattern, ticket_str)
+        if match:
+            print(f"使用原格式解析shipmentName: {ticket_str}")
+            return match.group('time'), match.group('logistics').replace('-', ''), match.group(4)
+        
+        # 都不匹配
+        print(f"无法解析shipmentName格式: {ticket_str}")
+        return None, None, None
 
     def unmerge_cells_in_range(self, sheet, start_row, end_row, start_col, end_col):
         """

@@ -85,30 +85,42 @@ def request_sta_data_amz(sid, inboundPlanId):
     result = response.json()
  
     if result['code'] == 1 and result['data']:
-        # 获取第一个箱子的地址信息
-        address = result['data'][0]['address']
-        # print("DEBUG: 原始数据 ->", result['data'][0])  # 添加调试信息
-        # print("DEBUG: shipmentName ->", result['data'][0].get('shipmentName'))
-        # print("DEBUG: amazonReferenceId ->", result['data'][0].get('amazonReferenceId'))
+        # 获取所有地址信息
+        addresses = []
+        print(f"DEBUG: 找到 {len(result['data'])} 个地址")
         
-        shipmentName = result['data'][0].get('shipmentName','')
-        amazonReferenceId = result['data'][0].get('amazonReferenceId','')
-
-        return {
-            'type':'amz',
-            'addressLine1': address.get('addressLine1', ''),
-            'addressLine2': address.get('addressLine2', ''),
-            'city': address.get('city', ''),
-            'companyName': address.get('companyName', ''),
-            'countryCode': address.get('countryCode', ''),
-            'name': address.get('name', ''),
-            'postalCode': address.get('postalCode', ''),
-            'stateOrProvinceCode': address.get('stateOrProvinceCode', ''),
-            'phoneNumber': address.get('phoneNumber', ''),
-            'email': address.get('email', ''),
-            'shipmentName':shipmentName,
-            'amazonReferenceId':amazonReferenceId,
-        }
+        for i, item in enumerate(result['data']):
+            address = item['address']
+            shipmentName = item.get('shipmentName', '')
+            amazonReferenceId = item.get('amazonReferenceId', '')
+            warehouseId = item.get('warehouseId', '')
+            
+            print(f"DEBUG: 处理第 {i+1} 个地址 - shipmentName: {shipmentName}")
+            
+            address_info = {
+                'type': 'amz',
+                'addressLine1': address.get('addressLine1', ''),
+                'addressLine2': address.get('addressLine2', ''),
+                'city': address.get('city', ''),
+                'companyName': address.get('companyName', ''),
+                'countryCode': address.get('countryCode', ''),
+                'name': address.get('name', ''),
+                'postalCode': address.get('postalCode', ''),
+                'stateOrProvinceCode': address.get('stateOrProvinceCode', ''),
+                'phoneNumber': address.get('phoneNumber', ''),
+                'email': address.get('email', ''),
+                'warehouseId': warehouseId,
+                'shipmentName': shipmentName,
+                'amazonReferenceId': amazonReferenceId,
+            }
+            addresses.append(address_info)
+        
+        # 如果只有一个地址，为了向后兼容，直接返回单个地址对象
+        # 如果有多个地址，返回地址列表
+        if len(addresses) == 1:
+            return addresses[0]
+        else:
+            return addresses
 
     return None
 
@@ -347,58 +359,76 @@ def get_address_info(ticket_id):
             },
             'address_info': address_info
         }
-    
-    # Amazon订单处理流程
-    basic_info = request_loacl_localTaskId(ticket_id)
-    if not basic_info:
-        print(f"无法获取亚马逊基本信息，ticket_id: {ticket_id}")
-        return None
-        
-    # 获取亚马逊订单地址信息
-    address_info = request_sta_data_amz(basic_info['sid'], basic_info['inboundPlanId'])
-    if not address_info:
-        print(f"无法获取亚马逊地址信息，ticket_id: {ticket_id}")
-        return None
+    else:
+        # Amazon订单处理流程
+        basic_info = request_loacl_localTaskId(ticket_id)
+        if not basic_info:
+            print(f"无法获取亚马逊基本信息，ticket_id: {ticket_id}")
+            return None
+            
+        # 获取亚马逊订单地址信息
+        address_data = request_sta_data_amz(basic_info['sid'], basic_info['inboundPlanId'])
+        if not address_data:
+            print(f"无法获取亚马逊地址信息，ticket_id: {ticket_id}")
+            return None
 
-    # 构建亚马逊订单返回结构
-    country_dict = {
-        "AC-BR": "巴西",
-        "AC-CA": "加拿大",
-        "AC-MX": "墨西哥",
-        "AC-US": "美国",
-        "CACNZ": "美国/加拿大",
-        "HKCN": "香港",
-        "CNHK": "中国香港",
-        "CNJP": "日本",
-        "FR": "法国",
-        "DE": "德国",
-        "IN": "印度",
-        "IT": "意大利",
-        "JP": "日本",
-        "NL": "荷兰",
-        "PL": "波兰",
-        "SG": "新加坡",
-        "ES": "西班牙",
-        "SE": "瑞典",
-        "UK": "英国",
-        "GB": "英国",
-        "UAE": "阿联酋",
-        "AE": "阿联酋",
-        "AU": "澳大利亚",
-        "US": "美国",
-        "CA": "加拿大",
-        "MX": "墨西哥",
-        "BR": "巴西",
-        "SG": "新加坡"
-    }
+        # 构建亚马逊订单返回结构
+        country_dict = {
+            "AC-BR": "巴西",
+            "AC-CA": "加拿大",
+            "AC-MX": "墨西哥",
+            "AC-US": "美国",
+            "CACNZ": "美国/加拿大",
+            "HKCN": "香港",
+            "CNHK": "中国香港",
+            "CNJP": "日本",
+            "FR": "法国",
+            "DE": "德国",
+            "IN": "印度",
+            "IT": "意大利",
+            "JP": "日本",
+            "NL": "荷兰",
+            "PL": "波兰",
+            "SG": "新加坡",
+            "ES": "西班牙",
+            "SE": "瑞典",
+            "UK": "英国",
+            "GB": "英国",
+            "UAE": "阿联酋",
+            "AE": "阿联酋",
+            "AU": "澳大利亚",
+            "US": "美国",
+            "CA": "加拿大",
+            "MX": "墨西哥",
+            "BR": "巴西",
+            "SG": "新加坡"
+        }
 
-    return {
-        'seller_info': {
-            'sellerName': basic_info['sellerName'],
-            'country_name': country_dict.get(basic_info['sellerName'], ''),
-            'sid': basic_info['sid'],
-            'inboundPlanId': basic_info['inboundPlanId'],
-            # 'amazonReferenceId':basic_info['amazonReferenceId'],
-        },
-        'address_info': address_info
-    }
+        # 处理单地址和多地址情况
+        if isinstance(address_data, list):
+            # 多地址情况：为每个地址构建完整的结构
+            result_list = []
+            for address_info in address_data:
+                result_list.append({
+                    'seller_info': {
+                        'sellerName': basic_info['sellerName'],
+                        'country_name': country_dict.get(basic_info['sellerName'], ''),
+                        'sid': basic_info['sid'],
+                        'inboundPlanId': basic_info['inboundPlanId'],
+                        # 'amazonReferenceId':basic_info['amazonReferenceId'],
+                    },
+                    'address_info': address_info
+                })
+            return result_list
+        else:
+            # 单地址情况：保持原有格式
+            return {
+                'seller_info': {
+                    'sellerName': basic_info['sellerName'],
+                    'country_name': country_dict.get(basic_info['sellerName'], ''),
+                    'sid': basic_info['sid'],
+                    'inboundPlanId': basic_info['inboundPlanId'],
+                    # 'amazonReferenceId':basic_info['amazonReferenceId'],
+                },
+                'address_info': address_data
+            }
