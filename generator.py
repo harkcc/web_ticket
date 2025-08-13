@@ -50,6 +50,14 @@ class InvoiceGenerator:
         self.debug_mode = False  # 可以通过环境变量控制
         self.missing_products = set()  # 记录缺失的产品信息
         
+        # 产品信息缓存机制
+        self.product_cache = {}  # 产品信息缓存字典 {msku: product_info}
+        self.cache_enabled = True  # 缓存开关
+        
+        # 图片信息缓存机制
+        self.image_cache = {}  # 图片路径缓存字典 {msku: image_path or None}
+        self.image_cache_enabled = True  # 图片缓存开关
+        
         # 定义模板配置，只列出不需要编码的模板
         self.template_config = {
             "依诺达": {"requires_code": False},  # 不需要编码的模板
@@ -86,8 +94,146 @@ class InvoiceGenerator:
     def _print_missing_summary(self):
         """打印缺失产品信息的汇总"""
         if self.missing_products:
-            print(f"汇总: 共有 {len(self.missing_products)} 个产品缺失信息: {', '.join(sorted(self.missing_products))}")
-
+            missing_list = sorted(list(self.missing_products))
+            print(f"\n=== 产品信息缺失汇总 ===")
+            print(f"共有 {len(missing_list)} 个产品缺失信息:")
+            for msku in missing_list:
+                print(f"  - {msku}")
+            print("=" * 30)
+        else:
+            print("\n=== 产品信息完整 ===")
+            print("所有产品信息都已找到")
+            print("=" * 20)
+    
+    def _collect_all_mskus(self, box_data):
+        """从箱子数据中收集所有需要的MSKU"""
+        mskus = set()
+        for box in box_data.values():
+            for item in box.items:
+                mskus.add(item.msku)
+        return list(mskus)
+    
+    def _preload_product_info(self, mskus):
+        """批量预加载产品信息到缓存"""
+        if not self.cache_enabled or not mskus:
+            return
+        
+        self._log_info(f"开始预加载 {len(mskus)} 个产品信息...")
+        
+        try:
+            with self.db_connector as db:
+                # 批量查询所有产品信息
+                products = db['msku_info'].find({'msku': {'$in': mskus}})
+                
+                loaded_count = 0
+                for product in products:
+                    msku = product.get('msku')
+                    if msku:
+                        self.product_cache[msku] = {
+                            'cn_name': product.get('productNameZh', ''),
+                            'en_name': product.get('productNameEn', ''),
+                            'en_usage': product.get('useEn', ''),
+                            'ch_usage': product.get('useZh', ''),
+                            'material_en': product.get('materialEn', ''),
+                            'material_cn': product.get('materialZh', ''),
+                            'hs_code': product.get('HS', ''),
+                            'usage_en': product.get('useEn', ''),
+                            'usage_cn': product.get('useZh', ''),
+                            'brand': product.get('brand', ''),
+                            'model': product.get('model', ''),
+                            'link': product.get('productLink', ''),
+                            'price': product.get('askprice', ''),
+                            'electrified': product.get('electrified', ''),
+                            'magnetic': product.get('magnetic', ''),
+                            'weight': product.get('weight', ''),
+                        }
+                        loaded_count += 1
+                
+                self._log_info(f"预加载完成: {loaded_count}/{len(mskus)} 个产品信息已缓存")
+                
+                # 记录未找到的产品
+                cached_mskus = set(self.product_cache.keys())
+                missing_mskus = set(mskus) - cached_mskus
+                if missing_mskus:
+                    self._log_debug(f"未找到产品信息的MSKU: {missing_mskus}")
+                
+        except Exception as e:
+            print(f"预加载产品信息时发生错误: {str(e)}")
+            # 如果预加载失败，禁用缓存，回退到原有方式
+            self.cache_enabled = False
+    
+    def _preload_image_info(self, mskus):
+        """批量预加载图片存在性信息到缓存"""
+        if not self.image_cache_enabled or not mskus:
+            return
+        
+        self._log_info(f"开始预加载 {len(mskus)} 个产品的图片信息...")
+        
+        found_count = 0
+        missing_count = 0
+        
+        for msku in mskus:
+            # 检查jpg和png两种格式
+            jpg_path = os.path.join(self.image_folder, f"{msku}.jpg")
+            png_path = os.path.join(self.image_folder, f"{msku}.png")
+            
+            if os.path.exists(jpg_path):
+                self.image_cache[msku] = jpg_path
+                found_count += 1
+                self._log_debug(f"找到图片: {msku}.jpg")
+            elif os.path.exists(png_path):
+                self.image_cache[msku] = png_path
+                found_count += 1
+                self._log_debug(f"找到图片: {msku}.png")
+            else:
+                self.image_cache[msku] = None
+                missing_count += 1
+                self._log_debug(f"图片不存在: {msku}")
+        
+        self._log_info(f"图片预加载完成: 找到 {found_count} 个，缺失 {missing_count} 个")
+    
+    def _print_cache_statistics(self):
+        """打印缓存使用统计"""
+        print(f"\n=== 缓存统计 ===")
+        
+        # 产品信息缓存统计
+        if self.cache_enabled:
+            cache_size = len(self.product_cache)
+            print(f"产品信息缓存: 已启用")
+            print(f"缓存产品数量: {cache_size}")
+            if cache_size > 0:
+                print(f"缓存产品列表: {', '.join(sorted(self.product_cache.keys())[:5])}{'...' if cache_size > 5 else ''}")
+        else:
+            print(f"产品信息缓存: 已禁用")
+        
+        # 图片信息缓存统计
+        if self.image_cache_enabled:
+            image_cache_size = len(self.image_cache)
+            found_images = sum(1 for path in self.image_cache.values() if path is not None)
+            missing_images = image_cache_size - found_images
+            print(f"图片信息缓存: 已启用")
+            print(f"图片缓存数量: {image_cache_size} (找到: {found_images}, 缺失: {missing_images})")
+        else:
+            print(f"图片信息缓存: 已禁用")
+            
+        print("=" * 20)
+    
+    def clear_cache(self):
+        """清空产品信息缓存"""
+        self.product_cache.clear()
+        self._log_info("产品信息缓存已清空")
+    
+    def disable_cache(self):
+        """禁用缓存功能"""
+        self.cache_enabled = False
+        self.product_cache.clear()
+        self._log_info("产品信息缓存已禁用")
+    
+    def enable_cache(self):
+        """启用缓存功能"""
+        self.cache_enabled = True
+        self._log_info("产品信息缓存已启用")
+    
     @template_handler("叮铛卡航限时达")
     def _fill_dingdang_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
@@ -3106,11 +3252,20 @@ class InvoiceGenerator:
         :return: 生成的发票文件路径
         """
         try:
-            # 清空之前的缺失产品记录
+            # 清空之前的缓存和记录
             self.missing_products.clear()
+            self.product_cache.clear()  # 清空之前的产品缓存
+            self.image_cache.clear()  # 清空之前的图片缓存
+            
             print(f"开始处理模板文件: {template_path}")
             if not os.path.exists(template_path):
                 raise ProcessingError(f"模板文件不存在: {template_path}")
+            
+            # 预加载产品信息和图片信息
+            all_mskus = self._collect_all_mskus(box_data)
+            if all_mskus:
+                self._preload_product_info(all_mskus)
+                self._preload_image_info(all_mskus)
 
             # 获取当前时间戳
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -3193,7 +3348,8 @@ class InvoiceGenerator:
             wb.save(output_path)
             print(f"发票已生成: {output_path}")
             
-            # 打印缺失产品信息汇总
+            # 打印缓存统计和缺失产品信息汇总
+            self._print_cache_statistics()
             self._print_missing_summary()
 
             return output_path
@@ -3224,17 +3380,39 @@ class InvoiceGenerator:
 
     def _get_product_info(self, msku, db=None):
         """
-        从MongoDB获取产品信息
+        从缓存或MongoDB获取产品信息
         :param msku: 产品的MSKU
-        :param db: 数据库连接（可选）
+        :param db: 数据库连接（可选，缓存优先）
         :return: 包含产品信息的字典
         """
         try:
+            # 优先从缓存获取
+            if self.cache_enabled and msku in self.product_cache:
+                self._log_debug(f"从缓存获取产品信息: {msku}")
+                return self.product_cache[msku]
+            
+            # 缓存中没有，从数据库获取
+            self._log_debug(f"从数据库获取产品信息: {msku}")
+            
             if db is None:
                 # 如果没有传入db连接，创建新的连接
                 with self.db_connector as database:
-                    return self._get_product_info(msku, database)
-
+                    return self._get_product_info_from_db(msku, database)
+            else:
+                return self._get_product_info_from_db(msku, db)
+                
+        except Exception as e:
+            print(f"Error fetching product info for MSKU {msku}: {str(e)}")
+            return None
+    
+    def _get_product_info_from_db(self, msku, db):
+        """
+        从数据库获取产品信息的具体实现
+        :param msku: 产品的MSKU
+        :param db: 数据库连接
+        :return: 包含产品信息的字典
+        """
+        try:
             # 检查db是否为None
             if db is None:
                 print(f"警告: 数据库连接对象为None，无法获取产品信息: {msku}")
@@ -3245,11 +3423,11 @@ class InvoiceGenerator:
             product = collection.find_one({'msku': msku})
             
             if product:
-                return {
+                product_info = {
                     'cn_name': product.get('productNameZh', ''),
                     'en_name': product.get('productNameEn', ''),
                     'en_usage': product.get('useEn', ''),
-                    'ch_usage':product.get('useZh', ''),
+                    'ch_usage': product.get('useZh', ''),
                     'material_en': product.get('materialEn', ''),
                     'material_cn': product.get('materialZh', ''),
                     'hs_code': product.get('HS', ''),
@@ -3258,14 +3436,21 @@ class InvoiceGenerator:
                     'brand': product.get('brand', ''),
                     'model': product.get('model', ''),
                     'link': product.get('productLink', ''),
-                    'price':product.get('askprice', ''),
-                    'electrified':product.get('electrified', ''),
-                    'magnetic':product.get('magnetic', ''),
-                    'weight':product.get('weight', ''),
+                    'price': product.get('askprice', ''),
+                    'electrified': product.get('electrified', ''),
+                    'magnetic': product.get('magnetic', ''),
+                    'weight': product.get('weight', ''),
                 }
+                
+                # 如果缓存开启，将结果添加到缓存
+                if self.cache_enabled:
+                    self.product_cache[msku] = product_info
+                    self._log_debug(f"产品信息已添加到缓存: {msku}")
+                
+                return product_info
             return None
         except Exception as e:
-            print(f"Error fetching product info for MSKU {msku}: {str(e)}")
+            print(f"Error fetching product info from DB for MSKU {msku}: {str(e)}")
             return None
 
     def _set_cell_value(self, sheet, row, column, value, style_info):
@@ -3428,13 +3613,26 @@ class InvoiceGenerator:
 
     def insert_original_product_image(self, worksheet, cell_address, msku, image_folder):
         """
-        在Excel工作表中插入原始产品图片，不进行压缩处理
+        在Excel工作表中插入原始产品图片，支持缓存优化
         :param worksheet: openpyxl工作表对象
         :param cell_address: 单元格地址
         :param msku: 产品MSKU
         :param image_folder: 图片文件夹路径
         """
         try:
+            # 优先从缓存获取图片路径
+            if self.image_cache_enabled and msku in self.image_cache:
+                cached_path = self.image_cache[msku]
+                if cached_path:
+                    self._log_debug(f"从缓存获取图片路径: {msku} -> {cached_path}")
+                    return self.insert_original_image(worksheet, cell_address, cached_path)
+                else:
+                    self._log_debug(f"缓存显示图片不存在: {msku}")
+                    return False
+            
+            # 缓存未命中，执行原有逻辑
+            self._log_debug(f"缓存未命中，检查图片文件: {msku}")
+            
             # 构建图片文件路径
             image_path_jpg = os.path.join(image_folder, f"{msku}.jpg")
             image_path_png = os.path.join(image_folder, f"{msku}.png")
@@ -3442,12 +3640,21 @@ class InvoiceGenerator:
             
             # 检查JPEG图片文件是否存在
             if os.path.exists(image_path_jpg):
+                # 更新缓存
+                if self.image_cache_enabled:
+                    self.image_cache[msku] = image_path_jpg
                 return self.insert_original_image(worksheet, cell_address, image_path_jpg)
             elif os.path.exists(image_path_png):
                 print(f"尝试加载PNG原始图片: {image_path_png}")
+                # 更新缓存
+                if self.image_cache_enabled:
+                    self.image_cache[msku] = image_path_png
                 return self.insert_original_image(worksheet, cell_address, image_path_png)
             else:
                 print(f"图片文件不存在: {image_path_jpg} 和 {image_path_png}")
+                # 更新缓存为None
+                if self.image_cache_enabled:
+                    self.image_cache[msku] = None
                 return False
         except Exception as e:
             print(f"处理原始产品图片时发生错误: {str(e)}")

@@ -1243,5 +1243,54 @@
       "百泰-FBA1903F9X5F-2025.8.13-德邦美国空派经济线QJ票-1件--发票装箱单.xlsx"
     ],
     "files_count": 5
+  },
+  {
+    "task_id": "20250813173203",
+    "type": "packing_list",
+    "timestamp": "20250813_173208",
+    "input_file": "20250813173203_packing_list.xlsx",
+    "output_file": "百泰-FBA15KQ4QZQY-2025.8.13-德邦欧洲空派QZ票-1件--发票装箱单.xlsx",
+    "code_input": "FBA15KQ4QZQY",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "百泰-FBA15KQ4QZQY-2025.8.13-德邦欧洲空派QZ票-1件--发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250813173401",
+    "type": "packing_list",
+    "timestamp": "20250813_173416",
+    "input_file": "20250813173401_packing_list.xlsx",
+    "output_file": "FBA19025XLH3_多地址发票_20250813_173402",
+    "code_input": "FBA19025XLH3",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "FBA19025XLH3_多地址发票_20250813_173402",
+    "output_files": [
+      "百泰-FBA19025XLH3-2025.8.12-一八供应链美国空派QT票-1件--发票装箱单.xlsx",
+      "百泰-FBA19025XLH3-2025.8.12-一八供应链美国空派QU票-1件--发票装箱单.xlsx",
+      "百泰-FBA19025XLH3-2025.8.12-鲲鹏捷运美国空派经济线QV票-1件--发票装箱单.xlsx",
+      "百泰-FBA19025XLH3-2025.8.12-鲲鹏捷运美国空派经济线QW票-1件--发票装箱单.xlsx",
+      "百泰-FBA19025XLH3-2025.8.12-鲲鹏捷运美国空派经济线QX票-1件--发票装箱单.xlsx"
+    ],
+    "files_count": 5
+  },
+  {
+    "task_id": "20250813174740",
+    "type": "packing_list",
+    "timestamp": "20250813_174758",
+    "input_file": "20250813174740_packing_list.xlsx",
+    "output_file": "FBA19026RKW6_多地址发票_20250813_174741",
+    "code_input": "FBA19026RKW6",
+    "template_name": "德邦澳大利亚",
+    "status": "completed",
+    "result_file": "FBA19026RKW6_多地址发票_20250813_174741",
+    "output_files": [
+      "百泰-FBA19026RKW6-2025.8.12-一八供应链美国空派QT票-1件--发票装箱单.xlsx",
+      "百泰-FBA19026RKW6-2025.8.12-一八供应链美国空派QU票-1件--发票装箱单.xlsx",
+      "百泰-FBA19026RKW6-2025.8.12-鲲鹏捷运美国空派经济线QV票-1件--发票装箱单.xlsx",
+      "百泰-FBA19026RKW6-2025.8.12-鲲鹏捷运美国空派经济线QW票-1件--发票装箱单.xlsx",
+      "百泰-FBA19026RKW6-2025.8.12-鲲鹏捷运美国空派经济线QX票-1件--发票装箱单.xlsx"
+    ],
+    "files_count": 5
   }
 ]
