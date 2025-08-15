@@ -1292,5 +1292,27 @@
       "百泰-FBA19026RKW6-2025.8.12-鲲鹏捷运美国空派经济线QX票-1件--发票装箱单.xlsx"
     ],
     "files_count": 5
+  },
+  {
+    "task_id": "20250815150001",
+    "type": "packing_list",
+    "timestamp": "20250815_150102",
+    "input_file": "20250815150001_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA1905NGYQ1",
+    "template_name": "德邦美森限时达",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250815150201",
+    "type": "packing_list",
+    "timestamp": "20250815_150206",
+    "input_file": "20250815150201_packing_list.xlsx",
+    "output_file": "百泰-FBA1905NGYQ1-2025.8.15-德邦美森瞬时达QX票-2件--发票装箱单.xlsx",
+    "code_input": "FBA1905NGYQ1",
+    "template_name": "德邦美森限时达",
+    "status": "completed",
+    "result_file": "百泰-FBA1905NGYQ1-2025.8.15-德邦美森瞬时达QX票-2件--发票装箱单.xlsx"
   }
 ]

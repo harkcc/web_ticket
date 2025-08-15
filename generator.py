@@ -283,6 +283,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -473,6 +478,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -783,6 +793,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -975,6 +990,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -1201,6 +1221,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -1602,6 +1627,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -1847,6 +1877,13 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
+                            
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -2109,6 +2146,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -2484,6 +2526,11 @@ class InvoiceGenerator:
 
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -2683,6 +2730,11 @@ class InvoiceGenerator:
 
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -2881,6 +2933,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
@@ -3082,6 +3139,11 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
+                        if ('addressLine2' in address_info_detail and 
+                            address_info_detail['addressLine2'] is not None and 
+                            str(address_info_detail['addressLine2']).strip() != '' and 
+                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
+                            address_parts.append(address_info_detail['addressLine2'])
                         if 'city' in address_info_detail:
                             address_parts.append(address_info_detail['city'])
                         if 'stateOrProvinceCode' in address_info_detail:
