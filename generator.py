@@ -1848,6 +1848,7 @@ class InvoiceGenerator:
                 #先拆分合并的单元格，用于写入
                 self.unmerge_cells_in_range(sheet, 4, 4, 3, 7)
                 self.unmerge_cells_in_range(sheet, 5, 5, 3, 7)
+                self.unmerge_cells_in_range(sheet, 3, 3, 3, 7)
 
 
                 if code:
@@ -1894,6 +1895,8 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['countryCode'])
 
                         if address_info_detail['type'] == 'amz':
+                            cell = sheet.cell(row=3, column=3)  
+                            cell.value = 'Amazon'
                             if address_parts:
                                 # 检查warehouseId并添加到最前面
                                 final_address_parts = address_parts.copy()
@@ -1910,6 +1913,8 @@ class InvoiceGenerator:
 
                                 
                         else:
+                            cell = sheet.cell(row=3, column=3)  
+                            cell.value = 'WalMart'
                             if 'addressLine2' in address_info_detail: 
                                 cell = sheet.cell(row=2, column=3)  
                                 cell.value = address_info_detail['addressLine2']    
@@ -2047,11 +2052,12 @@ class InvoiceGenerator:
                 self._set_cell_value(sheet, total_row, 15, f"=SUM(O{data_start_row}:O{data_end_row})", style_info)  # 重量总和
                 self._set_cell_value(sheet, total_row, 19, f"=SUM(S{data_start_row}:S{data_end_row})", style_info)  # 体积重总和（19列）
                 self._set_cell_value(sheet, total_row, 20, f"=SUM(T{data_start_row}:T{data_end_row})", style_info)  # 体积重总和（20列）
-                self._set_cell_value(sheet, total_row, 20, f"=SUM(H{data_start_row}:H{data_end_row})", style_info) 
+                # self._set_cell_value(sheet, total_row, 20, f"=SUM(N{data_start_row}:N{data_end_row})", style_info) 
     
                 
                 self.merge_cells_in_range(sheet, 4, 4, 3, 7)
                 self.merge_cells_in_range(sheet, 5, 5, 3, 5)
+                self.merge_cells_in_range(sheet, 3, 3, 3, 5)
 
                 
                 thin_border = Border(left=Side(style='thin'), 
