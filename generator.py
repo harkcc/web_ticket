@@ -974,7 +974,9 @@ class InvoiceGenerator:
                     cell.font = Font(name='Arial', size=12)
 
                     cell_another = sheet.cell(row=5, column=1)  # B列是第2列
-                    cell_another.value = f"Reference ID:{box_Reference_id}"
+                    
+                    Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
+                    cell_another.value = f"Reference ID:{Reference_id}"
                     cell_another = sheet.cell(row=7, column=1)  # B列是第2列
                     cell_another.value = f"FBA编号:{code}"
                     cell_another.font = Font(name='Arial', size=12)
@@ -1021,6 +1023,9 @@ class InvoiceGenerator:
                 sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
                 row_height = sheet.row_dimensions[13].height
                 
+                # 记录数据起始行，用于后续公式计算
+                data_start_row = row_num
+                
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
                     if not box.items:
@@ -1042,13 +1047,9 @@ class InvoiceGenerator:
                         if price == '':
                             price = 0
 
-                        # 累计总数和总金额
-                        total_quantity += quantity
-                        total_amount += float(price) * quantity
-                        # 检查重量是否为None
-                        if box.weight is not None:
-                            total_weight += box.weight
-                        else:
+                        # 移除累计变量计算，改为使用Excel公式
+                        # 检查重量是否为None（仅用于警告）
+                        if box.weight is None:
                             print(f"警告：UPS模板中箱子 {box_number} 的重量数据为None")
 
                         # 设置单元格值
@@ -1084,14 +1085,19 @@ class InvoiceGenerator:
                         for col in merge_columns:
                             self.merge_cells_in_range(sheet, start_row, row_num-1, col, col)
 
-                # 添加总计行
+                # 添加总计行，使用Excel公式计算总数
                 total_row = row_num  # 直接使用当前行号，不再加1
+                data_end_row = row_num - 1  # 数据结束行
+                
                 self._set_cell_value(sheet, total_row, 1, "总件数", style_info)
                 self._set_cell_value(sheet, total_row, 2, len(box_data), style_info)
-                self._set_cell_value(sheet, total_row, 6, total_quantity, style_info)
-                self._set_cell_value(sheet, total_row, 7, total_amount, style_info)
+                # 使用SUM公式计算总数量（第6列）
+                self._set_cell_value(sheet, total_row, 6, f"=SUM(F{data_start_row}:F{data_end_row})", style_info)
+                # 使用SUM公式计算总金额（第7列）
+                self._set_cell_value(sheet, total_row, 7, f"=SUM(G{data_start_row}:G{data_end_row})", style_info)
                 self._set_cell_value(sheet, total_row, 9, "总重", style_info)
-                self._set_cell_value(sheet, total_row, 10, total_weight, style_info)
+                # 使用SUM公式计算总重量（第10列），只计算非空单元格
+                self._set_cell_value(sheet, total_row, 10, f"=SUM(J{data_start_row}:J{data_end_row})", style_info)
                 
                 def set_cell_value(sheet, row, column, value, font_size=12):
                     cell = sheet.cell(row=row, column=column)
