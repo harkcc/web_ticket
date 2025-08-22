@@ -1158,32 +1158,27 @@ def process_data_update(task_id, file_path):
             raise
         
         # 验证Excel格式
-        if len(df) < 2:
-            raise ValueError('Excel文件格式错误：至少需要2行（字段映射行和数据行）')
+        if len(df) < 1:
+            raise ValueError('Excel文件格式错误：至少需要1行数据')
         
-        # 读取第一行作为字段映射
-        try:
-            db_fields = df.iloc[0].tolist()  # 第一行：数据库字段名
-            excel_headers = df.iloc[1].tolist()  # 第二行：Excel列名
-            
-            # 验证必需字段，这里
-            if 'msku' not in db_fields:
-                raise ValueError('Excel文件格式错误：缺少msku字段')
-            
-            
-            # 创建字段映射
-            field_mapping = {}
-            for i, db_field in enumerate(db_fields):
-                if db_field and db_field in DATA_FIELD_MAPPING:
-                    field_mapping[i] = db_field
-            
-            logging.info(f'识别到字段映射: {field_mapping}')
-            
-        except Exception as e:
-            raise ValueError(f'Excel文件格式错误：无法解析字段映射 - {str(e)}')
+        # 创建字段映射（第一行是中文列名）
+        field_mapping = {}
+        for i, chinese_name in enumerate(df.iloc[0].tolist()):
+            if pd.notna(chinese_name) and chinese_name in DATA_FIELD_MAPPING.values():
+                # 找到对应的数据库字段名
+                for db_field, display_name in DATA_FIELD_MAPPING.items():
+                    if display_name == chinese_name:
+                        field_mapping[i] = db_field
+                        break
         
-        # 获取数据行（从第三行开始）
-        data_rows = df.iloc[2:]
+        logging.info(f'识别到字段映射: {field_mapping}')
+        
+        # 检查是否包含必要字段
+        if 'msku' not in field_mapping.values():
+            raise ValueError('Excel文件格式错误：缺少MSKU字段')
+        
+        # 获取数据行（从第二行开始）
+        data_rows = df.iloc[1:]
         total_records = len(data_rows)
         
         if total_records == 0:

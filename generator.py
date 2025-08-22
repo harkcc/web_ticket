@@ -1862,10 +1862,16 @@ class InvoiceGenerator:
                     # cell.value = "FBA 号：" + str(code)
                     # cell.font = Font(name='Arial', size=12,bold=True)
                     cell.value = str(code)
+
+                #这里名字用物流中心编码
+                if 'warehouseId' in address_info_detail:
+                    warehouse_id = str(address_info_detail['warehouseId'])
+                    cell = sheet.cell(row=4, column=3)  
+                    cell.value = str(code)
                 
                 Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                 if Reference_id:
-                    cell = sheet.cell(row=3, column=15)  # B列是第2列
+                    cell = sheet.cell(row=5, column=11)  # B列是第2列
                     cell.value = Reference_id
                     
                 # 如果有地址信息，填充到相应的单元格
@@ -1879,8 +1885,8 @@ class InvoiceGenerator:
                         if 'name' in address_info_detail:
                             # cell = sheet.cell(row=3, column=3)  
                             # cell.value = address_info_detail['name']
-                            cell = sheet.cell(row=4, column=3)  
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=4, column=3)  
+                            # cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
@@ -2364,7 +2370,7 @@ class InvoiceGenerator:
         """填充罗马尼亚鹏程模板"""
         with self.db_connector as db:
             try:
-                sheet = wb['模板']  # 获取模板工作表
+                sheet = wb['发票箱单']  # 获取模板工作表
                 # 拆开合并单元格
                 # self.unmerge_cells_in_range(sheet, 15, 15, 2, 4)
                 # self.unmerge_cells_in_range(sheet, 1, 1, 6, 8)
