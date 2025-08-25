@@ -1857,27 +1857,32 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 3, 3, 3, 7)
 
 
+                # 初始化 address_info_detail
+                address_info_detail = {}
+                if address_info and 'address_info' in address_info:
+                    address_info_detail = address_info['address_info'] or {}
+                
                 if code:
                     cell = sheet.cell(row=4, column=11)  # B列是第2列
                     # cell.value = "FBA 号：" + str(code)
                     # cell.font = Font(name='Arial', size=12,bold=True)
                     cell.value = str(code)
 
-                #这里名字用物流中心编码
+                # 这里名字用物流中心编码
                 if 'warehouseId' in address_info_detail:
                     warehouse_id = str(address_info_detail['warehouseId'])
                     cell = sheet.cell(row=4, column=3)  
                     cell.value = str(code)
                 
-                Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
+                Reference_id = address_info_detail.get('amazonReferenceId', '') if address_info_detail else ''
                 if Reference_id:
                     cell = sheet.cell(row=5, column=11)  # B列是第2列
                     cell.value = Reference_id
                     
                 # 如果有地址信息，填充到相应的单元格
-                if address_info:
-                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
-                   
+                if address_info_detail:
+                    # 已经初始化过 address_info_detail，这里不需要重复初始化
+                    pass
                     try:
                        
                         # 填充地址信息

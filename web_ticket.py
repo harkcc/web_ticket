@@ -861,8 +861,9 @@ def upload_excel():
         if file.filename == '':
             return jsonify({'error': '没有选择文件'}), 400
 
-        if not file.filename.endswith(('.xlsx', '.xls')):
-            return jsonify({'error': '请上传Excel文件'}), 400
+        # 转换为小写后检查扩展名，支持.xlsx, .xls, .XLSX, .XLS等
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            return jsonify({'error': '请上传Excel文件（.xlsx 或 .xls 格式）'}), 400
 
         # 保存文件
         filename = secure_filename(file.filename)
@@ -908,8 +909,9 @@ def extract_images():
         if file.filename == '':
             return jsonify({'error': '没有选择文件'}), 400
 
-        if not file.filename.endswith(('.xlsx', '.xls')):
-            return jsonify({'error': '请上传Excel文件'}), 400
+        # 转换为小写后检查扩展名，支持.xlsx, .xls, .XLSX, .XLS等
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            return jsonify({'error': '请上传Excel文件（.xlsx 或 .xls 格式）'}), 400
 
         # 保存文件
         filename = secure_filename(file.filename)
@@ -1104,8 +1106,9 @@ def upload_update():
         if file.filename == '':
             return jsonify({'error': '没有选择文件'}), 400
 
-        if not file.filename.endswith(('.xlsx', '.xls')):
-            return jsonify({'error': '请上传Excel文件'}), 400
+        # 转换为小写后检查扩展名，支持.xlsx, .xls, .XLSX, .XLS等
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            return jsonify({'error': '请上传Excel文件（.xlsx 或 .xls 格式）'}), 400
 
         # 保存文件
         filename = secure_filename(file.filename)
