@@ -429,9 +429,54 @@
                     return false
                 }
                 
-                const file = importFileList.value[0]
-                if (!file) {
+                const fileItem = importFileList.value[0]
+                if (!fileItem) {
                     VxeUI.modal.message({content: '请选择要导入的Excel文件', status: 'warning'})
+                    return false
+                }
+                
+                // 从vxe-upload组件中获取真正的文件对象
+                // vxe-upload组件将文件存储在内部，需要通过特殊方式获取
+                let actualFile = null
+                
+                // 尝试从vxe-upload组件的内部状态获取文件
+                if (fileItem._X_KEY && window.VXE_FILE_CACHE) {
+                    actualFile = window.VXE_FILE_CACHE[fileItem._X_KEY]
+                } else if (fileItem.content) {
+                    // 如果有content属性，可能是base64或blob
+                    try {
+                        const blob = new Blob([fileItem.content], { 
+                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                        })
+                        actualFile = new File([blob], fileItem.name, { type: blob.type })
+                    } catch (e) {
+                        console.error('文件转换失败:', e)
+                    }
+                }
+                
+                // 如果还是没有获取到文件，尝试从DOM中找到文件输入元素
+                if (!actualFile) {
+                    const uploadElements = document.querySelectorAll('input[type="file"]')
+                    for (let element of uploadElements) {
+                        if (element.files && element.files.length > 0) {
+                            actualFile = element.files[0]
+                            break
+                        }
+                    }
+                }
+                
+                if (!actualFile) {
+                    VxeUI.modal.message({content: '无法获取文件，请重新选择', status: 'error'})
+                    return false
+                }
+                
+                await uploadFile(actualFile)
+            }
+            
+            const uploadFile = async (file) => {
+                
+                if (!file) {
+                    VxeUI.modal.message({content: '文件对象无效', status: 'error'})
                     return false
                 }
                 
