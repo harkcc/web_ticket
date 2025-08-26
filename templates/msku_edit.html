@@ -96,16 +96,12 @@
         <!-- 导入更新模态框 -->
         <vxe-modal
                 resize
-                destroy-on-close
                 show-footer
-                show-confirm-button
                 show-cancel-button
                 v-model="showImportModal"
                 title="导入更新数据"
                 width="600px"
-                height="400px"
-                :confirm-closable="false"
-                @confirm="confirmImport">
+                height="400px">
             <div style="padding: 20px;">
                 <div style="margin-bottom: 20px;">
                     <h4>使用说明：</h4>
@@ -117,16 +113,18 @@
                     </ul>
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <vxe-upload 
-                        v-model="importFileList" 
-                        mode="manual" 
-                        :file-types="['.xlsx', '.xls']"
-                        :multiple="false"
-                        show-progress>
-                        <template #default>
-                            <vxe-button icon="vxe-icon-upload">选择Excel文件</vxe-button>
-                        </template>
-                    </vxe-upload>
+                    <input 
+                        type="file" 
+                        id="excelFileInput"
+                        accept=".xlsx,.xls" 
+                        @change="handleFileSelect"
+                        style="display: none;">
+                    <vxe-button 
+                        icon="vxe-icon-upload" 
+                        @click="selectFile"
+                        :loading="importProgress.show">
+                        选择Excel文件并导入
+                    </vxe-button>
                 </div>
                 <div v-if="importProgress.show" style="margin-top: 20px;">
                     <div style="margin-bottom: 10px;">[[ importProgress.message ]]</div>
@@ -423,54 +421,27 @@
                 importProgress.status = 'normal'
                 importProgress.details = null
             }
-            const confirmImport = async () => {
-                if (!importFileList.value || importFileList.value.length === 0) {
-                    VxeUI.modal.message({content: '请选择要导入的Excel文件', status: 'warning'})
-                    return false
+            const selectFile = () => {
+                document.getElementById('excelFileInput').click()
+            }
+            
+            const handleFileSelect = async (event) => {
+                const file = event.target.files[0]
+                if (!file) {
+                    return
                 }
                 
-                const fileItem = importFileList.value[0]
-                if (!fileItem) {
-                    VxeUI.modal.message({content: '请选择要导入的Excel文件', status: 'warning'})
-                    return false
+                // 验证文件类型
+                if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+                    VxeUI.modal.message({content: '请选择Excel文件（.xlsx 或 .xls 格式）', status: 'error'})
+                    return
                 }
                 
-                // 从vxe-upload组件中获取真正的文件对象
-                // vxe-upload组件将文件存储在内部，需要通过特殊方式获取
-                let actualFile = null
+                console.log('选择的文件:', file)
+                await uploadFile(file)
                 
-                // 尝试从vxe-upload组件的内部状态获取文件
-                if (fileItem._X_KEY && window.VXE_FILE_CACHE) {
-                    actualFile = window.VXE_FILE_CACHE[fileItem._X_KEY]
-                } else if (fileItem.content) {
-                    // 如果有content属性，可能是base64或blob
-                    try {
-                        const blob = new Blob([fileItem.content], { 
-                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-                        })
-                        actualFile = new File([blob], fileItem.name, { type: blob.type })
-                    } catch (e) {
-                        console.error('文件转换失败:', e)
-                    }
-                }
-                
-                // 如果还是没有获取到文件，尝试从DOM中找到文件输入元素
-                if (!actualFile) {
-                    const uploadElements = document.querySelectorAll('input[type="file"]')
-                    for (let element of uploadElements) {
-                        if (element.files && element.files.length > 0) {
-                            actualFile = element.files[0]
-                            break
-                        }
-                    }
-                }
-                
-                if (!actualFile) {
-                    VxeUI.modal.message({content: '无法获取文件，请重新选择', status: 'error'})
-                    return false
-                }
-                
-                await uploadFile(actualFile)
+                // 清空文件输入框，允许重复选择同一文件
+                event.target.value = ''
             }
             
             const uploadFile = async (file) => {
@@ -586,7 +557,8 @@
                 importFileList,
                 importProgress,
                 showImportModalFunc,
-                confirmImport
+                selectFile,
+                handleFileSelect
             }
         }
     }).use(ElementPlus).use(VxeUI).use(VXETable).mount('#app')
