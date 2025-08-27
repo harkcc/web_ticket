@@ -2868,7 +2868,7 @@ class InvoiceGenerator:
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
-                        box_number_str = code+'U00000'+str(box_number)
+                        box_number_str = code+"U000010"
                         Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                         # 设置单元格值和样式
                         cell_data = [
