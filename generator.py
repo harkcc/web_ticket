@@ -1932,6 +1932,10 @@ class InvoiceGenerator:
                         else:
                             cell = sheet.cell(row=3, column=3)  
                             cell.value = 'WalMart'
+                           
+                            if 'logistics_code' in address_info_detail:
+                                cell = sheet.cell(row=4,column= 3)
+                                cell.value = address_info_detail['logistics_code']
                             if 'addressLine2' in address_info_detail: 
                                 cell = sheet.cell(row=2, column=3)  
                                 cell.value = address_info_detail['addressLine2']    

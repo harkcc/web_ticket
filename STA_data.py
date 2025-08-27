@@ -236,6 +236,9 @@ def request_sta_data_multi(ticket_id):
             
         # 获取shippingAddress信息
         shipping_address = detail_json['data'].get('shippingAddress', {})
+
+        #获取物流中心编码
+        logistics_code = detail_json['data'].get("logisticsCode")
         
         # 按照要求组合地址信息
         street_detail = shipping_address.get('streetDetail', '')
@@ -244,6 +247,7 @@ def request_sta_data_multi(ticket_id):
         country_name = shipping_address.get('receiveOrDeliverCountryName', '')
         postal_code = shipping_address.get('postalCode', '')
         countryCode = shipping_address.get('receiveOrDeliverCountry', '')
+
         
         # 组合地址行 - 按照要求的格式: streetDetail + city，province + receiveOrDeliverCountry + postalCode
         address_line2 = street_detail+','+city + ',' + province + ',' + countryCode + ','+ postal_code
@@ -263,6 +267,7 @@ def request_sta_data_multi(ticket_id):
             'phoneNumber': detail_json['data'].get('phoneNumber', ''),
             'email': detail_json['data'].get('email', ''),
             'shipmentName': ticket_id,  
+            'Logistics_code':logistics_code,
             'amazonReferenceId': detail_json['data'].get('amazonReferenceId', '')
         }
     
