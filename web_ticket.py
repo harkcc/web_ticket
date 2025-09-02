@@ -1303,44 +1303,9 @@ def process_data_update(task_id, file_path):
                         task_status[task_id]['error_records'].append({
                             'row': index + 3,
                             'msku': row.iloc[0] if len(row) > 0 else 'Unknown',
+                            'error': error_msg
                         })
                         continue
-                    
-                    # 查找现有记录
-                    existing_doc = db_client.db['msku_info'].find_one({'msku': msku})
-                    
-                    if existing_doc:
-                        # 准备更新操作
-                        document['updated_at'] = datetime.now()
-                        if 'created_at' not in document:
-                            document['created_at'] = existing_doc.get('created_at', datetime.now())
-                        
-                        operations.append({
-                            'type': 'update',
-                            'msku': msku,
-                            'document': document,
-                            'backup_data': {
-                                'operation': 'update',
-                                'msku': msku,
-                                'original_data': existing_doc
-                            }
-                        })
-                        
-                    else:
-                        # 准备插入操作
-                        document['created_at'] = document.get('created_at', datetime.now())
-                        document['updated_at'] = datetime.now()
-                        
-                        operations.append({
-                            'type': 'insert',
-                            'msku': msku,
-                            'document': document,
-                            'backup_data': {
-                                'operation': 'insert',
-                                'msku': msku,
-                                'original_data': None
-                            }
-                        })
             
             # 第二阶段：执行所有操作（不使用事务，因为单机MongoDB不支持）
             try:
