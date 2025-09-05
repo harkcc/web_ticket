@@ -1,60 +1,5 @@
 [
   {
-    "task_id": "20250605165846",
-    "type": "packing_list",
-    "timestamp": "20250605_165917",
-    "input_file": "20250605165846_packing_list.xlsx",
-    "output_file": null,
-    "code_input": "FBA18NXMB5RK",
-    "template_name": "德邦美森限时达",
-    "status": "error",
-    "result_file": null
-  },
-  {
-    "task_id": "20250605170032",
-    "type": "packing_list",
-    "timestamp": "20250605_170035",
-    "input_file": "20250605170032_packing_list.xlsx",
-    "output_file": null,
-    "code_input": "FBA18NXMB5RK",
-    "template_name": "德邦美森限时达",
-    "status": "error",
-    "result_file": null
-  },
-  {
-    "task_id": "20250605170404",
-    "type": "packing_list",
-    "timestamp": "20250605_170406",
-    "input_file": "20250605170404_packing_list.xlsx",
-    "output_file": null,
-    "code_input": "FBA18NXMB5RK",
-    "template_name": "德邦美森限时达",
-    "status": "error",
-    "result_file": null
-  },
-  {
-    "task_id": "20250605170605",
-    "type": "packing_list",
-    "timestamp": "20250605_170608",
-    "input_file": "20250605170605_packing_list.xlsx",
-    "output_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx",
-    "code_input": "FBA18NXMB5RK",
-    "template_name": "德邦美森限时达",
-    "status": "completed",
-    "result_file": "百泰-FBA18NXMB5RK-2024.12.16-德邦美国空派经济线QF票-1件-美国-发票装箱单.xlsx"
-  },
-  {
-    "task_id": "20250605171405",
-    "type": "packing_list",
-    "timestamp": "20250605_171412",
-    "input_file": "20250605171405_packing_list.xlsx",
-    "output_file": "20250605171410.xlsx",
-    "code_input": "FBA18XY2W86D",
-    "template_name": "德邦美森限时达",
-    "status": "completed",
-    "result_file": "20250605171410.xlsx"
-  },
-  {
     "task_id": "20250619165321",
     "type": "packing_list",
     "timestamp": "20250619_165324",
@@ -1426,5 +1371,71 @@
     "template_name": "罗马尼亚鹏城",
     "status": "completed",
     "result_file": "20250825093442.xlsx"
+  },
+  {
+    "task_id": "20250903110549",
+    "type": "packing_list",
+    "timestamp": "20250903_110553",
+    "input_file": "20250903110549_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "林道UPS",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250903110650",
+    "type": "packing_list",
+    "timestamp": "20250903_110654",
+    "input_file": "20250903110650_packing_list.xlsx",
+    "output_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250903110705",
+    "type": "packing_list",
+    "timestamp": "20250903_110709",
+    "input_file": "20250903110705_packing_list.xlsx",
+    "output_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250905174147",
+    "type": "packing_list",
+    "timestamp": "20250905_174152",
+    "input_file": "20250905174147_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA19109DMGV",
+    "template_name": "林道UPS",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250905174211",
+    "type": "packing_list",
+    "timestamp": "20250905_174216",
+    "input_file": "20250905174211_packing_list.xlsx",
+    "output_file": "百泰-FBA19109DMGV-2025.9.5-UPS美国红单QL票-2件--发票装箱单.xlsx",
+    "code_input": "FBA19109DMGV",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA19109DMGV-2025.9.5-UPS美国红单QL票-2件--发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250905174228",
+    "type": "packing_list",
+    "timestamp": "20250905_174232",
+    "input_file": "20250905174228_packing_list.xlsx",
+    "output_file": "百泰-FBA19109DMGV-2025.9.5-UPS美国红单QL票-2件--发票装箱单.xlsx",
+    "code_input": "FBA19109DMGV",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "百泰-FBA19109DMGV-2025.9.5-UPS美国红单QL票-2件--发票装箱单.xlsx"
   }
 ]

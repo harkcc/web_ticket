@@ -216,8 +216,10 @@ def process_task(task_info):
                         print(f"正在处理第 {i+1}/{len(address_info)} 个地址...")
                         output_path = invoice_generator.generate_invoice(template_path, box_data, code, addr, shipment_id=shipment_id)
                         if output_path:
-                            output_paths.append(output_path)
-                            print(f"第 {i+1} 个地址的发票生成成功: {output_path}")
+                            # 修复路径问题：确保记录的是相对于多地址文件夹的文件名，而不是完整路径
+                            relative_filename = os.path.basename(output_path)
+                            output_paths.append(relative_filename)
+                            print(f"第 {i+1} 个地址的发票生成成功: {relative_filename}")
                         else:
                             print(f"第 {i+1} 个地址的发票生成失败")
                 finally:
@@ -385,23 +387,38 @@ def download_file(filename):
     """下载处理结果文件或文件夹"""
     try:
         file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        print(f"下载请求: {filename}")
+        print(f"完整路径: {file_path}")
+        print(f"路径存在: {os.path.exists(file_path)}")
+        print(f"是否为目录: {os.path.isdir(file_path)}")
         
         # 检查是否为文件夹（多地址情况）
         if os.path.isdir(file_path):
+            print(f"检测到多地址文件夹，开始创建ZIP")
+            # 列出文件夹内容
+            try:
+                folder_contents = os.listdir(file_path)
+                print(f"文件夹内容: {folder_contents}")
+            except Exception as e:
+                print(f"无法读取文件夹内容: {e}")
+            
             # 创建ZIP文件
             import zipfile
             zip_filename = f"{filename}.zip"
             zip_path = os.path.join(app.config['OUTPUT_FOLDER'], zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                file_count = 0
                 for root, dirs, files in os.walk(file_path):
                     for file in files:
                         file_path_in_zip = os.path.join(root, file)
                         # 在ZIP中保持相对路径结构
                         arcname = os.path.relpath(file_path_in_zip, file_path)
                         zipf.write(file_path_in_zip, arcname)
+                        file_count += 1
+                        print(f"添加文件到ZIP: {arcname}")
             
-            print(f"创建ZIP文件: {zip_path}")
+            print(f"创建ZIP文件: {zip_path}, 包含 {file_count} 个文件")
             
             def remove_zip():
                 """下载完成后删除临时ZIP文件"""
