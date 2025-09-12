@@ -1872,7 +1872,7 @@ class InvoiceGenerator:
                 if 'warehouseId' in address_info_detail:
                     warehouse_id = str(address_info_detail['warehouseId'])
                     cell = sheet.cell(row=4, column=3)  
-                    cell.value = str(code)
+                    cell.value = str(warehouse_id)
                 
                 Reference_id = address_info_detail.get('amazonReferenceId', '') if address_info_detail else ''
                 if Reference_id:
@@ -2868,7 +2868,8 @@ class InvoiceGenerator:
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
-                        box_number_str = code+"U000010"
+                        # 根据箱子编号进行进位，格式为U000001, U000002等
+                        box_number_str = code + "U" + str(int(box_number)).zfill(6)
                         Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                         # 设置单元格值和样式
                         cell_data = [
