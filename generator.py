@@ -159,7 +159,6 @@ class InvoiceGenerator:
                 )
                 
                 # 合并数量、重量、价格等数值字段
-                total_quantity = 0
                 total_weight = 0
                 total_price = 0
                 merged_box_quantities = {}
@@ -169,13 +168,13 @@ class InvoiceGenerator:
                     with self.db_connector as db:
                         item_product_info = self._get_product_info(item.msku, db)
                     
-                    # 累加数量
-                    total_quantity += item.quantity
+                    # 获取该商品的总数量用于重量和价格计算
+                    current_item_total_qty = sum(item.box_quantities.values())
                     
                     # 累加重量（产品重量 × 数量）
                     if item_product_info and item_product_info.get('weight'):
                         try:
-                            item_weight = float(item_product_info['weight']) * item.quantity
+                            item_weight = float(item_product_info['weight']) * current_item_total_qty
                             total_weight += item_weight
                         except (ValueError, TypeError):
                             pass  # 重量数据无效时跳过
@@ -183,20 +182,33 @@ class InvoiceGenerator:
                     # 累加价格（单价 × 数量）
                     if item_product_info and item_product_info.get('price'):
                         try:
-                            item_price = float(item_product_info['price']) * item.quantity
+                            item_price = float(item_product_info['price']) * current_item_total_qty
                             total_price += item_price
                         except (ValueError, TypeError):
                             pass  # 价格数据无效时跳过
                     
-                    # 合并箱子数量
+                    # 合并箱子数量（这是关键逻辑）
                     for box_num, qty in item.box_quantities.items():
                         if box_num in merged_box_quantities:
                             merged_box_quantities[box_num] += qty
                         else:
                             merged_box_quantities[box_num] = qty
                 
+                # 计算总数量（应该等于所有箱子数量的总和）
+                total_quantity = sum(merged_box_quantities.values())
                 merged_item.quantity = total_quantity
                 merged_item.box_quantities = merged_box_quantities
+                
+                # 为合并后的商品添加合并信息标记
+                if len(items) > 1:
+                    # 添加一个特殊属性来标记这是合并后的商品
+                    merged_item._is_merged = True
+                    merged_item._merged_total_weight = total_weight
+                    merged_item._merged_total_price = total_price
+                    merged_item._merged_count = len(items)
+                    merged_item._merged_average_price = total_price / total_quantity if total_quantity > 0 else 0
+                else:
+                    merged_item._is_merged = False
                 
                 # 为调试输出添加重量和价格信息
                 if debug and len(items) > 1:
@@ -212,6 +224,35 @@ class InvoiceGenerator:
                 print(f"箱子 {box_number} 合并完成，合并后商品数: {len(merged_box.items)}")
         
         return merged_box_data
+    
+    def _get_display_price(self, item, product_info):
+        """获取显示用的单价"""
+        if hasattr(item, '_is_merged') and item._is_merged:
+            # 合并商品不显示单价，或显示"合并商品"
+            return "合并商品"
+        else:
+            # 普通商品显示原价格
+            return product_info.get('price', '') if product_info else ''
+    
+    def _get_total_price(self, item, box_number, product_info):
+        """获取该箱子中该商品的总价格"""
+        if hasattr(item, '_is_merged') and item._is_merged:
+            # 合并商品：显示该箱子中合并商品的总价格
+            box_qty = item.box_quantities.get(box_number, 0)
+            if item.quantity > 0:
+                # 按比例分配总价格到该箱子
+                box_total_price = (item._merged_total_price * box_qty) / item.quantity
+                return f"{box_total_price:.2f}" if box_total_price > 0 else ""
+            else:
+                return ""
+        else:
+            # 普通商品：数量 × 单价
+            if product_info:
+                box_qty = item.box_quantities.get(box_number, 0)
+                price = product_info.get('price', 0)
+                return box_qty * price if price else ''
+            else:
+                return ''
     
     def _print_missing_summary(self):
         """打印缺失产品信息的汇总"""
@@ -2118,13 +2159,14 @@ class InvoiceGenerator:
                             # 基本信息
                             # 产品名称信息
                             (2, box_number_str),
-                            (3,f"{product_info.get('en_name', '')}" if product_info else ''),
-                            (4,f"{product_info.get('cn_name', '')}" if product_info else ''),
+                            (4,f"{product_info.get('en_name', '')}" if product_info else ''),
+                            (3,f"{product_info.get('cn_name', '')}" if product_info else ''),
                             (6, product_info.get('hs_code', '') if product_info else ''),                # HS编码
                             # (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''), 
                             (7, item.box_quantities.get(box_number, 0)),         # 数量
-                            (8, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入),
-                            (9, item.box_quantities.get(box_number, 0) * product_info.get('price', 0) if product_info else ''),   # 仅在总价格大于0时填入),
+                            # 价格处理：区分合并和非合并商品
+                            (8, self._get_display_price(item, product_info)),   # 单价
+                            (9, self._get_total_price(item, box_number, product_info)),   # 总价
                             
                             
                                              # 型号
