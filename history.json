@@ -1437,5 +1437,17 @@
     "template_name": "德邦美森限时达",
     "status": "error",
     "result_file": null
+  },
+  {
+    "task_id": "20250918154733",
+    "type": "packing_list",
+    "timestamp": "20250918_154739",
+    "input_file": "20250918154733_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA18RLF321Q",
+    "template_name": "德邦美森限时达",
+    "status": "error",
+    "result_file": null,
+    "address_info_status": "failed"
   }
 ]
