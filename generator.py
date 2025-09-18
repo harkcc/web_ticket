@@ -128,10 +128,13 @@ class InvoiceGenerator:
                     if product_info and product_info.get('cn_name'):
                         # 只使用中文品名进行合并，标准化处理
                         group_key = str(product_info['cn_name']).strip().lower()
+                        print(f"[调试] MSKU: {item.msku}, 中文品名: {product_info.get('cn_name')}, 分组键: {group_key}")
+                        print(f"[调试] 该商品的箱子数量分布: {item.box_quantities}")
                     
                     # 如果没有中文品名，不进行合并，使用MSKU作为独立分组
                     if not group_key:
                         group_key = item.msku  # 使用MSKU保证不合并
+                        print(f"[调试] MSKU: {item.msku}, 无中文品名，独立分组")
                     
                     if group_key not in product_groups:
                         product_groups[group_key] = []
@@ -139,8 +142,15 @@ class InvoiceGenerator:
             
                 # 合并每个分组
                 for group_key, items in product_groups.items():
-                    if debug and len(items) > 1:
-                        print(f"  合并分组 '{group_key}'，包含 {len(items)} 个商品")
+                    print(f"\n[调试] ===== 处理分组: '{group_key}' =====")
+                    print(f"[调试] 该分组包含 {len(items)} 个商品")
+                    
+                    if len(items) > 1:
+                        print(f"[调试] 需要合并的商品列表:")
+                        for i, item in enumerate(items):
+                            print(f"[调试]   商品{i+1}: MSKU={item.msku}, 箱子数量={item.box_quantities}")
+                    else:
+                        print(f"[调试] 单个商品，无需合并: MSKU={items[0].msku}")
                     
                     # 使用第一个商品作为基础
                     base_item = items[0]
@@ -162,20 +172,27 @@ class InvoiceGenerator:
                     merged_box_quantities = {}
                     valid_prices = []  # 收集有效价格用于计算平均值
                     
-                    for item in items:
+                    print(f"[调试] 开始合并数量和价格...")
+                    
+                    for i, item in enumerate(items):
+                        print(f"\n[调试] --- 处理第{i+1}个商品: {item.msku} ---")
+                        
                         # 获取该商品的产品信息用于计算重量和价格
                         item_product_info = self._get_product_info(item.msku, db)
                         
                         # 获取该商品的总数量用于重量和价格计算
                         current_item_total_qty = sum(item.box_quantities.values())
+                        print(f"[调试] 该商品总数量: {current_item_total_qty}")
+                        print(f"[调试] 该商品箱子分布: {item.box_quantities}")
                         
                         # 累加重量（产品重量 × 数量）
                         if item_product_info and item_product_info.get('weight'):
                             try:
                                 item_weight = float(item_product_info['weight']) * current_item_total_qty
                                 total_weight += item_weight
+                                print(f"[调试] 该商品重量: {item_product_info.get('weight')} × {current_item_total_qty} = {item_weight}")
                             except (ValueError, TypeError):
-                                pass  # 重量数据无效时跳过
+                                print(f"[调试] 该商品重量数据无效: {item_product_info.get('weight')}")
                         
                         # 累加价格（单价 × 数量）并收集单价
                         if item_product_info and item_product_info.get('price'):
@@ -184,20 +201,33 @@ class InvoiceGenerator:
                                 item_price = unit_price * current_item_total_qty
                                 total_price += item_price
                                 valid_prices.append(unit_price)  # 收集单价用于平均值计算
+                                print(f"[调试] 该商品价格: {unit_price} × {current_item_total_qty} = {item_price}")
                             except (ValueError, TypeError):
-                                pass  # 价格数据无效时跳过
+                                print(f"[调试] 该商品价格数据无效: {item_product_info.get('price')}")
                         
                         # 合并箱子数量（这是关键逻辑）
+                        print(f"[调试] 合并前的箱子数量: {merged_box_quantities}")
                         for box_num, qty in item.box_quantities.items():
+                            print(f"[调试] 处理箱子 {box_num}: 数量 {qty}")
                             if box_num in merged_box_quantities:
+                                old_qty = merged_box_quantities[box_num]
                                 merged_box_quantities[box_num] += qty
+                                print(f"[调试] 箱子 {box_num}: {old_qty} + {qty} = {merged_box_quantities[box_num]}")
                             else:
                                 merged_box_quantities[box_num] = qty
+                                print(f"[调试] 箱子 {box_num}: 新增数量 {qty}")
+                        print(f"[调试] 合并后的箱子数量: {merged_box_quantities}")
                     
                     # 计算总数量（应该等于所有箱子数量的总和）
                     total_quantity = sum(merged_box_quantities.values())
                     merged_item.quantity = total_quantity
                     merged_item.box_quantities = merged_box_quantities
+                    
+                    print(f"\n[调试] === 合并结果汇总 ===")
+                    print(f"[调试] 最终箱子数量分布: {merged_box_quantities}")
+                    print(f"[调试] 最终总数量: {total_quantity}")
+                    print(f"[调试] 总重量: {total_weight:.2f}")
+                    print(f"[调试] 总价格: {total_price:.2f}")
                     
                     # 为合并后的商品添加合并信息标记
                     if len(items) > 1:
@@ -210,8 +240,15 @@ class InvoiceGenerator:
                         merged_item._merged_average_price = sum(valid_prices) / len(valid_prices) if valid_prices else 0
                         # 保存合并的MSKU列表用于显示
                         merged_item._merged_mskus = [item.msku for item in items]
+                        
+                        print(f"[调试] 平均单价: {merged_item._merged_average_price:.2f}")
+                        print(f"[调试] 合并的MSKU列表: {[item.msku for item in items]}")
+                        print(f"[调试] 标记为合并商品")
                     else:
                         merged_item._is_merged = False
+                        print(f"[调试] 单个商品，无合并标记")
+                    
+                    print(f"[调试] ===== 分组处理完成 =====\n")
                     
                     # 为调试输出添加重量和价格信息
                     if debug and len(items) > 1:
@@ -224,9 +261,20 @@ class InvoiceGenerator:
                 
                 merged_box_data[box_number] = merged_box
                 
-                if debug:
-                    print(f"箱子 {box_number} 合并完成，合并后商品数: {len(merged_box.items)}")
+                print(f"\n[调试] ##### 箱子 {box_number} 处理完成 #####")
+                print(f"[调试] 原始商品数: {len(box.items)}")
+                print(f"[调试] 合并后商品数: {len(merged_box.items)}")
+                print(f"[调试] 分组数: {len(product_groups)}")
+                
+                # 显示最终结果
+                print(f"[调试] 最终商品列表:")
+                for i, final_item in enumerate(merged_box.items):
+                    print(f"[调试]   商品{i+1}: MSKU={final_item.msku}, 总数量={final_item.quantity}, 箱子分布={final_item.box_quantities}")
+                    if hasattr(final_item, '_is_merged') and final_item._is_merged:
+                        print(f"[调试]     -> 这是合并商品，包含{final_item._merged_count}个原商品")
+                print(f"[调试] ##### 箱子 {box_number} 处理完成 #####\n")
         
+        print(f"\n[调试] ========== 所有箱子合并完成 ==========\n")
         return merged_box_data
     
     def _get_display_price(self, item, product_info):

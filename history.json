@@ -1449,5 +1449,16 @@
     "status": "error",
     "result_file": null,
     "address_info_status": "failed"
+  },
+  {
+    "task_id": "20250918160317",
+    "type": "packing_list",
+    "timestamp": "20250918_160323",
+    "input_file": "20250918160317_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15FXPFFPL",
+    "template_name": "德邦美森限时达",
+    "status": "error",
+    "result_file": null
   }
 ]
