@@ -91,6 +91,128 @@ class InvoiceGenerator:
         """重要信息输出"""
         print(f"[INFO] {message}")
     
+    def merge_items_by_product_name(self, box_data, debug=False):
+        """
+        根据品名合并每个箱子内相同品名的产品（不跨箱合并）
+        
+        :param box_data: 箱子数据字典 {box_number: PackingListBox}
+        :param debug: 是否输出调试信息
+        :return: 合并后的箱子数据
+        """
+        from get_ticket_data import PackingListBox, PackingListItem
+        
+        merged_box_data = {}
+        
+        for box_number, box in box_data.items():
+            if debug:
+                print(f"处理箱子 {box_number}，原始商品数: {len(box.items)}")
+            
+            # 创建新的箱子对象
+            merged_box = PackingListBox(box_number)
+            merged_box.length = box.length
+            merged_box.width = box.width  
+            merged_box.height = box.height
+            merged_box.weight = box.weight
+            
+            # 按品名分组商品
+            product_groups = {}
+            
+            for item in box.items:
+                # 获取产品信息用于分组
+                with self.db_connector as db:
+                    product_info = self._get_product_info(item.msku, db)
+                
+                # 确定分组键（品名）
+                group_key = None
+                if product_info:
+                    # 优先使用中文品名，其次是product_name
+                    if product_info.get('cn_name'):
+                        group_key = str(product_info['cn_name']).strip()
+                    elif product_info.get('product_name'):
+                        group_key = str(product_info['product_name']).strip()
+                
+                # 如果没有找到品名，使用原始品名或MSKU作为分组键
+                if not group_key:
+                    group_key = item.product_name if item.product_name else item.msku
+                
+                if group_key not in product_groups:
+                    product_groups[group_key] = []
+                product_groups[group_key].append(item)
+            
+            # 合并每个分组
+            for group_key, items in product_groups.items():
+                if debug and len(items) > 1:
+                    print(f"  合并分组 '{group_key}'，包含 {len(items)} 个商品")
+                
+                # 使用第一个商品作为基础
+                base_item = items[0]
+                
+                # 创建合并后的商品
+                merged_item = PackingListItem(
+                    sequence_no=base_item.sequence_no,
+                    msku=base_item.msku,  # 保留第一个MSKU，不添加标识
+                    fnsku=base_item.fnsku,
+                    product_name=base_item.product_name,
+                    sku=base_item.sku,
+                    quantity=0,  # 将重新计算
+                    box_quantities={}
+                )
+                
+                # 合并数量、重量、价格等数值字段
+                total_quantity = 0
+                total_weight = 0
+                total_price = 0
+                merged_box_quantities = {}
+                
+                for item in items:
+                    # 获取该商品的产品信息用于计算重量和价格
+                    with self.db_connector as db:
+                        item_product_info = self._get_product_info(item.msku, db)
+                    
+                    # 累加数量
+                    total_quantity += item.quantity
+                    
+                    # 累加重量（产品重量 × 数量）
+                    if item_product_info and item_product_info.get('weight'):
+                        try:
+                            item_weight = float(item_product_info['weight']) * item.quantity
+                            total_weight += item_weight
+                        except (ValueError, TypeError):
+                            pass  # 重量数据无效时跳过
+                    
+                    # 累加价格（单价 × 数量）
+                    if item_product_info and item_product_info.get('price'):
+                        try:
+                            item_price = float(item_product_info['price']) * item.quantity
+                            total_price += item_price
+                        except (ValueError, TypeError):
+                            pass  # 价格数据无效时跳过
+                    
+                    # 合并箱子数量
+                    for box_num, qty in item.box_quantities.items():
+                        if box_num in merged_box_quantities:
+                            merged_box_quantities[box_num] += qty
+                        else:
+                            merged_box_quantities[box_num] = qty
+                
+                merged_item.quantity = total_quantity
+                merged_item.box_quantities = merged_box_quantities
+                
+                # 为调试输出添加重量和价格信息
+                if debug and len(items) > 1:
+                    msku_list = [item.msku for item in items]
+                    print(f"    合并的MSKU: {', '.join(msku_list)}")
+                    print(f"    合并后数量: {total_quantity}, 总重量: {total_weight:.2f}, 总价格: {total_price:.2f}")
+                
+                merged_box.add_item(merged_item)
+            
+            merged_box_data[box_number] = merged_box
+            
+            if debug:
+                print(f"箱子 {box_number} 合并完成，合并后商品数: {len(merged_box.items)}")
+        
+        return merged_box_data
+    
     def _print_missing_summary(self):
         """打印缺失产品信息的汇总"""
         if self.missing_products:
@@ -1838,6 +1960,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['FBA专线出货资料模板']  # 获取模板工作表
                 print("开始写入模版信息")
 
@@ -1951,8 +2079,8 @@ class InvoiceGenerator:
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[9].height
 
-                # 将box_data按箱号排序
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
