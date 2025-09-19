@@ -409,6 +409,25 @@ def get_address_info(ticket_id):
             "SG": "新加坡"
         }
 
+        # 只处理第一个地址（简化版）
+        if isinstance(address_data, list) and len(address_data) > 0:
+            # 如果有多地址，只返回第一个地址
+            print(f"找到 {len(address_data)} 个地址，只处理第一个地址")
+            address_data = address_data[0]
+        
+        # 返回单个地址
+        return {
+            'seller_info': {
+                'sellerName': basic_info['sellerName'],
+                'country_name': country_dict.get(basic_info['sellerName'], ''),
+                'sid': basic_info['sid'],
+                'inboundPlanId': basic_info['inboundPlanId'],
+            },
+            'address_info': address_data
+        }
+        
+        """
+        # 以下是原来的多地址处理代码，已注释掉，供将来参考
         # 处理单地址和多地址情况
         if isinstance(address_data, list):
             # 多地址情况：为每个地址构建完整的结构
@@ -437,3 +456,4 @@ def get_address_info(ticket_id):
                 },
                 'address_info': address_data
             }
+        """
