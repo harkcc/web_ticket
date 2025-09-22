@@ -91,6 +91,41 @@ class InvoiceGenerator:
         """重要信息输出"""
         print(f"[INFO] {message}")
     
+    def should_enable_merge(self, address_info=None):
+        """
+        判断是否应该启用产品合并功能
+        只有美国地址才启用合并
+        
+        :param address_info: 地址信息
+        :return: 是否启用合并
+        """
+        if not address_info:
+            print("[合并判断] 没有地址信息，跳过合并")
+            return False
+            
+        try:
+            if isinstance(address_info, list) and len(address_info) > 0:
+                address_info_detail = address_info[0]
+            elif isinstance(address_info, dict):
+                address_info_detail = address_info
+            else:
+                print("[合并判断] 地址信息格式不正确，跳过合并")
+                return False
+                
+            country_code = address_info_detail.get('countryCode', '').upper()
+            
+            # 只有美国才启用合并
+            if country_code == 'US':
+                print(f"[合并判断] 检测到美国地址 (countryCode: {country_code})，启用产品合并")
+                return True
+            else:
+                print(f"[合并判断] 检测到非美国地址 (countryCode: {country_code})，跳过产品合并")
+                return False
+                
+        except Exception as e:
+            print(f"[合并判断] 判断过程中出现错误: {str(e)}，跳过合并")
+            return False
+
     def merge_items_by_product_name(self, box_data, debug=False):
         """
         根据品名合并每个箱子内相同品名的产品（不跨箱合并）
@@ -470,11 +505,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['模板']  # 获取模板工作表
 
@@ -678,11 +714,11 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                  # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
 
                 sheet = wb['Sheet1']  # 获取模板工作表
@@ -990,11 +1026,11 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                 # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['清关发票']  # 获取模板工作表
 
@@ -1199,11 +1235,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
                 
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['发票']  # 获取发票工作表
                 
@@ -1418,13 +1455,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
+                    
                 sheet = wb['模板']  # 获取模板工作表
-
 
                 self.unmerge_cells_in_range(sheet, 3, 3, 2, 4)
                 self.unmerge_cells_in_range(sheet, 4, 4, 2, 4)
@@ -1689,12 +1726,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db: 
             try:
-
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
+                    
                 sheet = wb['发票']
                 
                 # 解除单元格合并
@@ -1867,11 +1905,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
                 
                 sheet = wb['FBA对应贴标资料']  # 获取模板工作表
                 self._log_info("开始处理递信模板")
@@ -2128,11 +2167,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                 # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['FBA专线出货资料模板']  # 获取模板工作表
                 print("开始写入模版信息")
@@ -2405,11 +2445,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['箱单发票']  # 获取模板工作表
                 
@@ -2825,11 +2866,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['模板']  # 获取模板工作表
                 self.unmerge_cells_in_range(sheet, 4, 4, 2, 4)
@@ -3043,11 +3085,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                 # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                 # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 sheet = wb['专线箱单 ']  # 获取模板工作表
                
@@ -3253,12 +3296,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
 
-                # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
-                sheet = wb['运单信息']  # 获取模板工作表
+                # 根据国家判断是否启用产品合并（只有美国才启用）
+                if self.should_enable_merge(address_info):
+                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                    processed_data = merged_box_data
+                else:
+                    processed_data = box_data
 
                 self.unmerge_cells_in_range(sheet, 3, 3, 2, 4)
                 self.unmerge_cells_in_range(sheet, 3, 3, 8, 11)
@@ -3759,7 +3802,7 @@ class InvoiceGenerator:
                         raise ValueError('Logistics cannot be None')
 
                     # 获取code
-                    code_suffix = f"-{code}" if code else ""
+                    code_suffix = f"{code}" if code else ""
 
                     country_name = address_info["seller_info"]["country_name"] if address_info and address_info.get("seller_info") else ''
                     output_filename = f'{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单.xlsx'
