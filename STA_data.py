@@ -435,11 +435,12 @@ def get_address_info(ticket_id):
                 print(f"  ⚠️ 未找到匹配的shipmentConfirmationId，使用第一个地址作为备选")
                 address_data = address_data[0]
         
-        # 返回单个地址
+        # 返回地址
         return {
             'seller_info': {
                 'sellerName': basic_info['sellerName'],
                 'country_name': country_dict.get(address_data.get('countryCode', ''), ''),
+                'country_code': address_data.get('countryCode', ''),
                 'sid': basic_info['sid'],
                 'inboundPlanId': basic_info['inboundPlanId'],
             },

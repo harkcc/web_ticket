@@ -104,15 +104,20 @@ class InvoiceGenerator:
             return False
             
         try:
-            if isinstance(address_info, list) and len(address_info) > 0:
-                address_info_detail = address_info[0]
-            elif isinstance(address_info, dict):
-                address_info_detail = address_info
+            # address_info的结构是：{'seller_info': {..., 'country_code': '...'}, 'address_info': {..., 'countryCode': '...'}}
+            if isinstance(address_info, dict):
+                # 优先从seller_info中获取country_code
+                if 'seller_info' in address_info and 'country_code' in address_info['seller_info']:
+                    country_code = address_info['seller_info']['country_code'].upper()
+                # 备选：从address_info中获取countryCode
+                elif 'address_info' in address_info and isinstance(address_info['address_info'], dict):
+                    country_code = address_info['address_info'].get('countryCode', '').upper()
+                # 兼容旧格式：直接从根级别获取countryCode
+                else:
+                    country_code = address_info.get('countryCode', '').upper()
             else:
                 print("[合并判断] 地址信息格式不正确，跳过合并")
                 return False
-                
-            country_code = address_info_detail.get('countryCode', '').upper()
             
             # 只有美国才启用合并
             if country_code == 'US':
