@@ -469,6 +469,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['模板']  # 获取模板工作表
 
                 print("开始写入模版信息")
@@ -593,7 +600,11 @@ class InvoiceGenerator:
 
                 # 遍历每个箱子
 
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
+
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -666,6 +677,14 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                  # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
+
                 sheet = wb['Sheet1']  # 获取模板工作表
                 # box_Reference_id = ''  # 在方法开始时就初始化
                 print("开始写入模版信息")
@@ -733,7 +752,10 @@ class InvoiceGenerator:
                 index = 1    # 添加序号计数器，从1开始
 
                 # 将box_data按箱号排序
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+
+                 # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -967,6 +989,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                 # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['清关发票']  # 获取模板工作表
 
                 print("开始写入模版信息")
@@ -1083,7 +1112,10 @@ class InvoiceGenerator:
                 Reference_id = ''
                 
                 # 遍历每个箱子
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -1167,6 +1199,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['发票']  # 获取发票工作表
                 
                 # 定义样式信息
@@ -1243,11 +1281,14 @@ class InvoiceGenerator:
                         print(f"填充地址信息时发生错误: {str(e)}")
             
                 # 遍历每个箱子
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
                 row_height = sheet.row_dimensions[13].height
                 
                 # 记录数据起始行，用于后续公式计算
                 data_start_row = row_num
+
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -1377,7 +1418,14 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
                 sheet = wb['模板']  # 获取模板工作表
+
+
                 self.unmerge_cells_in_range(sheet, 3, 3, 2, 4)
                 self.unmerge_cells_in_range(sheet, 4, 4, 2, 4)
                 self.unmerge_cells_in_range(sheet, 5, 5, 2, 4)
@@ -1544,7 +1592,10 @@ class InvoiceGenerator:
 
                 # 遍历每个箱子
 
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -1638,6 +1689,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db: 
             try:
+
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
                 sheet = wb['发票']
                 
                 # 解除单元格合并
@@ -1700,7 +1757,10 @@ class InvoiceGenerator:
                 cell_alignment = Alignment(horizontal='center', vertical='center')
                 # 填充数据
                 num_row = 19
-                for box_number, box in box_data.items():
+
+                
+                #由box_data.items()改为
+                for box_number, box in processed_data.items():
                     if not box.items:
                         continue
                     
@@ -1806,6 +1866,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
                 
                 sheet = wb['FBA对应贴标资料']  # 获取模板工作表
                 self._log_info("开始处理递信模板")
@@ -1893,7 +1959,8 @@ class InvoiceGenerator:
 
                 # 遍历每个箱子
 
-                for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
+                #由box_data.items()改为processed_data.items()
+                for box_number, box in sorted(processed_data.items(), key=lambda x: int(x[0])):
                     # 计算箱子中的产品数量
                     box_products = box.items
                     print(box_products)
@@ -2337,6 +2404,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['箱单发票']  # 获取模板工作表
                 
                 # 获取基础单元格样式
@@ -2457,8 +2531,9 @@ class InvoiceGenerator:
                 data_rows = []  # 存储所有产品数据行
                 sheet.delete_rows(9)
                 
-                # 第一步：收集所有产品数据
-                for box_number, box in sorted(box_data.items(), key=lambda x: int(x[0])):
+                # 第一步：收集所有产品数据，
+                #由box_data.items()改为processed_data.items()
+                for box_number, box in sorted(processed_data.items(), key=lambda x: int(x[0])):
                     box_start_row = row_num
                     total_quantity = 0
                     total_price = 0
@@ -2749,6 +2824,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['模板']  # 获取模板工作表
                 self.unmerge_cells_in_range(sheet, 4, 4, 2, 4)
                 self.unmerge_cells_in_range(sheet, 6, 6, 2, 4)
@@ -2869,7 +2951,10 @@ class InvoiceGenerator:
 
                 # 遍历每个箱子
 
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+
+                 # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 row_height = sheet.row_dimensions[16].height
                 
                 # 遍历排序后的箱子
@@ -2957,6 +3042,13 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                 # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+
                 sheet = wb['专线箱单 ']  # 获取模板工作表
                
                 print("开始写入模版信息")
@@ -3076,7 +3168,10 @@ class InvoiceGenerator:
 
                 # 遍历每个箱子
 
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                 # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
+
                 row_height = sheet.row_dimensions[19].height
                 Reference_id = ''
                 
@@ -3157,6 +3252,12 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+
+                # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
                 sheet = wb['运单信息']  # 获取模板工作表
 
                 self.unmerge_cells_in_range(sheet, 3, 3, 2, 4)
@@ -3282,7 +3383,10 @@ class InvoiceGenerator:
 
                 # 遍历每个箱子
 
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -3368,6 +3472,12 @@ class InvoiceGenerator:
         with self.db_connector as db:
             try:
                 sheet = wb['2025.3.12 最新发票模板']  # 获取模板工作表
+
+                  # 可选：应用产品合并
+                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
+                
+                # 使用合并后的数据替代原始数据
+                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
             
                 print("开始写入模版信息")
 
@@ -3501,7 +3611,9 @@ class InvoiceGenerator:
                 
                 # 遍历每个箱子
 
-                sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
+                # 将processed_data按箱号排序（使用合并后的数据）
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
                 
                 # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
@@ -3650,7 +3762,7 @@ class InvoiceGenerator:
                     code_suffix = f"-{code}" if code else ""
 
                     country_name = address_info["seller_info"]["country_name"] if address_info and address_info.get("seller_info") else ''
-                    output_filename = f'百泰{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单.xlsx'
+                    output_filename = f'{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单.xlsx'
                     # 替换任何可能导致路径问题的字符
                     output_filename = "".join(c for c in output_filename if c not in r'<>:"/\|?*')
                     output_path = os.path.join(self.output_folder, output_filename)

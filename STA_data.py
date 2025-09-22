@@ -94,6 +94,8 @@ def request_sta_data_amz(sid, inboundPlanId):
             shipmentName = item.get('shipmentName', '')
             amazonReferenceId = item.get('amazonReferenceId', '')
             warehouseId = item.get('warehouseId', '')
+            shipmentConfirmationId = item.get('shipmentConfirmationId', '')
+            
             
             print(f"DEBUG: 处理第 {i+1} 个地址 - shipmentName: {shipmentName}")
             
@@ -112,6 +114,7 @@ def request_sta_data_amz(sid, inboundPlanId):
                 'warehouseId': warehouseId,
                 'shipmentName': shipmentName,
                 'amazonReferenceId': amazonReferenceId,
+                'shipmentConfirmationId': shipmentConfirmationId,
             }
             addresses.append(address_info)
         
@@ -409,17 +412,34 @@ def get_address_info(ticket_id):
             "SG": "新加坡"
         }
 
-        # 只处理第一个地址（简化版）
+        # 处理多地址情况，根据ticket_id匹配shipmentConfirmationId
         if isinstance(address_data, list) and len(address_data) > 0:
-            # 如果有多地址，只返回第一个地址
-            print(f"找到 {len(address_data)} 个地址，只处理第一个地址")
-            address_data = address_data[0]
+            print(f"找到 {len(address_data)} 个地址，尝试匹配ticket_id: {ticket_id}")
+            
+            # 遍历所有地址，找到匹配的shipmentConfirmationId
+            matched_address = None
+            for i, addr in enumerate(address_data):
+                shipment_confirmation_id = addr.get('shipmentConfirmationId', '')
+                print(f"  地址 {i+1}: shipmentConfirmationId = '{shipment_confirmation_id}'")
+                
+                # 匹配逻辑：只使用shipmentConfirmationId匹配ticket_id
+                if ticket_id == shipment_confirmation_id or ticket_id in shipment_confirmation_id:
+                    matched_address = addr
+                    print(f"  ✓ 找到匹配地址: shipmentConfirmationId = '{shipment_confirmation_id}'")
+                    break
+            
+            if matched_address:
+                address_data = matched_address
+            else:
+                # 如果没有找到匹配的，使用第一个地址作为备选
+                print(f"  ⚠️ 未找到匹配的shipmentConfirmationId，使用第一个地址作为备选")
+                address_data = address_data[0]
         
         # 返回单个地址
         return {
             'seller_info': {
                 'sellerName': basic_info['sellerName'],
-                'country_name': country_dict.get(basic_info['sellerName'], ''),
+                'country_name': country_dict.get(address_data.get('countryCode', ''), ''),
                 'sid': basic_info['sid'],
                 'inboundPlanId': basic_info['inboundPlanId'],
             },
