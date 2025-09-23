@@ -11,7 +11,7 @@ import json
 import shutil
 import pandas as pd
 from generator import InvoiceGenerator, ProcessingError
-from get_ticket_data import PackingListProcessor, SimplePackingListProcessor
+from get_ticket_data_fixed import PackingListProcessor, SimplePackingListProcessor
 from STA_data import get_address_info
 from db_utils import MongoDBClient
 from image_extractor import ImageExtractor
