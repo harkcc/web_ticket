@@ -594,6 +594,19 @@ class InvoiceGenerator:
                             final_address_parts = address_parts.copy()
                             if 'warehouseId' in address_info_detail:
                                 warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=4, column=2)  # B2单元格
+                                cell.value = warehouse_id 
+
+                                cell = sheet.cell(row=3, column=2)  # B2单元格
+                                cell.value = warehouse_id
+   
+                                cell_company = sheet.cell(row=5, column=2)  # B2单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
@@ -784,6 +797,18 @@ class InvoiceGenerator:
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
+
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=3, column=2)  # B2单元格
+                                cell.value = warehouse_id 
+   
+                                cell_company = sheet.cell(row=2, column=2)  # B2单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
   
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
@@ -1075,14 +1100,14 @@ class InvoiceGenerator:
                         # 填充地址信息
                         address_parts = []
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=3, column=8)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=3, column=8)  # B2单元格
+                            # cell.value = address_info_detail['name']
 
-                            cell = sheet.cell(row=4, column=8)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=4, column=8)  # B2单元格
+                            # cell.value = address_info_detail['name']
 
-                            cell = sheet.cell(row=8, column=13)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=8, column=13)  # B2单元格
+                            # cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
@@ -1134,6 +1159,22 @@ class InvoiceGenerator:
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
+
+
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=3, column=8)  # B2单元格
+                                cell.value = warehouse_id 
+                                cell = sheet.cell(row=8, column=13)  # B2单元格
+                                cell.value = warehouse_id 
+
+                                cell_company = sheet.cell(row=4, column=8)  # B2单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
@@ -1529,14 +1570,14 @@ class InvoiceGenerator:
                         # 填充地址信息
                         address_parts = []
                         if 'name' in address_info_detail:
-                            cell = sheet.cell(row=4, column=2)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=4, column=2)  # B2单元格
+                            # cell.value = address_info_detail['name']
 
-                            cell = sheet.cell(row=3, column=2)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=3, column=2)  # B2单元格
+                            # cell.value = address_info_detail['name']
 
-                            cell = sheet.cell(row=5, column=2)  # B2单元格
-                            cell.value = address_info_detail['name']
+                            # cell = sheet.cell(row=5, column=2)  # B2单元格
+                            # cell.value = address_info_detail['name']
                             address_parts.append(address_info_detail['name'])
                         if 'addressLine1' in address_info_detail:
                             address_parts.append(address_info_detail['addressLine1'])
@@ -1584,6 +1625,22 @@ class InvoiceGenerator:
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
+
+                            if 'warehouseId' in address_info_detail:
+                                warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=4, column=2)  # B2单元格
+                                cell.value = warehouse_id 
+                                cell = sheet.cell(row=3, column=2)  # B2单元格
+                                cell.value = warehouse_id 
+
+                                cell_company = sheet.cell(row=5, column=2)  # B2单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+
+
                         else:
                             if 'addressLine2' in address_info_detail: 
                                 cell = sheet.cell(row=7, column=2)  # B3单元格
@@ -2050,7 +2107,6 @@ class InvoiceGenerator:
                         original_value = getattr(product_info, 'box_original_values', {}).get(box_number, str(quantity))
                         
 
-                        
                         total_quantity = total_quantity + quantity
 
                         # 只在第一行显示箱子的总数量
@@ -2214,7 +2270,15 @@ class InvoiceGenerator:
                     warehouse_id = str(address_info_detail['warehouseId'])
                     cell = sheet.cell(row=4, column=3)  
                     cell.value = str(warehouse_id)
-                
+
+                    cell_company = sheet.cell(row=3, column=3)  # B2单元格
+                    if 'warehouseId' not in address_info_detail['name']:
+                        cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                        cell_company.value = cell_result_value
+                    else:
+                        cell_company.value = address_info_detail['name']
+
+
                 Reference_id = address_info_detail.get('amazonReferenceId', '') if address_info_detail else ''
                 if Reference_id:
                     cell = sheet.cell(row=5, column=11)  # B列是第2列
@@ -2339,11 +2403,7 @@ class InvoiceGenerator:
                             # 价格处理：区分合并和非合并商品
                             (8, self._get_display_price(item, product_info)),   # 单价
                             (9, self._get_total_price(item, box_number, product_info)),   # 总价
-                            
-                            
-                                             # 型号
                             # 产品材料和用途
-                        
                             (10, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
                             (11, str(product_info.get('usage_en', '') + '/' +
                                    product_info.get('usage_cn', '')) if product_info else ''),            # 用途
@@ -2563,6 +2623,14 @@ class InvoiceGenerator:
                                 warehouse_id = str(address_info_detail['warehouseId'])
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
+
+                                cell_company = sheet.cell(row=6, column=3)  
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+
                             cell.value = ', '.join(final_address_parts)
                         else:
                             if 'addressLine2' in address_info_detail: 
@@ -2978,6 +3046,13 @@ class InvoiceGenerator:
                             final_address_parts = address_parts.copy()
                             if 'warehouseId' in address_info_detail:
                                 warehouse_id = str(address_info_detail['warehouseId'])
+                                cell_company = sheet.cell(row=7, column=2)  # B3单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
@@ -3158,10 +3233,10 @@ class InvoiceGenerator:
                         if 'countryCode' in address_info_detail:
                             address_parts.append(address_info_detail['countryCode'])
 
-                        # 填充名字信息
-                        if 'name' in address_info_detail:
-                            cell = sheet.cell(row=8, column=2)  # B2单元格
-                            cell.value = address_info_detail['name']
+                        # # 填充名字信息
+                        # if 'name' in address_info_detail:
+                        #     cell = sheet.cell(row=8, column=2)  # B2单元格
+                        #     cell.value = address_info_detail['name']
                             
                         # 填充地址信息
                         if 'addressLine1' in address_info_detail:
@@ -3194,6 +3269,18 @@ class InvoiceGenerator:
                             final_address_parts = address_parts.copy()
                             if 'warehouseId' in address_info_detail:
                                 warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=8, column=2)  # B2单元格
+                                cell.value = warehouse_id
+
+                                cell = sheet.cell(row=10, column=2)  # B2单元格
+                                cell.value = warehouse_id
+
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
@@ -3405,6 +3492,16 @@ class InvoiceGenerator:
                             final_address_parts = address_parts.copy()
                             if 'warehouseId' in address_info_detail:
                                 warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=3, column=8)  # B2单元格
+                                cell.value = warehouse_id
+
+                                cell_company = sheet.cell(row=4, column=8)  # B7单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+                                
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
@@ -3618,6 +3715,16 @@ class InvoiceGenerator:
                             final_address_parts = address_parts.copy()
                             if 'warehouseId' in address_info_detail:
                                 warehouse_id = str(address_info_detail['warehouseId'])
+                                cell = sheet.cell(row=3, column=2)  # B2单元格
+                                cell.value = warehouse_id
+
+                                cell_company = sheet.cell(row=4, column=2)  # B7单元格
+                                if warehouse_id not in address_info_detail['name']:
+                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
+                                    cell_company.value = cell_result_value
+                                else:
+                                    cell_company.value = address_info_detail['name']
+                                
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
                             cell.value = ', '.join(final_address_parts)
