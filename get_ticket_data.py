@@ -146,36 +146,59 @@ class PackingListProcessor:
             # 读取箱子尺寸信息
             # 箱子信息在最后一个产品后两行开始
             box_info_start = int(last_product_row) + 2  # 确保是整数运算
+            
+            # 检查是否有足够的行来读取箱子信息
+            df_row_count = len(df)
+            print(f"DataFrame总行数: {df_row_count}, 箱子信息开始行: {box_info_start}")
+            
+            if box_info_start >= df_row_count:
+                print(f"Warning: 箱子信息开始行({box_info_start})超出了DataFrame范围({df_row_count}行)，跳过箱子尺寸读取")
+            else:
+                # 对每个箱子
+                for box_number in self.boxes:
+                    box = self.boxes[box_number]
+                    col_idx = box_start_col + box_number - 1  # 箱子列索引（动态计算）
 
-            # 对每个箱子
-            for box_number in self.boxes:
-                box = self.boxes[box_number]
-                col_idx = box_start_col + box_number - 1  # 箱子列索引（动态计算）
+                    # 获取箱子信息（按顺序：重量、长、宽、高）
+                    # 重量
+                    if box_info_start < df_row_count:
+                        try:
+                            weight = df.iloc[box_info_start, col_idx]
+                            if not pd.isna(weight):
+                                box.weight = float(weight)
+                                print(f"Box {box_number} weight: {box.weight} kg")
+                        except IndexError:
+                            print(f"Warning: 无法读取Box {box_number}的重量信息")
 
-                # 获取箱子信息（按顺序：重量、长、宽、高）
-                # 重量
-                weight = df.iloc[box_info_start, col_idx]
-                if not pd.isna(weight):
-                    box.weight = float(weight)
-                    print(f"Box {box_number} weight: {box.weight} kg")
+                    # 长度
+                    if box_info_start + 1 < df_row_count:
+                        try:
+                            length = df.iloc[box_info_start + 1, col_idx]
+                            if not pd.isna(length):
+                                box.length = float(length)
+                                print(f"Box {box_number} length: {box.length} cm")
+                        except IndexError:
+                            print(f"Warning: 无法读取Box {box_number}的长度信息")
 
-                # 长度
-                length = df.iloc[box_info_start + 1, col_idx]
-                if not pd.isna(length):
-                    box.length = float(length)
-                    print(f"Box {box_number} length: {box.length} cm")
+                    # 宽度
+                    if box_info_start + 2 < df_row_count:
+                        try:
+                            width = df.iloc[box_info_start + 2, col_idx]
+                            if not pd.isna(width):
+                                box.width = float(width)
+                                print(f"Box {box_number} width: {box.width} cm")
+                        except IndexError:
+                            print(f"Warning: 无法读取Box {box_number}的宽度信息")
 
-                # 宽度
-                width = df.iloc[box_info_start + 2, col_idx]
-                if not pd.isna(width):
-                    box.width = float(width)
-                    print(f"Box {box_number} width: {box.width} cm")
-
-                # 高度
-                height = df.iloc[box_info_start + 3, col_idx]
-                if not pd.isna(height):
-                    box.height = float(height)
-                    print(f"Box {box_number} height: {box.height} cm")
+                    # 高度
+                    if box_info_start + 3 < df_row_count:
+                        try:
+                            height = df.iloc[box_info_start + 3, col_idx]
+                            if not pd.isna(height):
+                                box.height = float(height)
+                                print(f"Box {box_number} height: {box.height} cm")
+                        except IndexError:
+                            print(f"Warning: 无法读取Box {box_number}的高度信息")
 
             print(f"\nProcessing complete:")
             print(f"- Total products: {len(self.items)}")

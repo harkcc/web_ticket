@@ -1530,5 +1530,120 @@
     "template_name": "罗马尼亚鹏城",
     "status": "failed",
     "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925135454",
+    "type": "packing_list",
+    "timestamp": "20250925_135454",
+    "input_file": "20250925135454_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925135945",
+    "type": "packing_list",
+    "timestamp": "20250925_135945",
+    "input_file": "20250925135945_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925144830",
+    "type": "packing_list",
+    "timestamp": "20250925_144833",
+    "input_file": "20250925144830_invoice_info.xlsx",
+    "output_file": "20250925144832.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "completed",
+    "result_file": "20250925144832.xlsx"
+  },
+  {
+    "task_id": "20250925145011",
+    "type": "packing_list",
+    "timestamp": "20250925_145014",
+    "input_file": "20250925145011_invoice_info.xlsx",
+    "output_file": "20250925145013.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "completed",
+    "result_file": "20250925145013.xlsx"
+  },
+  {
+    "task_id": "20250925145757",
+    "type": "packing_list",
+    "timestamp": "20250925_145757",
+    "input_file": "20250925145757_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925145913",
+    "type": "packing_list",
+    "timestamp": "20250925_145913",
+    "input_file": "20250925145913_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925145951",
+    "type": "packing_list",
+    "timestamp": "20250925_145951",
+    "input_file": "20250925145951_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925150546",
+    "type": "packing_list",
+    "timestamp": "20250925_150550",
+    "input_file": "20250925150546_invoice_info.xlsx",
+    "output_file": "20250925150548.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "completed",
+    "result_file": "20250925150548.xlsx"
+  },
+  {
+    "task_id": "20250925150753",
+    "type": "packing_list",
+    "timestamp": "20250925_150756",
+    "input_file": "20250925150753_invoice_info.xlsx",
+    "output_file": "20250925150755.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "completed",
+    "result_file": "20250925150755.xlsx"
+  },
+  {
+    "task_id": "20250925152307",
+    "type": "packing_list",
+    "timestamp": "20250925_152307",
+    "input_file": "20250925152307_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925153443",
+    "type": "packing_list",
+    "timestamp": "20250925_153447",
+    "input_file": "20250925153443_invoice_info.xlsx",
+    "output_file": "20250925153445.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "completed",
+    "result_file": "20250925153445.xlsx"
   }
 ]
