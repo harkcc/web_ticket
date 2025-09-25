@@ -1645,5 +1645,27 @@
     "template_name": "罗马尼亚鹏城",
     "status": "completed",
     "result_file": "20250925153445.xlsx"
+  },
+  {
+    "task_id": "20250925163749",
+    "type": "packing_list",
+    "timestamp": "20250925_163753",
+    "input_file": "20250925163749_invoice_info.xlsx",
+    "output_file": "20250925163751.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "completed",
+    "result_file": "20250925163751.xlsx"
+  },
+  {
+    "task_id": "20250925163857",
+    "type": "packing_list",
+    "timestamp": "20250925_163903",
+    "input_file": "20250925163857_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "一八供应链",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
   }
 ]
