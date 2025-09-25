@@ -1460,5 +1460,75 @@
     "template_name": "德邦美森限时达",
     "status": "error",
     "result_file": null
+  },
+  {
+    "task_id": "20250925114553",
+    "type": "packing_list",
+    "timestamp": "20250925_114553",
+    "input_file": "20250925114553_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "SimplePackingListProcessor.process() got an unexpected keyword argument 'template_name'"
+  },
+  {
+    "task_id": "20250925114613",
+    "type": "packing_list",
+    "timestamp": "20250925_114613",
+    "input_file": "20250925114613_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "SimplePackingListProcessor.process() got an unexpected keyword argument 'template_name'"
+  },
+  {
+    "task_id": "20250925115011",
+    "type": "packing_list",
+    "timestamp": "20250925_115013",
+    "input_file": "20250925115011_packing_list.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "德邦美森限时达",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925115311",
+    "type": "packing_list",
+    "timestamp": "20250925_115311",
+    "input_file": "20250925115311_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "failed",
+    "error": "SimplePackingListProcessor.process() got an unexpected keyword argument 'template_name'"
+  },
+  {
+    "task_id": "20250925115311",
+    "type": "packing_list",
+    "timestamp": "20250925_115311",
+    "input_file": "20250925115311_invoice_info.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "failed",
+    "error": "SimplePackingListProcessor.process() got an unexpected keyword argument 'template_name'"
+  },
+  {
+    "task_id": "20250925123036",
+    "type": "packing_list",
+    "timestamp": "20250925_123038",
+    "input_file": "20250925123036_packing_list.xlsx",
+    "code_input": "",
+    "template_name": "依诺达",
+    "status": "failed",
+    "error": "处理装箱单失败"
+  },
+  {
+    "task_id": "20250925123056",
+    "type": "packing_list",
+    "timestamp": "20250925_123058",
+    "input_file": "20250925123056_packing_list.xlsx",
+    "code_input": "",
+    "template_name": "罗马尼亚鹏城",
+    "status": "failed",
+    "error": "处理装箱单失败"
   }
 ]

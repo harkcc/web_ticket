@@ -280,7 +280,7 @@ class SimplePackingListProcessor:
             print(f"Error parsing box dimensions: {str(e)}")
             return None
 
-    def process(self):
+    def process(self, template_name=None):
         """处理装箱单"""
         try:
             # 读取Excel文件

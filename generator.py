@@ -2497,7 +2497,7 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
 
-    @template_handler("德邦空派")
+    @template_handler("德邦美加空派")
     def _fill_dbkp_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充德邦空派模板
