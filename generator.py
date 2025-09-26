@@ -1954,7 +1954,7 @@ class InvoiceGenerator:
                 print(f"填充林道UPS模板时发生错误: {str(e)}")
                 raise
 
-    @template_handler("递信")
+    @template_handler("递信普通")
     def _fill_dixing_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         填充递信模板
@@ -3840,7 +3840,6 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
     
-
     @template_handler("递信日本空派")
     def _fill_dx_japenDP_template(self, wb, box_data,code=None, address_info=None, shipment_id=None):
         """
@@ -3859,7 +3858,7 @@ class InvoiceGenerator:
                 else:
                     processed_data = box_data
 
-                sheet = wb['FBA专线出货资料模板']  # 获取模板工作表
+                sheet = wb['发票']  # 获取模板工作表
                 print("开始写入模版信息")
 
                 # 定义样式信息
@@ -3873,9 +3872,9 @@ class InvoiceGenerator:
                 }
 
                 #先拆分合并的单元格，用于写入
-                self.unmerge_cells_in_range(sheet, 4, 4, 3, 7)
-                self.unmerge_cells_in_range(sheet, 5, 5, 3, 7)
-                self.unmerge_cells_in_range(sheet, 3, 3, 3, 7)
+                self.unmerge_cells_in_range(sheet, 6, 6, 7, 10)
+                self.unmerge_cells_in_range(sheet, 8, 8, 7, 10)
+                self.unmerge_cells_in_range(sheet, 9, 9, 7, 10)
 
 
                 # 初始化 address_info_detail
@@ -3883,31 +3882,7 @@ class InvoiceGenerator:
                 if address_info and 'address_info' in address_info:
                     address_info_detail = address_info['address_info'] or {}
                 
-                if code:
-                    cell = sheet.cell(row=4, column=11)  # B列是第2列
-                    # cell.value = "FBA 号：" + str(code)
-                    # cell.font = Font(name='Arial', size=12,bold=True)
-                    cell.value = str(code)
-
-                # 这里名字用物流中心编码
-                if 'warehouseId' in address_info_detail:
-                    warehouse_id = str(address_info_detail['warehouseId'])
-                    cell = sheet.cell(row=4, column=3)  
-                    cell.value = str(warehouse_id)
-
-                    cell_company = sheet.cell(row=3, column=3)  # B2单元格
-                    if 'warehouseId' not in address_info_detail['name']:
-                        cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
-                        cell_company.value = cell_result_value
-                    else:
-                        cell_company.value = address_info_detail['name']
-
-
-                Reference_id = address_info_detail.get('amazonReferenceId', '') if address_info_detail else ''
-                if Reference_id:
-                    cell = sheet.cell(row=5, column=11)  # B列是第2列
-                    cell.value = Reference_id
-                    
+    
                 # 如果有地址信息，填充到相应的单元格
                 if address_info_detail:
                     # 已经初始化过 address_info_detail，这里不需要重复初始化
@@ -3941,8 +3916,8 @@ class InvoiceGenerator:
                             address_parts.append(address_info_detail['countryCode'])
 
                         if address_info_detail['type'] == 'amz':
-                            cell = sheet.cell(row=3, column=3)  
-                            cell.value = 'Amazon'
+                            # cell = sheet.cell(row=3, column=3)  
+                            # cell.value = 'Amazon'
                             if address_parts:
                                 # 检查warehouseId并添加到最前面
                                 final_address_parts = address_parts.copy()
@@ -3950,35 +3925,43 @@ class InvoiceGenerator:
                                     warehouse_id = str(address_info_detail['warehouseId'])
                                     if warehouse_id not in address_parts:
                                         final_address_parts.insert(0, warehouse_id)
+                                    cell = sheet.cell(row=8, column=7)  
+                                    cell.value = ', '.join(final_address_parts)
                                 
-                                # cell = sheet.cell(row=2, column=3)  
+
+                                    cell_company = sheet.cell(row=9, column=7)  # B2单元格
+                                    if warehouse_id not in address_info_detail['name']:
+                                        cell_result_value = str("ADDRESS*:") + str(address_info_detail['name'])+','+str(warehouse_id)
+                                        cell_company.value = cell_result_value
+                                    else:
+                                        cell_company.value = str("ADDRESS*:") + address_info_detail['name']
+                                    
                                 # cell.value = ', '.join(final_address_parts)
 
-                                cell = sheet.cell(row=5, column=3)  
-                                cell.value = ', '.join(final_address_parts)
+                                
 
                                 
-                        else:
-                            cell = sheet.cell(row=3, column=3)  
-                            cell.value = 'WalMart'
+                        # else:
+                        #     cell = sheet.cell(row=3, column=3)  
+                        #     cell.value = 'WalMart'
                            
-                            if 'logistics_code' in address_info_detail:
-                                cell = sheet.cell(row=4,column= 3)
-                                cell.value = address_info_detail['logistics_code']
-                            if 'addressLine2' in address_info_detail: 
-                                cell = sheet.cell(row=2, column=3)  
-                                cell.value = address_info_detail['addressLine2']    
+                        #     if 'logistics_code' in address_info_detail:
+                        #         cell = sheet.cell(row=4,column= 3)
+                        #         cell.value = address_info_detail['logistics_code']
+                        #     if 'addressLine2' in address_info_detail: 
+                        #         cell = sheet.cell(row=2, column=3)  
+                        #         cell.value = address_info_detail['addressLine2']    
                                 
-                                cell = sheet.cell(row=5, column=3)  
-                                cell.value = address_info_detail['addressLine2']    
+                        #         cell = sheet.cell(row=8, column=10)  
+                        #         cell.value = address_info_detail['addressLine2']    
   
                     except Exception as e:
                         print(f"填充地址信息时发生错误: {str(e)}")
 
                 # 填充数据
-                row_num = 9  
+                row_num = 13  
                 index = 1    # 添加序号计数器，从1开始
-                row_height = sheet.row_dimensions[9].height
+                row_height = sheet.row_dimensions[13].height
 
                 # 将processed_data按箱号排序（使用合并后的数据）
                 sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
@@ -4018,33 +4001,30 @@ class InvoiceGenerator:
                         cell_data = [
                             # 基本信息
                             # 产品名称信息
-                            (2, box_number_str),
+                            # (2, box_number_str),
+                            (2, '1'),
                             (4,f"{product_info.get('en_name', '')}" if product_info else ''),
                             (3,f"{product_info.get('cn_name', '')}" if product_info else ''),
-                            (6, product_info.get('hs_code', '') if product_info else ''),                # HS编码
+                            (8, product_info.get('hs_code', '') if product_info else ''),                # HS编码
                             # (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''), 
-                            (7, item.box_quantities.get(box_number, 0)),         # 数量
+                            (9, item.box_quantities.get(box_number, 0)),         # 数量
                             # 价格处理：区分合并和非合并商品
-                            (8, self._get_display_price(item, product_info)),   # 单价
-                            (9, self._get_total_price(item, box_number, product_info)),   # 总价
+                            (10, self._get_display_price(item, product_info)),   # 单价
+                            (11, self._get_total_price(item, box_number, product_info)),   # 总价
                             # 产品材料和用途
-                            (10, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
-                            (11, str(product_info.get('usage_en', '') + '/' +
+                            (7, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
+                            (6, str(product_info.get('usage_en', '') + '/' +
                                    product_info.get('usage_cn', '')) if product_info else ''),            # 用途
 
-                            (12, product_info.get('brand', '') if product_info else ''),
-                            (13, product_info.get('model', '') if product_info else ''),
-                            (14,1),
-
-                            (15, box.weight if box.weight is not None else ""),  # 重量 
-                            (16, box.length if box.length is not None else ""),  # 长度 
-                            (17, box.width if box.width is not None else ""),    # 宽度 
-                            (18, box.height if box.height is not None else "") ,  # 高度 
-                            (19, f"=P{row_num}*Q{row_num}*R{row_num}/1000000*N{row_num}"),  # 体积重公式
-                            (20, f"=P{row_num}*Q{row_num}*R{row_num}/6000*N{row_num}"),   # 体积重公式（6000系数）
-
-                            (21,  product_info.get('electrified', '')if product_info else ''),            
-                            (5, ''),                                            # 图片占位
+                            (4, product_info.get('brand', '') if product_info else ''),
+                            (5, product_info.get('model', '') if product_info else ''),
+                            (12,''),
+                            (13,product_info.get('link', '') if product_info else ''),
+                            (14,  product_info.get('electrified', '')if product_info else ''), 
+                            (16,box_number_str),
+                            (17,product_info.get('fnsku', '') if product_info else ''),
+                                    
+                                                # 图片占位
                         ]
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
@@ -4055,7 +4035,7 @@ class InvoiceGenerator:
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"E{row_num}"  # 图片列（第14列）
+                                image_cell = f"L{row_num}"  # 图片列（第14列）
                                 # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                                 self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
@@ -4089,22 +4069,19 @@ class InvoiceGenerator:
                     #            # 添加总计行
 
                 total_row = row_num  # 直接使用当前行号，不再加1
-                data_start_row = 9  # 数据起始行
+                data_start_row = 13  # 数据起始行
                 data_end_row = total_row - 1  # 数据结束行
                 
-                self._set_cell_value(sheet, total_row, 2, "TOTAL:", style_info)
-                self._set_cell_value(sheet, total_row, 14, len(box_data), style_info)
-                self._set_cell_value(sheet, total_row, 7, f"=SUM(G{data_start_row}:G{data_end_row})", style_info)  # 数量总和
-                self._set_cell_value(sheet, total_row, 9, f"=SUM(I{data_start_row}:I{data_end_row})", style_info)  # 总价总和
-                self._set_cell_value(sheet, total_row, 15, f"=SUM(O{data_start_row}:O{data_end_row})", style_info)  # 重量总和
-                self._set_cell_value(sheet, total_row, 19, f"=SUM(S{data_start_row}:S{data_end_row})", style_info)  # 体积重总和（19列）
-                self._set_cell_value(sheet, total_row, 20, f"=SUM(T{data_start_row}:T{data_end_row})", style_info)  # 体积重总和（20列）
+                self._set_cell_value(sheet, total_row, 2, "总申报合计*", style_info)
+                self._set_cell_value(sheet, total_row, 9, f"=SUM(G{data_start_row}:G{data_end_row})", style_info)  # 数量总和
+                self._set_cell_value(sheet, total_row, 11, f"=SUM(I{data_start_row}:I{data_end_row})", style_info)  # 总价总和
+                
                 # self._set_cell_value(sheet, total_row, 20, f"=SUM(N{data_start_row}:N{data_end_row})", style_info) 
     
                 
-                self.merge_cells_in_range(sheet, 4, 4, 3, 7)
-                self.merge_cells_in_range(sheet, 5, 5, 3, 5)
-                self.merge_cells_in_range(sheet, 3, 3, 3, 5)
+                self.merge_cells_in_range(sheet, 6, 6, 7, 10)
+                self.merge_cells_in_range(sheet, 8, 5, 7, 10)
+                self.merge_cells_in_range(sheet, 9, 3, 7, 10)
 
                 
                 thin_border = Border(left=Side(style='thin'), 
@@ -4113,7 +4090,7 @@ class InvoiceGenerator:
                      bottom=Side(border_style='thin'))
 
                 for row_index in range(total_row-1, total_row+1):  # 行索引从1到3（对应A1:C3中的1到3行）
-                    for col_index in range(2, 16):  # 列索引从1到3（对应A、B、C三列）
+                    for col_index in range(1, 17):  # 列索引从1到3（对应A、B、C三列）
                         cell = sheet.cell(row=row_index, column=col_index)
                         cell.border = thin_border
 
