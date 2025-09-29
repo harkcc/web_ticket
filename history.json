@@ -1777,5 +1777,126 @@
     "template_name": "递信普通",
     "status": "completed",
     "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250928104352",
+    "type": "packing_list",
+    "timestamp": "20250928_104453",
+    "input_file": "20250928104352_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250928104625",
+    "type": "packing_list",
+    "timestamp": "20250928_104631",
+    "input_file": "20250928104625_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929100838",
+    "type": "packing_list",
+    "timestamp": "20250929_100844",
+    "input_file": "20250929100838_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929103202",
+    "type": "packing_list",
+    "timestamp": "20250929_103207",
+    "input_file": "20250929103202_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250929103418",
+    "type": "packing_list",
+    "timestamp": "20250929_103423",
+    "input_file": "20250929103418_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20250929103836",
+    "type": "packing_list",
+    "timestamp": "20250929_103842",
+    "input_file": "20250929103836_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929105927",
+    "type": "packing_list",
+    "timestamp": "20250929_105933",
+    "input_file": "20250929105927_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929112303",
+    "type": "packing_list",
+    "timestamp": "20250929_112310",
+    "input_file": "20250929112303_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929113015",
+    "type": "packing_list",
+    "timestamp": "20250929_113027",
+    "input_file": "20250929113015_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929114107",
+    "type": "packing_list",
+    "timestamp": "20250929_114113",
+    "input_file": "20250929114107_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20250929135217",
+    "type": "packing_list",
+    "timestamp": "20250929_135222",
+    "input_file": "20250929135217_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "递信日本空派",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
   }
 ]
