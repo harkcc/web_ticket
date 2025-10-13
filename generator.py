@@ -1367,7 +1367,7 @@ class InvoiceGenerator:
                 
                 row_num = 13  # 从第13行开始填充数据
                 # 增加一行，用于显示Reference ID
-                # row_num += 1
+                row_num += 1
            
                 if code:
                     cell = sheet.cell(row=4, column=1)  # B列是第2列
@@ -1543,6 +1543,7 @@ class InvoiceGenerator:
                 self.merge_cells_in_range(sheet, 4, 4, 1, 3)
                 self.merge_cells_in_range(sheet, 7, 11, 1, 3)
                 self.merge_cells_in_range(sheet, 7, 11, 4, 15)
+                
 
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
@@ -4392,7 +4393,8 @@ class InvoiceGenerator:
                             # (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''), 
                             # 价格处理：区分合并和非合并商品
                             (17, self._get_display_price(item, product_info)),   # 单价
-                            (18, self._get_total_price(item, box_number, product_info)),   # 总价
+                            # (18, self._get_total_price(item, box_number, product_info)),   # 总价
+                            (18, ''), 
                             (19,product_info.get('link', '') if product_info else ''),
                 
                         ]
@@ -4401,11 +4403,13 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
+                           # 设置总价公式 = O列*Q列
+                        self._set_cell_value(sheet, row_num, 18, f"=O{row_num}*Q{row_num}", style_info)
                         
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"L{row_num}"  # 图片列（第14列）
+                                image_cell = f"E{row_num}"  # 图片列（第14列）
                                 # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                                 self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:

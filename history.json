@@ -1272,5 +1272,104 @@
     "template_name": "UPS(美洲)",
     "status": "completed",
     "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013172344",
+    "type": "packing_list",
+    "timestamp": "20251013_172351",
+    "input_file": "20251013172344_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "日本宏川贴标",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013172839",
+    "type": "packing_list",
+    "timestamp": "20251013_172844",
+    "input_file": "20251013172839_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013173033",
+    "type": "packing_list",
+    "timestamp": "20251013_173038",
+    "input_file": "20251013173033_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013173504",
+    "type": "packing_list",
+    "timestamp": "20251013_173510",
+    "input_file": "20251013173504_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013173539",
+    "type": "packing_list",
+    "timestamp": "20251013_173544",
+    "input_file": "20251013173539_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013173718",
+    "type": "packing_list",
+    "timestamp": "20251013_173724",
+    "input_file": "20251013173718_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
+  },
+  {
+    "task_id": "20251013173849",
+    "type": "packing_list",
+    "timestamp": "20251013_173853",
+    "input_file": "20251013173849_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20251013173922",
+    "type": "packing_list",
+    "timestamp": "20251013_173925",
+    "input_file": "20251013173922_packing_list.xlsx",
+    "output_file": null,
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20251013174137",
+    "type": "packing_list",
+    "timestamp": "20251013_174143",
+    "input_file": "20251013174137_packing_list.xlsx",
+    "output_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx",
+    "code_input": "FBA15JWKX23F",
+    "template_name": "UPS(美洲)",
+    "status": "completed",
+    "result_file": "FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件-法国-发票装箱单.xlsx"
   }
 ]
