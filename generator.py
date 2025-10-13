@@ -1367,7 +1367,7 @@ class InvoiceGenerator:
                 
                 row_num = 13  # 从第13行开始填充数据
                 # 增加一行，用于显示Reference ID
-                row_num += 1
+                # row_num += 1
            
                 if code:
                     cell = sheet.cell(row=4, column=1)  # B列是第2列
@@ -1464,8 +1464,8 @@ class InvoiceGenerator:
                             (4, db_product_info.get('en_name', '') if db_product_info else ''),  # 英文品名
                             
                             (6, item.box_quantities.get(box_number, 0)),  # 数量
-                            (5, self._get_display_price(item, product_info)),   # 单价
-                            (7, self._get_total_price(item, box_number, product_info)),   # 总价
+                            (5, self._get_display_price(item, db_product_info)),   # 单价
+                            (7, self._get_total_price(item, box_number, db_product_info)),   # 总价
                             # (7, float(price) * quantity),  # 总价
                             (8, f"{db_product_info.get('material_cn', '')}/{db_product_info.get('material_en', '')}" if db_product_info else ''),  # 材质
                             (9, f"{db_product_info.get('usage_cn', '')}/{db_product_info.get('usage_en', '')}" if db_product_info else ''),  # 用途
