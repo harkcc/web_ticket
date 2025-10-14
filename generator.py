@@ -1488,7 +1488,7 @@ class InvoiceGenerator:
                         sheet.row_dimensions[row_num].height = row_height
                         self._set_cell_value(sheet, row_num, 7, f"=E{row_num}*F{row_num}", style_info)
                         sheet.column_dimensions['O'].width = row_height
-                        row_num += E
+                        row_num += 1
                     
                     # 如果这个箱子有多个产品,需要合并单元格
                     if box_items_count > 1:
@@ -4134,7 +4134,7 @@ class InvoiceGenerator:
                             # 价格处理：区分合并和非合并商品
                             (10, product_info.get('price', '') if product_info else ''),   # 单价
                             # (11, self._get_total_price(item, box_number, product_info)),   # 总价
-                            (11, '')
+                            (11, ''),
                             # 产品材料和用途
                             (7, f"{product_info.get('material_en', '')}\n{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
                             (6, str(product_info.get('usage_en', '') + ',' +
