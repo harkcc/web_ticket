@@ -741,7 +741,8 @@ class InvoiceGenerator:
                             (11, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (12, product_info.get('link', '') if product_info else ''),
                             (14, ''),  # 图片列 (N列)
-                            (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                            # (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                            (15, ''),   # 总价
                             (17, box.length if box.length is not None else ""),  # 长度 (Q列)
                             (18, box.width if box.width is not None else ""),    # 宽度 (R列)
                             (19, box.height if box.height is not None else "")   # 高度 (S列)
@@ -750,6 +751,8 @@ class InvoiceGenerator:
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
+
+                        self._set_cell_value(sheet, row_num, 15, f"=E{row_num}*F{row_num}", style_info)
 
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
@@ -1465,7 +1468,8 @@ class InvoiceGenerator:
                             
                             (6, item.box_quantities.get(box_number, 0)),  # 数量
                             (5, self._get_display_price(item, db_product_info)),   # 单价
-                            (7, self._get_total_price(item, box_number, db_product_info)),   # 总价
+                            # (7, self._get_total_price(item, box_number, db_product_info)),   # 总价
+                            (7, ''),   # 总价
                             # (7, float(price) * quantity),  # 总价
                             (8, f"{db_product_info.get('material_cn', '')}/{db_product_info.get('material_en', '')}" if db_product_info else ''),  # 材质
                             (9, f"{db_product_info.get('usage_cn', '')}/{db_product_info.get('usage_en', '')}" if db_product_info else ''),  # 用途
@@ -1482,8 +1486,9 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
+                        self._set_cell_value(sheet, row_num, 7, f"=E{row_num}*F{row_num}", style_info)
                         sheet.column_dimensions['O'].width = row_height
-                        row_num += 1
+                        row_num += E
                     
                     # 如果这个箱子有多个产品,需要合并单元格
                     if box_items_count > 1:
@@ -2241,6 +2246,7 @@ class InvoiceGenerator:
                     total_weight += box.weight
 
                 # 合并最后一列
+
                 sheet.merge_cells(start_row=3, start_column=14, end_row=row_num, end_column=14)
 
                 # 删除多余的行
@@ -2472,7 +2478,8 @@ class InvoiceGenerator:
                             (7, item.box_quantities.get(box_number, 0)),         # 数量
                             # 价格处理：区分合并和非合并商品
                             (8, self._get_display_price(item, product_info)),   # 单价
-                            (9, self._get_total_price(item, box_number, product_info)),   # 总价
+                            # (9, self._get_total_price(item, box_number, product_info)),   # 总价
+                            (9, ''),   # 总价
                             # 产品材料和用途
                             (10, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
                             (11, str(product_info.get('usage_en', '') + '/' +
@@ -2497,11 +2504,12 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
+                        self._set_cell_value(sheet, row_num, 9, f"=G{row_num}*H{row_num}", style_info)
                         
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"E{row_num}"  # 图片列（第14列）
+                                image_cell = f"E{row_num}"  # 图片列（第14列G
                                 # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
                                 self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
                             except Exception as e:
@@ -2774,9 +2782,10 @@ class InvoiceGenerator:
                         
                         # 总价
                         total = round(float(quantity) * price, 2)
-                        self._set_cell_value(sheet, row_num, 8, f"${total}", style_info)
+                        # self._set_cell_value(sheet, row_num, 8, f"${total}", style_info)
+                        self._set_cell_value(sheet, row_num, 8, f"=F{row_num}*G{row_num}", style_info)
                         
-                        # 重量相关
+                        # 重量相G
                         # 修改后
                         box_weight = box.weight if (hasattr(box, 'weight') and box.weight is not None) else 0
                         for col in range(9, 12):
@@ -3180,7 +3189,7 @@ class InvoiceGenerator:
                             total_price = 0
                         else:
                             price = product_info.get('price', 0)
-                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
+                        
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         box_number_str = code+'U00000'+str(box_number)
@@ -3200,7 +3209,7 @@ class InvoiceGenerator:
                             (12, ''),
                             (13, product_info.get('link', '') if product_info else ''),
                             (14, ''),  
-                            # (15, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                            
                             (16, box.length if box.length is not None else ""),  # 长度 (Q列)
                             (17, box.width if box.width is not None else ""),    # 宽度 (R列)
                             (18, box.height if box.height is not None else ""),  # 高度 (S列)
@@ -3454,6 +3463,8 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
                         sheet.row_dimensions[row_num].height = row_height
+
+                        self._set_cell_value(sheet, row_num, 20, f"=L{row_num}*S{row_num}", style_info)
 
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
@@ -3923,7 +3934,6 @@ class InvoiceGenerator:
                             (14, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (16, product_info.get('link', '') if product_info else ''),
                             (17, ''),  # 图片列 (N列)
-
                             (6, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
                           
                         ]
@@ -4122,8 +4132,9 @@ class InvoiceGenerator:
                             # (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''), 
                             (9, item.box_quantities.get(box_number, 0)),         # 数量
                             # 价格处理：区分合并和非合并商品
-                            (10, self._get_display_price(item, product_info)),   # 单价
-                            (11, self._get_total_price(item, box_number, product_info)),   # 总价
+                            (10, product_info.get('price', '') if product_info else ''),   # 单价
+                            # (11, self._get_total_price(item, box_number, product_info)),   # 总价
+                            (11, '')
                             # 产品材料和用途
                             (7, f"{product_info.get('material_en', '')}\n{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
                             (6, str(product_info.get('usage_en', '') + ',' +
@@ -4145,6 +4156,8 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         sheet.row_dimensions[row_num].height = row_height
+
+                        self._set_cell_value(sheet, row_num, 11, f"=I{row_num}*J{row_num}", style_info)
                         
                         # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
@@ -4392,7 +4405,7 @@ class InvoiceGenerator:
                             (16, product_info.get('hs_code', '') if product_info else ''),                # HS编码
                             # (3, f"{product_info.get('en_name', '')} ({product_info.get('cn_name', '')})" if product_info else ''), 
                             # 价格处理：区分合并和非合并商品
-                            (17, self._get_display_price(item, product_info)),   # 单价
+                            (17, product_info.get('price', '') if product_info else ''),   # 单价
                             # (18, self._get_total_price(item, box_number, product_info)),   # 总价
                             (18, ''), 
                             (19,product_info.get('link', '') if product_info else ''),
