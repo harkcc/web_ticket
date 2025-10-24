@@ -1369,24 +1369,35 @@ class InvoiceGenerator:
                 self.unmerge_cells_in_range(sheet, 7, 11, 4, 15)
                 
                 row_num = 13  # 从第13行开始填充数据
-                # 增加一行，用于显示Reference ID
-                row_num += 1
            
                 if code:
+                    print(f"\n📝 开始填充基本信息 (code: {code})")
+                    
                     cell = sheet.cell(row=4, column=1)  # B列是第2列
                     cell.value = f"运单号码:{code}"
                     cell.font = Font(name='Arial', size=12)
+                    print(f"  ✓ 第4行第1列填充: 运单号码:{code}")
 
-                    cell_another = sheet.cell(row=5, column=1)  # B列是第2列
-                    
+                    # 只有当Reference ID存在且不为空时才填充
                     Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
-                    cell_another.value = f"Reference ID:{Reference_id}"
+                    if Reference_id and Reference_id.strip():
+                        cell_another = sheet.cell(row=5, column=1)  # B列是第2列
+                        cell_another.value = f"Reference ID:{Reference_id}"
+                        cell_another.font = Font(name='Arial', size=12)
+                        print(f"  ✓ 第5行第1列填充: Reference ID:{Reference_id}")
+                    else:
+                        print(f"  ⚠️ Reference ID为空或不存在，跳过填充")
+                    
                     cell_another = sheet.cell(row=7, column=1)  # B列是第2列
                     cell_another.value = f"FBA编号:{code}"
                     cell_another.font = Font(name='Arial', size=12)
+                    print(f"  ✓ 第7行第1列填充: FBA编号:{code}")
+                else:
+                    print(f"  ⚠️ code为空，跳过基本信息填充")
                 
                   # 如果有地址信息，填充到相应的单元格
                 if address_info:
+                    print(f"\n🏠 开始填充地址信息")
                     address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
                     try:
 
@@ -1418,10 +1429,17 @@ class InvoiceGenerator:
                                 warehouse_id = str(address_info_detail['warehouseId'])
                                 if warehouse_id not in address_parts:
                                     final_address_parts.insert(0, warehouse_id)
-                            cell.value = ', '.join(final_address_parts)
+                            
+                            address_text = ', '.join(final_address_parts)
+                            cell.value = address_text
                             cell.font = Font(name='Arial', size=12)
+                            print(f"  ✓ 第7行第4列填充地址: {address_text}")
+                        else:
+                            print(f"  ⚠️ 地址信息为空，跳过地址填充")
                     except Exception as e:
-                        print(f"填充地址信息时发生错误: {str(e)}")
+                        print(f"  ❌ 填充地址信息时发生错误: {str(e)}")
+                else:
+                    print(f"  ⚠️ address_info为空，跳过地址填充")
             
                 # 遍历每个箱子
                 # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
@@ -1545,9 +1563,50 @@ class InvoiceGenerator:
                 # 设置行高
                 # for row in range(13, row_num):
                 #     sheet.row_dimensions[row].height = 
-                self.merge_cells_in_range(sheet, 4, 4, 1, 3)
-                self.merge_cells_in_range(sheet, 7, 11, 1, 3)
-                self.merge_cells_in_range(sheet, 7, 11, 4, 15)
+                
+                # 重新合并单元格，但要避免覆盖已填充的数据
+                # 注意：只有当相应区域没有填充数据时才进行合并
+                
+                print("=" * 50)
+                print("开始检查合并单元格条件")
+                print("=" * 50)
+                
+                # 检查第4行是否有运单号码，如果没有才合并第4行1-3列
+                print(f"检查第4行1-3列合并条件:")
+                row4_col1_value = sheet.cell(row=4, column=1).value
+                print(f"  第4行第1列值: {row4_col1_value}")
+                print(f"  第4行第2列值: {sheet.cell(row=4, column=2).value}")
+                print(f"  第4行第3列值: {sheet.cell(row=4, column=3).value}")
+                
+                if not row4_col1_value:
+                    print("  ✓ 第4行第1列为空，执行合并第4行1-3列")
+                    self.merge_cells_in_range(sheet, 4, 4, 1, 3)
+                else:
+                    print("  ✗ 第4行第1列有数据，不合并第4行1-3列")
+                
+                # 检查第7-11行是否有地址信息，如果没有才合并
+                print(f"\n检查第7-11行1-15列合并条件:")
+                has_address_data = False
+                for r in range(7, 12):  # 7-11行
+                    for c in range(1, 16):  # 1-15列
+                        cell_value = sheet.cell(row=r, column=c).value
+                        if cell_value:
+                            print(f"  第{r}行第{c}列有数据: {cell_value}")
+                            has_address_data = True
+                            break
+                    if has_address_data:
+                        break
+                
+                if not has_address_data:
+                    print("  ✓ 第7-11行1-15列都为空，执行合并")
+                    self.merge_cells_in_range(sheet, 7, 11, 1, 3)
+                    self.merge_cells_in_range(sheet, 7, 11, 4, 15)
+                else:
+                    print("  ✗ 第7-11行1-15列有数据，不执行合并")
+                
+                print("=" * 50)
+                print("合并单元格检查完成")
+                print("=" * 50)
                 
 
             except Exception as e:
@@ -3501,6 +3560,7 @@ class InvoiceGenerator:
                 else:
                     processed_data = box_data
 
+                sheet = wb['运单信息']  # 获取模板工作表
                 self.unmerge_cells_in_range(sheet, 3, 3, 2, 4)
                 self.unmerge_cells_in_range(sheet, 3, 3, 8, 11)
                 self.unmerge_cells_in_range(sheet, 4, 4, 8, 15)
