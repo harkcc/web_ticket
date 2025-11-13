@@ -18,6 +18,10 @@ from image_extractor import ImageExtractor
 import traceback
 import logging
 import numpy as np
+import requests
+import zipfile
+from io import BytesIO
+from login import run as get_token
 
 # 配置日志
 logging.basicConfig(level=logging.INFO,
@@ -75,6 +79,224 @@ DATA_FIELD_MAPPING = {
 
 # 反向映射（Excel列名到数据库字段）
 EXCEL_TO_DB_MAPPING = {v: k for k, v in DATA_FIELD_MAPPING.items() if v}
+
+
+# ==================== 领星API相关函数 ====================
+
+def request_web_download_packing_list(token, shipment_ids, need_down_image=0):
+    """
+    下载FBA货件装箱清单压缩包
+    
+    :param token: 认证token
+    :param shipment_ids: 货件ID，可以是单个ID(str/int)或多个ID的列表
+    :param need_down_image: 是否需要下载图片，0=不需要，1=需要
+    :return: 压缩包的二进制数据(bytes)
+    """
+    # 处理shipment_ids参数
+    if isinstance(shipment_ids, (list, tuple)):
+        shipment_ids_str = ','.join(str(sid) for sid in shipment_ids)
+    else:
+        shipment_ids_str = str(shipment_ids)
+    
+    headers = {
+        'AK-Client-Type': 'web',
+        'AK-Origin': 'https://erp.lingxing.com',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Connection': 'keep-alive',
+        'Referer': 'https://erp.lingxing.com/erp/msupply/fbaCargo',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+        'X-AK-Company-Id': '901217529031491584',
+        'X-AK-ENV-KEY': 'SAAS-101',
+        'X-AK-PLATFORM': '1',
+        'X-AK-Request-Source': 'erp',
+        'X-AK-Zid': '10330128',
+        'auth-token': token,
+        'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+    
+    url = f'https://erp.lingxing.com/api/fba_shipment/batchDownloadPackingList?shipmentIds={shipment_ids_str}&need_down_image={need_down_image}&req_time_sequence=%2Fapi%2Ffba_shipment%2FcheckShipmentPackingListStatus$$1'
+    
+    response = requests.get(url, headers=headers)
+    
+    # 检查响应状态
+    if response.status_code == 200:
+        return response.content  # 返回二进制数据
+    else:
+        raise Exception(f"下载失败，状态码: {response.status_code}, 响应: {response.text[:200]}")
+
+
+def extract_excel_from_zip(zip_data_or_path, output_path=None):
+    """
+    直接从ZIP中提取Excel文件（简化版）
+    
+    :param zip_data_or_path: ZIP二进制数据(bytes)或ZIP文件路径(str)
+    :param output_path: 输出Excel文件路径，默认自动生成
+    :return: 提取的Excel文件路径
+    """
+    # 判断输入类型
+    if isinstance(zip_data_or_path, bytes):
+        zip_file = zipfile.ZipFile(BytesIO(zip_data_or_path))
+    else:
+        zip_file = zipfile.ZipFile(zip_data_or_path)
+    
+    # 查找Excel文件
+    excel_file = None
+    for file_info in zip_file.filelist:
+        if file_info.filename.lower().endswith(('.xlsx', '.xls')):
+            excel_file = file_info.filename
+            break
+    
+    if not excel_file:
+        zip_file.close()
+        raise Exception("ZIP中未找到Excel文件")
+    
+    # 确定输出路径
+    if output_path is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        ext = os.path.splitext(excel_file)[1]
+        output_path = f'packing_list_{timestamp}{ext}'
+    
+    # 提取Excel文件
+    with zip_file.open(excel_file) as source:
+        with open(output_path, 'wb') as target:
+            target.write(source.read())
+    
+    zip_file.close()
+    
+    print(f"Excel文件已提取: {os.path.abspath(output_path)}")
+    return output_path
+
+
+def download_packing_list_excel_simple(token, shipment_ids, output_path=None, need_down_image=0):
+    """
+    下载FBA装箱清单并直接提取Excel（简化版，适用于确定ZIP里就是Excel的情况）
+    
+    :param token: 认证token
+    :param shipment_ids: 货件ID
+    :param output_path: 输出Excel文件路径，默认自动生成
+    :param need_down_image: 是否需要下载图片
+    :return: Excel文件路径
+    """
+    print(f"正在下载货件 {shipment_ids} 的装箱清单...")
+    
+    # 下载ZIP数据
+    zip_data = request_web_download_packing_list(token, shipment_ids, need_down_image)
+    print(f"下载成功，文件大小: {len(zip_data) / (1024 * 1024):.2f} MB")
+    
+    # 直接提取Excel
+    excel_path = extract_excel_from_zip(zip_data, output_path)
+    
+    return excel_path
+
+
+def request_web_FBA_shipment_num(token, shipment_id):
+    """
+    通过货件编码查询货件的内部ID
+    
+    :param token: 认证token
+    :param shipment_id: 货件编码（如 FBA193LX49TS）
+    :return: 货件内部ID，失败返回2
+    """
+    # 获取当前日期
+    today = datetime.now()
+    # 开始日期：3个月前
+    start_date = (today - timedelta(days=100)).strftime('%Y-%m-%d')
+    # 结束日期：3个月后
+    end_date = (today + timedelta(days=100)).strftime('%Y-%m-%d')
+    
+    headers = {
+        'AK-Client-Type': 'web',
+        'AK-Origin': 'https://erp.lingxing.com',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Origin': 'https://erp.lingxing.com',
+        'Pragma': 'no-cache',
+        'Referer': 'https://erp.lingxing.com/erp/msupply/fbaCargo',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+        'X-AK-Company-Id': '901217529031491584',
+        'X-AK-ENV-KEY': 'SAAS-101',
+        'X-AK-Language': 'zh',
+        'X-AK-PLATFORM': '1',
+        'X-AK-Request-Id': '144118e5-1876-4cf5-9917-4f8b882d5fed',
+        'X-AK-Request-Source': 'erp',
+        'X-AK-Uid': '10431785',
+        'X-AK-Version': '3.7.1.3.0.128',
+        'X-AK-Zid': '10330128',
+        'auth-token': token,
+        'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+    }
+
+    json_data = {
+        'search_field_time': 'create_date',
+        'is_sta': '',
+        'is_awd': '',
+        'ship_mode': '',
+        'is_closed': '',
+        'step': [],
+        'application_diff': '',
+        'received_diff': '',
+        'application_received_diff': '',
+        'is_relate_packing_task_sn': '',
+        'has_shipto_address': '',
+        'is_shipto_diff': '',
+        'is_add_tracking': '',
+        'delivery_order_status': [],
+        'is_transparency': '',
+        'is_print_transparency': '',
+        'box_type': '',
+        'is_uploaded_box': '',
+        'sta_transportation_mode': '',
+        'create_uids': [],
+        'is_store_diff': '',
+        'is_update_shipment_tracking_no': '',
+        'search_field': 'shipment_id',
+        'search_value': shipment_id,
+        'shipment_status': [],
+        'is_relate_shipment': '',
+        'start_date': start_date,
+        'end_date': end_date,
+        'seniorSearchList': [],
+        'shipment_type': [],
+        'offset': 0,
+        'length': 500,
+        'req_time_sequence': '/api/fba_shipment/showShipment_v2$$7',
+    }
+
+    try:
+        response = requests.post(
+            'https://erp.lingxing.com/api/fba_shipment/showShipment_v2',
+            headers=headers,
+            json=json_data,
+            timeout=30  # 添加超时设置
+        )
+        response.raise_for_status()  # 检查HTTP错误
+        data = response.json()
+        
+        if data.get('code') == 1 and data.get('data', {}).get('list'):
+            return data['data']['list'][0]['id']
+        return 2  # 默认错误码
+    except (requests.RequestException, ValueError, KeyError, IndexError) as e:
+        print(f"请求失败: {str(e)}")
+        return 2
+
+# ==================== 领星API相关函数结束 ====================
+
 
 def clean_old_files():
     """清理旧文件和历史记录"""
@@ -540,6 +762,122 @@ def upload():
     except Exception as e:
         error_msg = f"处理上传请求时出错: {str(e)}"
         print(error_msg)
+        return jsonify({'error': error_msg}), 500
+
+
+@app.route('/auto_fetch_shipment', methods=['POST'])
+def auto_fetch_shipment():
+    """通过货件编码自动获取装箱单并处理"""
+    try:
+        print("\n=== 开始处理自动获取货件请求 ===")
+        
+        # 获取参数
+        shipment_code = request.form.get('shipment_code', '').strip()
+        template_type = request.form.get('template_type', 'dingdang')
+        code = request.form.get('code', '')  # 地址编码（可选）
+        
+        print(f"货件编码: {shipment_code}")
+        print(f"模板类型: {template_type}")
+        print(f"地址编码: {code}")
+        
+        # 验证必填参数
+        if not shipment_code:
+            return jsonify({'error': '请输入货件编码'}), 400
+        
+        if not template_type:
+            return jsonify({'error': '请选择模板类型'}), 400
+        
+        # 获取 token
+        print("正在获取登录 token...")
+        try:
+            token = get_token()
+            print("Token 获取成功")
+        except Exception as e:
+            error_msg = f"获取 token 失败: {str(e)}"
+            print(error_msg)
+            return jsonify({'error': error_msg}), 500
+        
+        # 步骤1: 通过货件编码获取内部 ID
+        print(f"正在查询货件 {shipment_code} 的内部 ID...")
+        try:
+            shipment_id = request_web_FBA_shipment_num(token, shipment_code)
+            if shipment_id == 2:  # 错误码
+                error_msg = f"未找到货件 {shipment_code}，请检查货件编码是否正确"
+                print(error_msg)
+                return jsonify({'error': error_msg}), 404
+            print(f"获取到内部 ID: {shipment_id}")
+        except Exception as e:
+            error_msg = f"查询货件 ID 失败: {str(e)}"
+            print(error_msg)
+            return jsonify({'error': error_msg}), 500
+        
+        # 步骤2: 下载装箱单 Excel
+        print(f"正在下载货件 {shipment_id} 的装箱单...")
+        try:
+            # 生成临时文件路径
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = f"{timestamp}_auto_fetch_{shipment_code}.xlsx"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # 下载并保存 Excel
+            excel_path = download_packing_list_excel_simple(
+                token, 
+                shipment_id, 
+                output_path=file_path
+            )
+            
+            if not excel_path or not os.path.exists(excel_path):
+                error_msg = "下载装箱单失败"
+                print(error_msg)
+                return jsonify({'error': error_msg}), 500
+            
+            print(f"装箱单下载成功: {excel_path}")
+        except Exception as e:
+            error_msg = f"下载装箱单失败: {str(e)}"
+            print(error_msg)
+            traceback.print_exc()
+            return jsonify({'error': error_msg}), 500
+        
+        # 步骤3: 创建处理任务（复用现有逻辑）
+        task_id = datetime.now().strftime("%Y%m%d%H%M%S")
+        print(f"任务ID: {task_id}")
+        
+        # 创建任务信息（使用领星装箱单格式）
+        task_info = {
+            'task_id': task_id,
+            'template_path': None,
+            'files': excel_path,
+            'code': code,
+            'template_type': template_type,
+            'is_simple_format': False  # 领星装箱单是详细格式
+        }
+        print(f"任务信息: {task_info}")
+        
+        # 初始化任务状态
+        with task_lock:
+            task_status[task_id] = {
+                'status': 'pending',
+                'created_at': datetime.now().strftime('%Y%m%d_%H%M%S'),
+                'shipment_code': shipment_code,
+                'auto_fetch': True  # 标记为自动获取
+            }
+        
+        # 将任务添加到队列
+        task_queue.put(task_info)
+        print(f"任务已添加到队列")
+        print("=== 自动获取处理完成 ===\n")
+        
+        return jsonify({
+            'success': True,
+            'message': f'货件 {shipment_code} 的装箱单已自动获取，正在处理中',
+            'task_id': task_id,
+            'shipment_id': shipment_id
+        })
+        
+    except Exception as e:
+        error_msg = f"自动获取货件时出错: {str(e)}"
+        print(error_msg)
+        traceback.print_exc()
         return jsonify({'error': error_msg}), 500
 
 

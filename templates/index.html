@@ -324,6 +324,45 @@
             font-size: 14px;
             color: #666;
         }
+
+        /* 按钮组样式 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        .btn-auto-fetch {
+            background-color: #2196F3;
+        }
+
+        .btn-auto-fetch:hover {
+            background-color: #1976D2;
+        }
+
+        /* 货件编码输入框样式 */
+        .shipment-code-input {
+            margin-top: 10px;
+            padding: 10px;
+            border: 2px dashed #2196F3;
+            border-radius: 6px;
+            background-color: #e3f2fd;
+        }
+
+        .shipment-code-input label {
+            color: #1565c0;
+            font-weight: 600;
+        }
+
+        .help-text-blue {
+            font-size: 12px;
+            color: #1976D2;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -358,7 +397,7 @@
 
         <div class="form-group">
             <label for="codeInput">编码：</label>
-            <input type="text" id="codeInput" name="codeInput" placeholder="请输入编码">
+            <input type="text" id="codeInput" name="codeInput" placeholder="请输入编码（地址编码）">
             <div class="help-text" id="codeInputHelp"></div>
         </div>
 
@@ -374,7 +413,18 @@
             <input type="file" id="invoice_info" name="invoice_info" accept=".xlsx,.xls">
         </div>
 
-        <button type="submit">开始处理</button>
+        <!-- 货件编码自动获取区域 -->
+        <div class="shipment-code-input">
+            <label for="shipmentCodeInput">或输入货件编码自动获取装箱单：</label>
+            <input type="text" id="shipmentCodeInput" name="shipmentCodeInput" placeholder="例如：FBA193LX49TS">
+            <div class="help-text-blue">输入货件编码后会自动同步到上方"编码"栏，点击"自动获取并处理"按钮即可自动下载装箱单并处理</div>
+        </div>
+
+        <!-- 按钮组 -->
+        <div class="button-group">
+            <button type="submit">开始处理（上传文件）</button>
+            <button type="button" class="btn-auto-fetch" onclick="autoFetchShipment()">自动获取并处理（货件编码）</button>
+        </div>
     </form>
     <div id="status"></div>
 </div>
@@ -634,6 +684,17 @@
         }
     });
 
+    // 货件编码输入框同步到编码输入框
+    document.getElementById('shipmentCodeInput').addEventListener('input', function (e) {
+        const shipmentCode = e.target.value.trim();
+        const codeInput = document.getElementById('codeInput');
+        
+        // 将货件编码同步到编码输入框
+        if (shipmentCode) {
+            codeInput.value = shipmentCode;
+        }
+    });
+
     // 处理文件上传
     document.getElementById('uploadForm').addEventListener('submit', function (e) {
         e.preventDefault();
@@ -764,6 +825,73 @@
                     location.reload();
                 }, 2000);
             });
+    }
+
+    // 自动获取货件装箱单并处理
+    function autoFetchShipment() {
+        const shipmentCode = document.getElementById('shipmentCodeInput').value.trim();
+        const templateType = document.getElementById('templateSelect').value;
+        const code = document.getElementById('codeInput').value;
+
+        // 验证必填项
+        if (!shipmentCode) {
+            updateStatus('请输入货件编码', 'error');
+            showNotification('请输入货件编码', 'error');
+            return;
+        }
+
+        if (!templateType) {
+            updateStatus('请选择模板', 'error');
+            showNotification('请选择模板', 'error');
+            return;
+        }
+
+        // 创建表单数据
+        const formData = new FormData();
+        formData.append('shipment_code', shipmentCode);
+        
+        // 提取模板名称（去掉路径）
+        const templateName = templateType.split('/').pop().replace('.xlsx', '');
+        formData.append('template_type', templateName);
+        
+        if (code) {
+            formData.append('code', code);
+        }
+
+        updateStatus('正在自动获取货件装箱单...', 'processing');
+        showNotification('正在自动获取货件装箱单，请稍候...', 'success');
+
+        // 发送请求
+        fetch('/auto_fetch_shipment', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateStatus(`货件 ${shipmentCode} 已自动获取，正在处理...`, 'processing');
+                showNotification(`货件 ${shipmentCode} 装箱单已自动获取`, 'success');
+                // 开始检查任务状态
+                checkStatus(data.task_id);
+            } else {
+                const errorMsg = data.error || '自动获取失败';
+                updateStatus(errorMsg, 'error');
+                showNotification(errorMsg, 'error');
+                loadHistory();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const errorMsg = `自动获取失败: ${error.message}`;
+            updateStatus(errorMsg, 'error');
+            showNotification(errorMsg, 'error');
+            loadHistory();
+        });
     }
 
     // 添加Excel上传处理函数
