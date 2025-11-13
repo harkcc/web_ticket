@@ -1458,12 +1458,24 @@ class InvoiceGenerator:
                     
                     start_row = row_num  # 记录当前箱子的起始行
                     box_items_count = len(box.items)
+                    is_first_item_in_box = True  # 标记是否是箱子的第一个item
                     
                     for item in box.items:
                         # 获取产品信息
                         db_product_info = self._get_product_info(item.msku, db)
                         if not db_product_info:
-                            continue
+                            print(f"  ⚠️ 警告：未找到MSKU {item.msku} 的产品信息，使用默认值")
+                            db_product_info = {
+                                'cn_name': item.msku,
+                                'en_name': item.msku,
+                                'price': 0,
+                                'material_cn': '',
+                                'material_en': '',
+                                'usage_cn': '',
+                                'usage_en': '',
+                                'brand': '',
+                                'hs_code': ''
+                            }
 
                         # 构建产品名称和获取数量、价格
                         name = f"{db_product_info.get('en_name', '')}({db_product_info.get('cn_name', '')})"
@@ -1479,8 +1491,8 @@ class InvoiceGenerator:
 
                         # 设置单元格值
                         cell_data = [
-                            (1, f"{code}U00000{box_number}" if item == box.items[0] else ""),  # FBA号,只在第一行显示
-                            (2, box_number if item == box.items[0] else ""),  # 箱号,只在第一行显示
+                            (1, f"{code}U00000{box_number}" if is_first_item_in_box else ""),  # FBA号,只在第一行显示
+                            (2, box_number if is_first_item_in_box else ""),  # 箱号,只在第一行显示
                             (3, db_product_info.get('cn_name', '') if db_product_info else ''),  # 中文品名
                             (4, db_product_info.get('en_name', '') if db_product_info else ''),  # 英文品名
                             
@@ -1491,10 +1503,10 @@ class InvoiceGenerator:
                             # (7, float(price) * quantity),  # 总价
                             (8, f"{db_product_info.get('material_cn', '')}/{db_product_info.get('material_en', '')}" if db_product_info else ''),  # 材质
                             (9, f"{db_product_info.get('usage_cn', '')}/{db_product_info.get('usage_en', '')}" if db_product_info else ''),  # 用途
-                            (10, box.weight if item == box.items[0] else ""),  # 毛重,只在第一行显示
-                            (11, box.length if item == box.items[0] else ""),  # 长,只在第一行显示
-                            (12, box.width if item == box.items[0] else ""),  # 宽,只在第一行显示
-                            (13, box.height if item == box.items[0] else ""),  # 高,只在第一行显示
+                            (10, box.weight if is_first_item_in_box else ""),  # 毛重,只在第一行显示
+                            (11, box.length if is_first_item_in_box else ""),  # 长,只在第一行显示
+                            (12, box.width if is_first_item_in_box else ""),  # 宽,只在第一行显示
+                            (13, box.height if is_first_item_in_box else ""),  # 高,只在第一行显示
                             (14, db_product_info.get('brand', '') if db_product_info else ''),  # 品牌
                             (15, db_product_info.get('hs_code', '') if db_product_info else '')  # HS编码
                         ]
@@ -1507,6 +1519,7 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 7, f"=E{row_num}*F{row_num}", style_info)
                         sheet.column_dimensions['O'].width = row_height
                         row_num += 1
+                        is_first_item_in_box = False  # 第一个item处理完后，标记为False
                     
                     # 如果这个箱子有多个产品,需要合并单元格
                     if box_items_count > 1:
