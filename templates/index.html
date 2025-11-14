@@ -411,6 +411,12 @@
             line-height: 1.6;
             border-left: 3px solid #3498db;
             animation: slideInRight 0.3s ease-out;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .log-item:hover {
+            background-color: #3d5a6b;
         }
 
         .log-item.success {
@@ -425,14 +431,57 @@
             border-left-color: #f39c12;
         }
 
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
         .log-time {
             color: #95a5a6;
             font-size: 11px;
-            margin-bottom: 5px;
+        }
+
+        .log-type-badge {
+            background-color: #2c3e50;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            color: #ecf0f1;
         }
 
         .log-message {
             color: #ecf0f1;
+            margin-bottom: 5px;
+        }
+
+        .log-details {
+            display: none;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #2c3e50;
+            font-size: 11px;
+            color: #bdc3c7;
+        }
+
+        .log-details.show {
+            display: block;
+        }
+
+        .log-detail-item {
+            margin: 3px 0;
+        }
+
+        .log-detail-label {
+            color: #95a5a6;
+            font-weight: 600;
+        }
+
+        .expand-icon {
+            color: #95a5a6;
+            font-size: 10px;
+            margin-left: 5px;
         }
 
         .clear-logs-btn {
@@ -1181,12 +1230,20 @@
     // ERP数据库同步功能
     document.getElementById('syncDatabaseBtn').addEventListener('click', async function() {
         if (!confirm('确认要从ERP同步产品数据到数据库吗？\n这可能需要几分钟时间。')) {
+            addLog('用户取消了ERP数据同步', 'info');
             return;
         }
         
         const btn = this;
         btn.disabled = true;
         btn.textContent = '正在同步...';
+        
+        const startTime = new Date();
+        addLog('开始ERP数据同步', 'info', {
+            '操作': '从ERP同步产品数据到MongoDB',
+            '开始时间': startTime.toLocaleString('zh-CN'),
+            '状态': '正在连接服务器...'
+        });
         
         try {
             const response = await fetch('/sync_erp_database', {
@@ -1199,65 +1256,172 @@
             const result = await response.json();
             
             if (result.task_id) {
-                checkSyncStatus(result.task_id, btn);
+                addLog('同步任务已创建', 'success', {
+                    '任务ID': result.task_id,
+                    '状态': '后台执行中'
+                });
+                checkSyncStatus(result.task_id, btn, 0, startTime);
             } else {
-                showNotification(result.error || '同步启动失败', 'error');
+                showNotification(result.error || '同步启动失败', 'error', {
+                    '错误信息': result.error || '未知错误',
+                    '时间': new Date().toLocaleString('zh-CN')
+                });
                 btn.disabled = false;
                 btn.textContent = '从ERP更新数据库';
             }
         } catch (error) {
-            showNotification('同步失败: ' + error.message, 'error');
+            showNotification('同步失败: ' + error.message, 'error', {
+                '错误类型': error.name,
+                '错误信息': error.message,
+                '时间': new Date().toLocaleString('zh-CN')
+            });
             btn.disabled = false;
             btn.textContent = '从ERP更新数据库';
         }
     });
 
     // 检查同步状态
-    async function checkSyncStatus(taskId, btn) {
+    async function checkSyncStatus(taskId, btn, retryCount = 0, startTime = null) {
         try {
             const response = await fetch(`/sync_status/${taskId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const result = await response.json();
             
             if (result.status === 'processing') {
                 btn.textContent = result.message || '正在同步...';
-                setTimeout(() => checkSyncStatus(taskId, btn), 2000);
+                setTimeout(() => checkSyncStatus(taskId, btn, 0, startTime), 2000);
             } else if (result.status === 'completed') {
+                const endTime = new Date();
+                const duration = startTime ? Math.round((endTime - startTime) / 1000) : 0;
+                
                 showNotification(
                     `同步完成！插入：${result.inserted || 0}，跳过：${result.skipped || 0}`,
-                    'success'
+                    'success',
+                    {
+                        '总产品数': result.total || 0,
+                        '处理数量': result.processed || 0,
+                        'MSKU数量': result.msku_count || 0,
+                        '新增记录': result.inserted || 0,
+                        '跳过记录': result.skipped || 0,
+                        '错误数量': result.errors || 0,
+                        '耗时': duration + '秒',
+                        '完成时间': endTime.toLocaleString('zh-CN')
+                    }
+                );
+                btn.disabled = false;
+                btn.textContent = '从ERP更新数据库';
+            } else if (result.status === 'error') {
+                showNotification(
+                    result.message || result.error || '同步失败', 
+                    'error',
+                    {
+                        '任务ID': taskId,
+                        '错误信息': result.error || result.message || '未知错误',
+                        '时间': new Date().toLocaleString('zh-CN')
+                    }
                 );
                 btn.disabled = false;
                 btn.textContent = '从ERP更新数据库';
             } else {
-                showNotification(result.error || '同步失败', 'error');
+                showNotification(
+                    '未知状态: ' + result.status, 
+                    'warning',
+                    {
+                        '任务ID': taskId,
+                        '状态': result.status,
+                        '时间': new Date().toLocaleString('zh-CN')
+                    }
+                );
                 btn.disabled = false;
                 btn.textContent = '从ERP更新数据库';
             }
         } catch (error) {
-            showNotification('检查状态失败: ' + error.message, 'error');
-            btn.disabled = false;
-            btn.textContent = '从ERP更新数据库';
+            // 网络错误重试机制（最多重试3次）
+            if (retryCount < 3) {
+                console.log(`重试检查状态 (${retryCount + 1}/3)...`);
+                addLog(`网络错误，正在重试 (${retryCount + 1}/3)`, 'warning', {
+                    '任务ID': taskId,
+                    '错误': error.message
+                });
+                setTimeout(() => checkSyncStatus(taskId, btn, retryCount + 1, startTime), 3000);
+            } else {
+                showNotification(
+                    '检查状态失败: ' + error.message, 
+                    'error',
+                    {
+                        '任务ID': taskId,
+                        '错误类型': error.name,
+                        '错误信息': error.message,
+                        '建议': '请检查服务器是否运行',
+                        '时间': new Date().toLocaleString('zh-CN')
+                    }
+                );
+                btn.disabled = false;
+                btn.textContent = '从ERP更新数据库';
+            }
         }
     }
 
     // ========== 侧边栏日志功能 ==========
-    function addLog(message, type = 'info') {
+    function addLog(message, type = 'info', details = null) {
         const logContainer = document.getElementById('logContainer');
         const logItem = document.createElement('div');
         logItem.className = `log-item ${type}`;
         
         const now = new Date();
         const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+        const dateStr = now.toLocaleDateString('zh-CN');
+        
+        // 类型标签映射
+        const typeLabels = {
+            'success': '✓ 成功',
+            'error': '✗ 错误',
+            'warning': '⚠ 警告',
+            'info': 'ℹ 信息'
+        };
+        
+        let detailsHtml = '';
+        if (details) {
+            detailsHtml = '<div class="log-details" id="details-' + Date.now() + '">';
+            if (typeof details === 'object') {
+                for (let key in details) {
+                    detailsHtml += `<div class="log-detail-item"><span class="log-detail-label">${key}:</span> ${details[key]}</div>`;
+                }
+            } else {
+                detailsHtml += `<div class="log-detail-item">${details}</div>`;
+            }
+            detailsHtml += '</div>';
+        }
         
         logItem.innerHTML = `
-            <div class="log-time">${timeStr}</div>
+            <div class="log-header">
+                <div class="log-time">${dateStr} ${timeStr}</div>
+                <div class="log-type-badge">${typeLabels[type] || type}${details ? '<span class="expand-icon">▼</span>' : ''}</div>
+            </div>
             <div class="log-message">${message}</div>
+            ${detailsHtml}
         `;
+        
+        // 点击展开/收起详情
+        if (details) {
+            logItem.addEventListener('click', function() {
+                const detailsDiv = this.querySelector('.log-details');
+                const icon = this.querySelector('.expand-icon');
+                if (detailsDiv) {
+                    detailsDiv.classList.toggle('show');
+                    icon.textContent = detailsDiv.classList.contains('show') ? '▲' : '▼';
+                }
+            });
+        }
         
         logContainer.insertBefore(logItem, logContainer.firstChild);
         
-        // 限制日志数量，最多保留50条
-        while (logContainer.children.length > 50) {
+        // 限制日志数量，最多保留100条
+        while (logContainer.children.length > 100) {
             logContainer.removeChild(logContainer.lastChild);
         }
         
@@ -1269,10 +1433,17 @@
         const logContainer = document.getElementById('logContainer');
         const logs = [];
         for (let item of logContainer.children) {
+            const detailsDiv = item.querySelector('.log-details');
+            let details = null;
+            if (detailsDiv) {
+                details = detailsDiv.innerHTML;
+            }
             logs.push({
                 time: item.querySelector('.log-time').textContent,
                 message: item.querySelector('.log-message').textContent,
-                type: item.className.split(' ').find(c => ['success', 'error', 'warning', 'info'].includes(c)) || 'info'
+                type: item.className.split(' ').find(c => ['success', 'error', 'warning', 'info'].includes(c)) || 'info',
+                typeBadge: item.querySelector('.log-type-badge').textContent.replace('▼', '').replace('▲', ''),
+                details: details
             });
         }
         localStorage.setItem('systemLogs', JSON.stringify(logs));
@@ -1281,17 +1452,44 @@
     function loadLogs() {
         const saved = localStorage.getItem('systemLogs');
         if (saved) {
-            const logs = JSON.parse(saved);
-            logs.forEach(log => {
-                const logContainer = document.getElementById('logContainer');
-                const logItem = document.createElement('div');
-                logItem.className = `log-item ${log.type}`;
-                logItem.innerHTML = `
-                    <div class="log-time">${log.time}</div>
-                    <div class="log-message">${log.message}</div>
-                `;
-                logContainer.appendChild(logItem);
-            });
+            try {
+                const logs = JSON.parse(saved);
+                logs.forEach(log => {
+                    const logContainer = document.getElementById('logContainer');
+                    const logItem = document.createElement('div');
+                    logItem.className = `log-item ${log.type}`;
+                    
+                    let detailsHtml = '';
+                    if (log.details) {
+                        detailsHtml = `<div class="log-details">${log.details}</div>`;
+                    }
+                    
+                    logItem.innerHTML = `
+                        <div class="log-header">
+                            <div class="log-time">${log.time}</div>
+                            <div class="log-type-badge">${log.typeBadge || log.type}${log.details ? '<span class="expand-icon">▼</span>' : ''}</div>
+                        </div>
+                        <div class="log-message">${log.message}</div>
+                        ${detailsHtml}
+                    `;
+                    
+                    // 添加点击事件
+                    if (log.details) {
+                        logItem.addEventListener('click', function() {
+                            const detailsDiv = this.querySelector('.log-details');
+                            const icon = this.querySelector('.expand-icon');
+                            if (detailsDiv) {
+                                detailsDiv.classList.toggle('show');
+                                icon.textContent = detailsDiv.classList.contains('show') ? '▲' : '▼';
+                            }
+                        });
+                    }
+                    
+                    logContainer.appendChild(logItem);
+                });
+            } catch (e) {
+                console.error('加载日志失败:', e);
+            }
         }
     }
 
@@ -1306,7 +1504,13 @@
     // 页面加载时恢复日志
     window.addEventListener('DOMContentLoaded', function() {
         loadLogs();
-        addLog('系统启动', 'success');
+        
+        const now = new Date();
+        addLog('系统启动', 'success', {
+            '浏览器': navigator.userAgent.split(' ').slice(-2).join(' '),
+            '时间': now.toLocaleString('zh-CN'),
+            '页面': window.location.pathname
+        });
         
         // 恢复侧边栏状态
         const sidebarHidden = localStorage.getItem('sidebarHidden') !== 'false'; // 默认隐藏
@@ -1324,9 +1528,9 @@
 
     // 修改现有的通知函数，同时添加到日志
     const originalShowNotification = showNotification;
-    showNotification = function(message, type) {
+    showNotification = function(message, type, details) {
         originalShowNotification(message, type);
-        addLog(message, type);
+        addLog(message, type, details);
     };
 
     // 切换侧边栏显示/隐藏
