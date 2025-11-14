@@ -7,11 +7,19 @@
     <style>
         body {
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
         }
 
         .container {
@@ -363,12 +371,125 @@
             color: #1976D2;
             margin-top: 5px;
         }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 350px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(100%);
+        }
+
+        .sidebar h3 {
+            margin-top: 0;
+            color: #ecf0f1;
+            font-size: 18px;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .log-container {
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .log-item {
+            background-color: #34495e;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.6;
+            border-left: 3px solid #3498db;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .log-item.success {
+            border-left-color: #2ecc71;
+        }
+
+        .log-item.error {
+            border-left-color: #e74c3c;
+        }
+
+        .log-item.warning {
+            border-left-color: #f39c12;
+        }
+
+        .log-time {
+            color: #95a5a6;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+        .log-message {
+            color: #ecf0f1;
+        }
+
+        .clear-logs-btn {
+            width: 100%;
+            padding: 8px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .clear-logs-btn:hover {
+            background-color: #c0392b;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 滚动条样式 */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: #2c3e50;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: #34495e;
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #4a5f7f;
+        }
     </style>
 </head>
 <body>
+<div class="main-content">
 <div class="container">
     <h1>文件处理系统</h1>
-    <a href="/msku_edit" target="_blank" class="link">编辑产品表</a>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+        <a href="/msku_edit" target="_blank" class="link">编辑产品表</a>
+        <button type="button" id="syncDatabaseBtn" class="btn-auto-fetch" style="width: auto; padding: 6px 16px; font-size: 14px;">从ERP更新数据库</button>
+        <button type="button" id="toggleLogBtn" onclick="toggleSidebar()" style="width: auto; padding: 6px 16px; font-size: 14px; background-color: #607d8b; border: none; color: white; border-radius: 6px; cursor: pointer;">显示日志</button>
+    </div>
     
     <form id="uploadForm">
         <div class="form-group">
@@ -510,6 +631,16 @@
         <tbody id="historyTableBody">
         </tbody>
     </table>
+</div>
+</div>
+
+<!-- 侧边栏 (默认隐藏) -->
+<div class="sidebar hidden" id="sidebar">
+    <h3>📋 系统日志</h3>
+    <button class="clear-logs-btn" onclick="clearLogs()">清空日志</button>
+    <div class="log-container" id="logContainer">
+        <!-- 日志项将动态添加到这里 -->
+    </div>
 </div>
 
 <script>
@@ -1044,6 +1175,173 @@
         } catch (error) {
             showNotification('检查状态失败: ' + error.message, 'error');
             progressDiv.style.display = 'none';
+        }
+    }
+
+    // ERP数据库同步功能
+    document.getElementById('syncDatabaseBtn').addEventListener('click', async function() {
+        if (!confirm('确认要从ERP同步产品数据到数据库吗？\n这可能需要几分钟时间。')) {
+            return;
+        }
+        
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = '正在同步...';
+        
+        try {
+            const response = await fetch('/sync_erp_database', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.task_id) {
+                checkSyncStatus(result.task_id, btn);
+            } else {
+                showNotification(result.error || '同步启动失败', 'error');
+                btn.disabled = false;
+                btn.textContent = '从ERP更新数据库';
+            }
+        } catch (error) {
+            showNotification('同步失败: ' + error.message, 'error');
+            btn.disabled = false;
+            btn.textContent = '从ERP更新数据库';
+        }
+    });
+
+    // 检查同步状态
+    async function checkSyncStatus(taskId, btn) {
+        try {
+            const response = await fetch(`/sync_status/${taskId}`);
+            const result = await response.json();
+            
+            if (result.status === 'processing') {
+                btn.textContent = result.message || '正在同步...';
+                setTimeout(() => checkSyncStatus(taskId, btn), 2000);
+            } else if (result.status === 'completed') {
+                showNotification(
+                    `同步完成！插入：${result.inserted || 0}，跳过：${result.skipped || 0}`,
+                    'success'
+                );
+                btn.disabled = false;
+                btn.textContent = '从ERP更新数据库';
+            } else {
+                showNotification(result.error || '同步失败', 'error');
+                btn.disabled = false;
+                btn.textContent = '从ERP更新数据库';
+            }
+        } catch (error) {
+            showNotification('检查状态失败: ' + error.message, 'error');
+            btn.disabled = false;
+            btn.textContent = '从ERP更新数据库';
+        }
+    }
+
+    // ========== 侧边栏日志功能 ==========
+    function addLog(message, type = 'info') {
+        const logContainer = document.getElementById('logContainer');
+        const logItem = document.createElement('div');
+        logItem.className = `log-item ${type}`;
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+        
+        logItem.innerHTML = `
+            <div class="log-time">${timeStr}</div>
+            <div class="log-message">${message}</div>
+        `;
+        
+        logContainer.insertBefore(logItem, logContainer.firstChild);
+        
+        // 限制日志数量，最多保留50条
+        while (logContainer.children.length > 50) {
+            logContainer.removeChild(logContainer.lastChild);
+        }
+        
+        // 保存到localStorage
+        saveLogs();
+    }
+
+    function saveLogs() {
+        const logContainer = document.getElementById('logContainer');
+        const logs = [];
+        for (let item of logContainer.children) {
+            logs.push({
+                time: item.querySelector('.log-time').textContent,
+                message: item.querySelector('.log-message').textContent,
+                type: item.className.split(' ').find(c => ['success', 'error', 'warning', 'info'].includes(c)) || 'info'
+            });
+        }
+        localStorage.setItem('systemLogs', JSON.stringify(logs));
+    }
+
+    function loadLogs() {
+        const saved = localStorage.getItem('systemLogs');
+        if (saved) {
+            const logs = JSON.parse(saved);
+            logs.forEach(log => {
+                const logContainer = document.getElementById('logContainer');
+                const logItem = document.createElement('div');
+                logItem.className = `log-item ${log.type}`;
+                logItem.innerHTML = `
+                    <div class="log-time">${log.time}</div>
+                    <div class="log-message">${log.message}</div>
+                `;
+                logContainer.appendChild(logItem);
+            });
+        }
+    }
+
+    function clearLogs() {
+        if (confirm('确认清空所有日志？')) {
+            document.getElementById('logContainer').innerHTML = '';
+            localStorage.removeItem('systemLogs');
+            addLog('日志已清空', 'info');
+        }
+    }
+
+    // 页面加载时恢复日志
+    window.addEventListener('DOMContentLoaded', function() {
+        loadLogs();
+        addLog('系统启动', 'success');
+        
+        // 恢复侧边栏状态
+        const sidebarHidden = localStorage.getItem('sidebarHidden') !== 'false'; // 默认隐藏
+        const sidebar = document.getElementById('sidebar');
+        const btn = document.getElementById('toggleLogBtn');
+        
+        if (sidebarHidden) {
+            sidebar.classList.add('hidden');
+            btn.textContent = '显示日志';
+        } else {
+            sidebar.classList.remove('hidden');
+            btn.textContent = '隐藏日志';
+        }
+    });
+
+    // 修改现有的通知函数，同时添加到日志
+    const originalShowNotification = showNotification;
+    showNotification = function(message, type) {
+        originalShowNotification(message, type);
+        addLog(message, type);
+    };
+
+    // 切换侧边栏显示/隐藏
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const btn = document.getElementById('toggleLogBtn');
+        
+        sidebar.classList.toggle('hidden');
+        
+        if (sidebar.classList.contains('hidden')) {
+            btn.textContent = '显示日志';
+            localStorage.setItem('sidebarHidden', 'true');
+        } else {
+            btn.textContent = '隐藏日志';
+            localStorage.setItem('sidebarHidden', 'false');
         }
     }
 </script>

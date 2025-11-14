@@ -1753,6 +1753,96 @@ def update_status(task_id):
         return jsonify(status_data)
 
 
+@app.route('/sync_erp_database', methods=['POST'])
+def sync_erp_database():
+    """从ERP同步产品数据到MongoDB"""
+    task_id = datetime.now().strftime('%Y%m%d%H%M%S')
+    
+    with task_lock:
+        task_status[task_id] = {
+            'status': 'processing',
+            'progress': 0,
+            'message': '正在初始化...',
+            'inserted': 0,
+            'skipped': 0,
+            'errors': 0
+        }
+    
+    # 在后台线程中执行同步
+    thread = threading.Thread(target=sync_erp_data_task, args=(task_id,))
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({'task_id': task_id})
+
+
+def sync_erp_data_task(task_id):
+    """ERP数据同步任务（后台执行）"""
+    try:
+        # 导入同步模块
+        from sync_erp_to_mongodb import ERPProductSync
+        import login
+        
+        # 更新状态
+        with task_lock:
+            task_status[task_id]['message'] = '正在登录ERP系统...'
+        
+        # 登录
+        token = login.run()
+        
+        # 更新状态
+        with task_lock:
+            task_status[task_id]['message'] = '正在连接数据库...'
+        
+        # 创建同步对象
+        sync = ERPProductSync(token)
+        
+        # 更新状态
+        with task_lock:
+            task_status[task_id]['message'] = '正在获取产品数据...'
+        
+        # 执行同步（不限制数量，同步所有产品）
+        stats = sync.sync_products(limit=None)
+        
+        # 更新最终状态
+        with task_lock:
+            task_status[task_id].update({
+                'status': 'completed',
+                'progress': 100,
+                'message': '同步完成',
+                'inserted': stats['inserted'],
+                'skipped': stats['skipped'],
+                'errors': stats['errors'],
+                'total': stats['total'],
+                'processed': stats['processed'],
+                'msku_count': stats['msku_count']
+            })
+        
+        logging.info(f'ERP数据同步完成: {stats}')
+        
+    except Exception as e:
+        error_msg = f'同步失败: {str(e)}'
+        logging.error(error_msg)
+        logging.error(traceback.format_exc())
+        
+        with task_lock:
+            task_status[task_id].update({
+                'status': 'error',
+                'message': error_msg,
+                'error': str(e)
+            })
+
+
+@app.route('/sync_status/<task_id>')
+def sync_status(task_id):
+    """获取ERP同步任务状态"""
+    with task_lock:
+        if task_id not in task_status:
+            return jsonify({'error': '任务不存在'}), 404
+        
+        return jsonify(task_status[task_id])
+
+
 if __name__ == '__main__':
     os.makedirs(invoice_generator.image_folder,exist_ok=True)
     FIELDS = [
