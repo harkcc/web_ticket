@@ -918,6 +918,15 @@
         }
 
         updateStatus('正在上传文件...', 'processing');
+        
+        // 添加日志
+        const fileName = packingList ? packingList.name : invoiceInfo.name;
+        addLog('开始生成发票', 'info', {
+            '模板': templateName,
+            '文件名': fileName,
+            '编码': code || '无',
+            '开始时间': new Date().toLocaleString('zh-CN')
+        });
 
         fetch('/upload', {
             method: 'POST',
@@ -932,11 +941,19 @@
             .then(data => {
                 if (data.success) {
                     updateStatus('文件已上传，正在处理...', 'processing');
+                    addLog('文件上传成功', 'success', {
+                        '任务ID': data.task_id,
+                        '状态': '开始处理'
+                    });
                     checkStatus(data.task_id);
                 } else {
                     const errorMsg = `编码 ${code}: ${data.error || '生成失败'}`;
                     updateStatus(errorMsg, 'error');
-                    showNotification(errorMsg, 'error');
+                    showNotification(errorMsg, 'error', {
+                        '模板': templateName,
+                        '编码': code,
+                        '错误': data.error || '未知错误'
+                    });
                     loadHistory();
                     setTimeout(() => {
                         location.reload();
@@ -947,7 +964,12 @@
                 console.error('Error:', error);
                 const errorMsg = `编码 ${code}: ${error.message || '生成失败'}`;
                 updateStatus(errorMsg, 'error');
-                showNotification(errorMsg, 'error');
+                showNotification(errorMsg, 'error', {
+                    '模板': templateName,
+                    '编码': code,
+                    '错误类型': error.name,
+                    '错误信息': error.message
+                });
                 loadHistory();
                 setTimeout(() => {
                     location.reload();
@@ -955,7 +977,9 @@
             });
     });
 
-    function checkStatus(taskId) {
+    function checkStatus(taskId, startTime = null) {
+        if (!startTime) startTime = new Date();
+        
         fetch(`/status/${taskId}`)
             .then(response => {
                 if (!response.ok) {
@@ -965,7 +989,16 @@
             })
             .then(data => {
                 if (data.status === 'completed') {
+                    const endTime = new Date();
+                    const duration = Math.round((endTime - startTime) / 1000);
+                    
                     updateStatus('处理完成', 'success');
+                    showNotification('发票生成完成', 'success', {
+                        '任务ID': taskId,
+                        '下载文件': data.download_url,
+                        '耗时': duration + '秒',
+                        '完成时间': endTime.toLocaleString('zh-CN')
+                    });
                     loadHistory();
                     setTimeout(() => {
                         window.location.href = data.download_url;
@@ -974,20 +1007,29 @@
                     const code = document.getElementById('codeInput').value;
                     const errorMsg = `编码 ${code}: ${data.error || '生成失败'}`;
                     updateStatus(errorMsg, 'error');
-                    showNotification(errorMsg, 'error');
+                    showNotification(errorMsg, 'error', {
+                        '任务ID': taskId,
+                        '编码': code,
+                        '错误信息': data.error || data.message || '未知错误',
+                        '时间': new Date().toLocaleString('zh-CN')
+                    });
                     loadHistory();
                     setTimeout(() => {
                         location.reload();
                     }, 2000);
                 } else if (data.status === 'processing') {
                     updateStatus('正在处理中...', 'processing');
-                    setTimeout(() => checkStatus(taskId), 1000);
+                    setTimeout(() => checkStatus(taskId, startTime), 1000);
                 } else {
                     // 未知状态，当作错误处理
                     const code = document.getElementById('codeInput').value;
                     const errorMsg = `编码 ${code}: 未知错误`;
                     updateStatus(errorMsg, 'error');
-                    showNotification(errorMsg, 'error');
+                    showNotification(errorMsg, 'error', {
+                        '任务ID': taskId,
+                        '状态': data.status || '未知',
+                        '时间': new Date().toLocaleString('zh-CN')
+                    });
                     loadHistory();
                     setTimeout(() => {
                         location.reload();
@@ -999,7 +1041,12 @@
                 const code = document.getElementById('codeInput').value;
                 const errorMsg = `编码 ${code}: ${error.message || '生成失败'}`;
                 updateStatus(errorMsg, 'error');
-                showNotification(errorMsg, 'error');
+                showNotification(errorMsg, 'error', {
+                    '任务ID': taskId,
+                    '错误类型': error.name,
+                    '错误信息': error.message,
+                    '时间': new Date().toLocaleString('zh-CN')
+                });
                 loadHistory();
                 setTimeout(() => {
                     location.reload();
