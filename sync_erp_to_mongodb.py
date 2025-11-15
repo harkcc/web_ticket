@@ -201,21 +201,37 @@ class ERPProductSync:
         return None
     
     def split_field(self, field_value, en_field_value=None):
-        """拆分中英文字段"""
+        """
+        拆分中英文字段，支持三种情况：
+        1. 分开存储：customs_clearance_material + customs_clearance_en_material
+        2. 复合存储：customs_clearance_material = "中文/English" (斜杠分割)
+        3. 真实缺失：字段为空或不存在
+        
+        Args:
+            field_value: 中文字段值（可能包含英文）
+            en_field_value: 英文字段值（如果分开存储）
+        
+        Returns:
+            tuple: (中文, 英文)
+        """
+        # 情况1: 分开存储 - 如果有独立的英文字段，优先使用
         if en_field_value and en_field_value.strip():
             zh = field_value.strip() if field_value else ""
             en = en_field_value.strip()
             return zh, en
         
+        # 情况3: 真实缺失 - 字段为空
         if not field_value or field_value.strip() == "":
             return "", ""
         
+        # 情况2: 复合存储 - 包含斜杠分隔符 (注意: JSON中的\/会被自动解析为/)
         if '/' in field_value:
-            parts = field_value.split('/', 1)
+            parts = field_value.split('/', 1)  # 只分割第一个斜杠
             zh = parts[0].strip() if len(parts) > 0 else ""
             en = parts[1].strip() if len(parts) > 1 else ""
             return zh, en
         
+        # 其他情况: 只有中文，没有英文
         return field_value.strip(), ""
     
     def parse_special_attr(self, special_attr):
@@ -230,29 +246,50 @@ class ERPProductSync:
         return has_electric, has_magnetic
     
     def transform_product_data(self, product_info, link_info):
-        """将ERP产品数据转换为MongoDB格式"""
+        """
+        将ERP产品数据转换为MongoDB格式
+        
+        处理材质和用途的三种情况：
+        1. 分开存储：customs_clearance_material + customs_clearance_en_material
+        2. 复合存储：customs_clearance_material = "中文/English"
+        3. 真实缺失：字段为空
+        """
         info = product_info.get('info', {})
         declaration = info.get('product_declaration_list', {})
         clearance = info.get('product_clearance_list', {})
         special_attr = info.get('special_attr', [])
         spec_info = info.get('spec_info', {})
         
+        # 解析电磁属性
         electrified, magnetic = self.parse_special_attr(special_attr)
         
+        # 解析材质（支持三种情况）
         material_zh, material_en = self.split_field(
             clearance.get('customs_clearance_material', ''),
             clearance.get('customs_clearance_en_material', '')
         )
         
+        # 解析用途（支持三种情况）
         use_zh, use_en = self.split_field(
             clearance.get('customs_clearance_usage', ''),
             clearance.get('customs_clearance_en_usage', '')
         )
         
+        # 处理品牌和型号（空值显示"无"）
+        brand = info.get('brand_name', '')
+        brand = brand.strip() if brand else ''
+        brand = brand if brand else "无"
+        
+        model = info.get('model', '')
+        model = model.strip() if model else ''
+        model = model if model else "无"
+        
+        # 获取重量（ERP中单位是克，转换为千克）
         weight_str = spec_info.get('cg_product_net_weight', '0')
         try:
-            weight = float(weight_str)
-        except:
+            weight_g = float(weight_str)  # 原始重量（克）
+            weight = weight_g * 0.001  # 转换为千克
+        except (ValueError, TypeError):
             weight = 0.0
         
         document = {
@@ -260,8 +297,8 @@ class ERPProductSync:
             "productNameZh": declaration.get('customs_export_name', ''),
             "productNameEn": declaration.get('customs_import_name', ''),
             "price": declaration.get('customs_import_price', ''),
-            "brand": info.get('brand_name', '') or "无",
-            "model": info.get('model', '') or "无",
+            "brand": brand,
+            "model": model,
             "HS": declaration.get('customs_declaration_hs_code', ''),
             "image_url": "",
             "asin": link_info.get('asin', ''),
