@@ -1281,7 +1281,7 @@ class InvoiceGenerator:
 
                         # 设置单元格值和样式
                         cell_data = [
-                            (1, code+f"{box_number:05d}"),                    
+                            (1, str(code)+f"{box_number:05d}" if code is not None else f"{box_number:05d}"),                    
                             # (2, box.weight if box.weight is not None else ""),  
                             (2,Reference_id),  
                             (3,f"{box.length}*{box.width}*{box.height}"),  
@@ -2366,7 +2366,7 @@ class InvoiceGenerator:
                 raise
     
     @template_handler("德邦美森限时达")
-    def _fill_dbmsxsd_template(self, wb, box_data,code=None, address_info=None, shipment_id=None):
+    def _fill_dbmsxsd_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         :param wb: 工作簿对象
         :param box_data: 箱子数据
@@ -2836,7 +2836,7 @@ class InvoiceGenerator:
                         # self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
                         
                         # FBA号
-                        fba_number = code+'U00000'+str(box_number)
+                        fba_number = str(code)+'U00000'+str(box_number) if code is not None else 'U00000'+str(box_number)
                         self._set_cell_value(sheet, row_num, 2, fba_number, style_info)
                         # 箱号
                         self._set_cell_value(sheet, row_num, 3, 1, style_info)
@@ -4033,7 +4033,7 @@ class InvoiceGenerator:
                 raise
     
     @template_handler("递信日本空派")
-    def _fill_dx_japenDP_template(self, wb, box_data,code=None, address_info=None, shipment_id=None):
+    def _fill_dx_japenDP_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         :param wb: 工作簿对象
         :param box_data: 箱子数据
@@ -4312,7 +4312,7 @@ class InvoiceGenerator:
                 raise
 
     @template_handler("日本宏川贴标")
-    def _fill_dx_japenHC_template(self, wb, box_data,code=None, address_info=None, shipment_id=None):
+    def _fill_dx_japenHC_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
         :param wb: 工作簿对象
         :param box_data: 箱子数据
@@ -4757,7 +4757,7 @@ class InvoiceGenerator:
                         raise ValueError('Logistics cannot be None')
 
                     # 获取code
-                    code_suffix = f"{code}" if code else ""
+                    code_suffix = f"{code}" if code is not None else ""
 
                     country_name = address_info["seller_info"]["country_name"] if address_info and address_info.get("seller_info") else ''
                     output_filename = f'{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单.xlsx'
