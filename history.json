@@ -1,84 +1,5 @@
 [
   {
-    "task_id": "20250819163923",
-    "type": "packing_list",
-    "timestamp": "20250819_163928",
-    "input_file": "20250819163923_packing_list.xlsx",
-    "output_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx",
-    "code_input": "FBA15JWKX23F",
-    "template_name": "德邦空派",
-    "status": "completed",
-    "result_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx"
-  },
-  {
-    "task_id": "20250819164041",
-    "type": "packing_list",
-    "timestamp": "20250819_164046",
-    "input_file": "20250819164041_packing_list.xlsx",
-    "output_file": null,
-    "code_input": "FBA15JWKX23F",
-    "template_name": "德邦美森限时达",
-    "status": "error",
-    "result_file": null
-  },
-  {
-    "task_id": "20250819164742",
-    "type": "packing_list",
-    "timestamp": "20250819_164747",
-    "input_file": "20250819164742_packing_list.xlsx",
-    "output_file": null,
-    "code_input": "FBA18RLF321Q",
-    "template_name": "德邦美森限时达",
-    "status": "error",
-    "result_file": null,
-    "address_info_status": "failed"
-  },
-  {
-    "task_id": "20250819165456",
-    "type": "packing_list",
-    "timestamp": "20250819_165503",
-    "input_file": "20250819165456_packing_list.xlsx",
-    "output_file": "百泰-FBA15FXPFFPL-2025.7.2-递信日本空派普货KJTB票-7件--发票装箱单.xlsx",
-    "code_input": "FBA15FXPFFPL",
-    "template_name": "德邦美森限时达",
-    "status": "completed",
-    "result_file": "百泰-FBA15FXPFFPL-2025.7.2-递信日本空派普货KJTB票-7件--发票装箱单.xlsx"
-  },
-  {
-    "task_id": "20250819170406",
-    "type": "packing_list",
-    "timestamp": "20250819_170414",
-    "input_file": "20250819170406_packing_list.xlsx",
-    "output_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx",
-    "code_input": "FBA15JWKX23F",
-    "template_name": "德邦美森限时达",
-    "status": "completed",
-    "result_file": "百泰-FBA15JWKX23F-2024.12.27-顺丰欧洲空派QK票-2件--发票装箱单.xlsx"
-  },
-  {
-    "task_id": "20250820172301",
-    "type": "packing_list",
-    "timestamp": "20250820_172305",
-    "input_file": "20250820172301_packing_list.xlsx",
-    "output_file": null,
-    "code_input": "FBA15JWKX23F",
-    "template_name": "UPS(美洲)",
-    "status": "error",
-    "result_file": null
-  },
-  {
-    "task_id": "20250820172831",
-    "type": "packing_list",
-    "timestamp": "20250820_172835",
-    "input_file": "20250820172831_packing_list.xlsx",
-    "output_file": "20250820172834.xlsx",
-    "code_input": "FBA18RLF321Q",
-    "template_name": "UPS(美洲)",
-    "status": "completed",
-    "result_file": "20250820172834.xlsx",
-    "address_info_status": "failed"
-  },
-  {
     "task_id": "20250825092034",
     "type": "packing_list",
     "timestamp": "20250825_092039",
@@ -1075,6 +996,17 @@
     "output_file": null,
     "code_input": "FBA193LXBN57",
     "template_name": "UPS(美洲)",
+    "status": "error",
+    "result_file": null
+  },
+  {
+    "task_id": "20251120164810",
+    "type": "packing_list",
+    "timestamp": "20251120_164816",
+    "input_file": "20251120164809_auto_fetch_FBA193LX49TS.xlsx",
+    "output_file": null,
+    "code_input": "FBA193LX49TS",
+    "template_name": "德邦美森限时达",
     "status": "error",
     "result_file": null
   }

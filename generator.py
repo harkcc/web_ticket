@@ -898,7 +898,7 @@ class InvoiceGenerator:
                             item.product_name = "需要补数据"
                         
                         # box_number_str = code+f"{box_number:05d}" 
-                        box_number_str = code+'U00000'+str(box_number)
+                        box_number_str = str(code)+'U00000'+str(box_number) if code is not None else 'U00000'+str(box_number)
                         # Reference_id = ''  # 初始化为None
                         # if box_Reference_id:
                         #     Reference_id = box_Reference_id
@@ -2511,7 +2511,7 @@ class InvoiceGenerator:
                 for box_number, box in sorted_boxes:
                     self._log_debug(f"处理箱子 {box_number}")
                     first_row_of_box = row_num  # 记录这个箱子的第一行
-                    box_number_str = code + 'U00000' + str(box_number)
+                    box_number_str = str(code) + 'U00000' + str(box_number) if code is not None else 'U00000' + str(box_number)
 
                     # 遍历箱子中的每个产品
                     for item in box.items:
@@ -3264,7 +3264,7 @@ class InvoiceGenerator:
                         
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
-                        box_number_str = code+'U00000'+str(box_number)
+                        box_number_str = str(code)+'U00000'+str(box_number) if code is not None else 'U00000'+str(box_number)
                         # 设置单元格值和样式
                         cell_data = [
                             (1, box_number_str),                    # 货箱编号 (A列)
@@ -3505,7 +3505,7 @@ class InvoiceGenerator:
                             item.product_name = product_info.get('cn_name', item.product_name)
                         
                         # 根据箱子编号进行进位，格式为U000001, U000002等
-                        box_number_str = code + "U" + str(int(box_number)).zfill(6)
+                        box_number_str = str(code) + "U" + str(int(box_number)).zfill(6) if code is not None else "U" + str(int(box_number)).zfill(6)
                         Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                         # 设置单元格值和样式
                         cell_data = [
@@ -3739,7 +3739,7 @@ class InvoiceGenerator:
                         
 
                         Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
-                        box_number_str = code+'U00000'+str(box_number)
+                        box_number_str = str(code)+'U00000'+str(box_number) if code is not None else 'U00000'+str(box_number)
                         # 设置单元格值和样式ç
                         cell_data = [
                             (1, box_number_str),                    # 货箱编号 (A列)
@@ -3981,7 +3981,7 @@ class InvoiceGenerator:
                             total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
 
-                        box_number_str = code+'U00000'+str(box_number)
+                        box_number_str = str(code)+'U00000'+str(box_number) if code is not None else 'U00000'+str(box_number)
                         # 设置单元格值和样式ç
                         cell_data = [
                             (1, box_number_str),                    # 货箱编号 (A列)
@@ -4162,7 +4162,7 @@ class InvoiceGenerator:
                     self._log_debug(f"处理箱子 {box_number}")
                     first_row_of_box = row_num  # 记录这个箱子的第一行
                     # box_number_str = code + 'U00000' + str(box_number)
-                    box_number_str = code + 'U' + f"{box_number:06d}"  
+                    box_number_str = str(code) + 'U' + f"{box_number:06d}" if code is not None else 'U' + f"{box_number:06d}"  
 
                     box_items_count = len(box.items)
                     start_row = row_num
@@ -4426,7 +4426,7 @@ class InvoiceGenerator:
                     self._log_debug(f"处理箱子 {box_number}")
                     first_row_of_box = row_num  # 记录这个箱子的第一行
                     # box_number_str = code + 'U00000' + str(box_number)
-                    box_number_str = code + 'U' + f"{box_number:06d}"  
+                    box_number_str = str(code) + 'U' + f"{box_number:06d}" if code is not None else 'U' + f"{box_number:06d}"  
 
                     box_items_count = len(box.items)
                     start_row = row_num
