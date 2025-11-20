@@ -918,8 +918,8 @@ class InvoiceGenerator:
                             # 产品材料和用途
                             (8, product_info.get('material_cn', '') if product_info else ''),             # 中文材料
                             (9, product_info.get('material_en', '') if product_info else ''),             # 英文材料
-                            (10, str(product_info.get('usage_en', '') + 
-                                   product_info.get('usage_cn', '')) if product_info else ''),            # 用途
+                            (10, str((product_info.get('usage_en') or '') + 
+                                   (product_info.get('usage_cn') or '')) if product_info else ''),            # 用途
                             (11, '纸箱'),                                         # 包装类型
                             
                             # 产品规格信息
@@ -1064,9 +1064,9 @@ class InvoiceGenerator:
                             (8, product_info.get('cn_name', '') if product_info else ''),  # 链接 (D列)
                             # (5, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (10, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (11, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (11, str((product_info.get('material_en') or '')+'/'+(product_info.get('material_cn') or '')) if product_info else ''),  # 材料 (D列) 
                             (13, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (12, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (12, str((product_info.get('usage_en') or '')+'/'+(product_info.get('usage_cn') or '' ))if product_info else ''),    # 用途 (H列)
                             (14, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (15, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (16, product_info.get('link', '') if product_info else ''),
@@ -1295,7 +1295,7 @@ class InvoiceGenerator:
                             (11, product_info.get('brand', '') if product_info else ''),    
                             (12, product_info.get('model', '') if product_info else ''),  
                             (13, str(product_info.get('material_cn', '')) if product_info else ''),  
-                            (14, str(product_info.get('usage_cn', '')+product_info.get('usage_en', '' ))if product_info else ''),    # 用途 (H列)
+                            (14, str((product_info.get('usage_cn') or '')+(product_info.get('usage_en') or '' ))if product_info else ''),    # 用途 (H列)
                             (15, ''),  
                         ]
 
@@ -1880,9 +1880,9 @@ class InvoiceGenerator:
                             
                             (11,"美元"),  
                             (12, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (13, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (13, str((product_info.get('material_en') or '')+'/'+(product_info.get('material_cn') or '')) if product_info else ''),  # 材料 (D列) 
                             (14, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (15, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (15, str((product_info.get('usage_en') or '')+'/'+(product_info.get('usage_cn') or '' ))if product_info else ''),    # 用途 (H列)
                             (16, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (17, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             # (12, product_info.get('link', '') if product_info else ''),
@@ -2554,8 +2554,8 @@ class InvoiceGenerator:
                             (9, ''),   # 总价
                             # 产品材料和用途
                             (10, f"{product_info.get('material_en', '')} /{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
-                            (11, str(product_info.get('usage_en', '') + '/' +
-                                   product_info.get('usage_cn', '')) if product_info else ''),            # 用途
+                            (11, str((product_info.get('usage_en') or '') + '/' +
+                                   (product_info.get('usage_cn') or '')) if product_info else ''),            # 用途
 
                             (12, product_info.get('brand', '') if product_info else ''),
                             (13, product_info.get('model', '') if product_info else ''),
@@ -3273,9 +3273,9 @@ class InvoiceGenerator:
                             (2, product_info.get('cn_name', '') if product_info else ''),  
                             (8, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (7, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (10, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (10, str((product_info.get('material_en') or '')+'/'+(product_info.get('material_cn') or '')) if product_info else ''),  # 材料 (D列) 
                             (4, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (5, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (5, str((product_info.get('usage_en') or '')+'/'+(product_info.get('usage_cn') or '' ))if product_info else ''),    # 用途 (H列)
                             (9, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             # (12, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (12, ''),
@@ -3519,11 +3519,11 @@ class InvoiceGenerator:
                             (12, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (19, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
                             (20,''),
-                            (5, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
+                            (5, str((product_info.get('material_en') or '')+'/'+(product_info.get('material_cn') or '')) if product_info else ''),  # 材料 (D列) 
                             (7, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
                             (8,''),
                             (14,''),
-                            (6, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (6, str((product_info.get('usage_en') or '')+'/'+(product_info.get('usage_cn') or '' ))if product_info else ''),    # 用途 (H列)
                             (15, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
                             (17, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (18, product_info.get('link', '') if product_info else ''),
@@ -3753,8 +3753,8 @@ class InvoiceGenerator:
                             (9, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
                             (10, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
                             (11, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
-                            (13, str(product_info.get('material_en', '')+'/'+product_info.get('material_cn', '')) if product_info else ''),  # 材料 (D列) 
-                            (14, str(product_info.get('usage_en', '')+'/'+product_info.get('usage_cn', '' ))if product_info else ''),    # 用途 (H列)
+                            (13, str((product_info.get('material_en') or '')+'/'+(product_info.get('material_cn') or '')) if product_info else ''),  # 材料 (D列) 
+                            (14, str((product_info.get('usage_en') or '')+'/'+(product_info.get('usage_cn') or '' ))if product_info else ''),    # 用途 (H列)
                             (12, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
                             (15, ''),  # 图片列 (N列)
                             (16, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
@@ -4210,8 +4210,8 @@ class InvoiceGenerator:
                             (11, ''),
                             # 产品材料和用途
                             (7, f"{product_info.get('material_en', '')}\n{product_info.get('material_cn', '')}" if product_info else ''),            # 中文材料
-                            (6, str(product_info.get('usage_en', '') + ',' +
-                                   product_info.get('usage_cn', '')) if product_info else ''),            # 用途
+                            (6, str((product_info.get('usage_en') or '') + ',' +
+                                   (product_info.get('usage_cn') or '')) if product_info else ''),            # 用途
 
                             (4, product_info.get('brand', '') if product_info else ''),
                             (5, product_info.get('model', '') if product_info else ''),
