@@ -325,6 +325,75 @@ class ERPProductSync:
             existing_mskus = set(doc['msku'] for doc in self.collection.find({}, {'msku': 1}))
         return existing_mskus
     
+    def get_existing_data(self):
+        """获取现有的MSKU完整数据（用于比较更新）"""
+        with db_operation_lock:
+            existing_data = {}
+            for doc in self.collection.find({}):
+                msku = doc.get('msku')
+                if msku:
+                    existing_data[msku] = doc
+        return existing_data
+    
+    # 需要从ERP同步的字段（这些字段以ERP为准）
+    ERP_SYNC_FIELDS = [
+        'productNameZh', 'productNameEn', 'price', 'brand', 'model', 'HS',
+        'asin', 'electrified', 'magnetic', 'materialEn', 'materialZh',
+        'productLink', 'useEn', 'useZh', 'weight'
+    ]
+    
+    # 本地维护的字段（不会被ERP覆盖）
+    LOCAL_FIELDS = ['image_url', 'askPrice', 'outboundFee', 'putAwayFee', 'X_ROW_K', 'created_at']
+    
+    def compare_and_get_updates(self, erp_doc, existing_doc):
+        """
+        比较ERP数据与现有数据，返回需要更新的字段
+        
+        Args:
+            erp_doc: 从ERP获取的数据
+            existing_doc: MongoDB中现有的数据
+        
+        Returns:
+            dict: 需要更新的字段，如果没有差异返回空字典
+        """
+        updates = {}
+        
+        for field in self.ERP_SYNC_FIELDS:
+            erp_value = erp_doc.get(field, '')
+            existing_value = existing_doc.get(field, '')
+            
+            # 统一处理空值比较
+            if erp_value is None:
+                erp_value = ''
+            if existing_value is None:
+                existing_value = ''
+            
+            # 数值类型特殊处理
+            if field == 'weight':
+                try:
+                    erp_float = float(erp_value) if erp_value != '' else 0.0
+                    existing_float = float(existing_value) if existing_value != '' else 0.0
+                    if abs(erp_float - existing_float) > 0.0001:
+                        updates[field] = erp_float
+                except (ValueError, TypeError):
+                    if str(erp_value) != str(existing_value):
+                        updates[field] = erp_value
+            elif field == 'price':
+                try:
+                    erp_price = float(erp_value) if erp_value != '' else 0.0
+                    existing_price = float(existing_value) if existing_value != '' else 0.0
+                    if abs(erp_price - existing_price) > 0.001:
+                        updates[field] = erp_value
+                except (ValueError, TypeError):
+                    if str(erp_value) != str(existing_value):
+                        updates[field] = erp_value
+            else:
+                # 字符串比较
+                if str(erp_value).strip() != str(existing_value).strip():
+                    updates[field] = erp_value
+        
+        return updates
+    
     def batch_insert_documents(self, documents):
         """批量插入文档（参考web_ticket实现）"""
         if not documents:
@@ -336,10 +405,45 @@ class ERPProductSync:
             documents_to_insert = [doc for doc in documents if doc.get('msku') not in current_mskus]
             
             if documents_to_insert:
+                # 为新插入的文档添加created_at和updated_at
+                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                for doc in documents_to_insert:
+                    doc['created_at'] = now
+                    doc['updated_at'] = now
                 self.collection.insert_many(documents_to_insert)
                 return len(documents_to_insert)
         
         return 0
+    
+    def batch_update_documents(self, updates_list):
+        """
+        批量更新文档
+        
+        Args:
+            updates_list: [(msku, updates_dict), ...] 格式的更新列表
+        
+        Returns:
+            int: 成功更新的数量
+        """
+        if not updates_list:
+            return 0
+        
+        updated_count = 0
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        with db_operation_lock:
+            for msku, updates in updates_list:
+                if updates:
+                    # 添加updated_at时间戳
+                    updates['updated_at'] = now
+                    result = self.collection.update_one(
+                        {'msku': msku},
+                        {'$set': updates}
+                    )
+                    if result.modified_count > 0:
+                        updated_count += 1
+        
+        return updated_count
     
     def process_single_product(self, product, existing_mskus):
         """处理单个产品（用于并发）"""
@@ -386,7 +490,7 @@ class ERPProductSync:
             return {'success': False, 'error': str(e), 'sku': sku}
     
     def process_single_product_cached(self, product, existing_mskus):
-        """处理单个产品（使用缓存的链接数据）"""
+        """处理单个产品（使用缓存的链接数据）- 旧版本，仅插入"""
         product_id = product.get('id')
         sku = product.get('sku', 'Unknown')
         documents = []
@@ -428,35 +532,113 @@ class ERPProductSync:
         except Exception as e:
             return {'success': False, 'error': str(e), 'sku': sku}
     
+    def process_single_product_sync(self, product, existing_data):
+        """
+        处理单个产品（支持插入和更新）
+        
+        Args:
+            product: 产品信息（包含缓存的_links）
+            existing_data: 现有MSKU完整数据字典 {msku: doc}
+        
+        Returns:
+            dict: 包含新增文档、更新列表等信息
+        """
+        product_id = product.get('id')
+        sku = product.get('sku', 'Unknown')
+        
+        try:
+            # 添加小延时，避免并发请求过快
+            time.sleep(0.1)
+            
+            # 获取产品详情
+            detail = self.get_product_detail(product_id)
+            if not detail or detail.get('code') != 1:
+                return {'success': False, 'error': '获取产品详情失败', 'sku': sku}
+            
+            # 使用缓存的链接数据
+            link_data = product.get('_links', [])
+            if not link_data:
+                return {'success': False, 'error': '没有MSKU链接', 'sku': sku}
+            
+            # 处理每个MSKU
+            new_documents = []      # 新增的文档
+            updates_list = []       # 需要更新的 [(msku, updates), ...]
+            unchanged_mskus = []    # 无变化的MSKU
+            new_mskus = []          # 新增的MSKU
+            updated_mskus = []      # 更新的MSKU
+            
+            for link in link_data:
+                msku = link.get('msku', '')
+                if not msku:
+                    continue
+                
+                # 转换ERP数据
+                erp_doc = self.transform_product_data(detail, link)
+                
+                if msku in existing_data:
+                    # MSKU已存在，比较差异
+                    existing_doc = existing_data[msku]
+                    updates = self.compare_and_get_updates(erp_doc, existing_doc)
+                    
+                    if updates:
+                        # 有差异，需要更新
+                        updates_list.append((msku, updates))
+                        updated_mskus.append(msku)
+                    else:
+                        # 无差异
+                        unchanged_mskus.append(msku)
+                else:
+                    # 新MSKU，需要插入
+                    new_documents.append(erp_doc)
+                    new_mskus.append(msku)
+            
+            return {
+                'success': True,
+                'sku': sku,
+                'new_documents': new_documents,
+                'updates_list': updates_list,
+                'new_mskus': new_mskus,
+                'updated_mskus': updated_mskus,
+                'unchanged_mskus': unchanged_mskus
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e), 'sku': sku}
+    
     def sync_products(self, limit=None, use_concurrent=True, max_workers=5):
         """
-        同步产品数据（优化版）
+        同步产品数据（全量同步版 - 支持插入和更新）
         
         Args:
             limit: 限制处理的产品数量
             use_concurrent: 是否使用并发处理
             max_workers: 并发线程数（默认5，避免触发限流）
+        
+        同步策略：
+            - 新MSKU：插入新记录，设置created_at和updated_at
+            - 已存在MSKU：对比ERP_SYNC_FIELDS字段，有差异则更新，同时更新updated_at
+            - 本地字段（image_url, askPrice等）：不会被ERP覆盖
         """
         print("\n" + "=" * 70)
-        print("开始同步ERP产品数据到MongoDB")
+        print("开始同步ERP产品数据到MongoDB（全量同步模式）")
+        print("  策略：新增插入 + 差异更新（以ERP为准）")
         if use_concurrent:
-            print(f"✓ 使用并发模式 (最大{max_workers}个线程)")
+            print(f"  并发：最大{max_workers}个线程")
         print("=" * 70)
         
         try:
             # 步骤1: 获取产品列表
-            print("\n[步骤1] 获取产品列表...")
+            print("\n[步骤1] 获取ERP产品列表...")
             products = self.get_product_list(limit=limit)
             
-            # 步骤2: 获取现有MSKU列表（优化：提前过滤）
-            print("\n[步骤2] 获取现有MSKU列表...")
-            existing_mskus = self.check_existing_mskus()
-            print(f"  数据库中已有 {len(existing_mskus)} 个MSKU")
+            # 步骤2: 获取现有MSKU完整数据（用于比较更新）
+            print("\n[步骤2] 获取数据库现有数据...")
+            existing_data = self.get_existing_data()
+            print(f"  数据库中已有 {len(existing_data)} 个MSKU")
             
-            # 步骤2.5: 提前获取所有产品的MSKU，过滤已存在的产品
-            print("\n[步骤2.5] 预检查产品MSKU...")
+            # 步骤2.5: 获取所有产品的MSKU链接并缓存
+            print("\n[步骤2.5] 获取产品MSKU链接...")
             products_to_process = []
-            skipped_products_count = 0
             total_products = len(products)
             
             for idx, product in enumerate(products, 1):
@@ -466,43 +648,39 @@ class ERPProductSync:
                 self.print_progress_bar(
                     idx, 
                     total_products, 
-                    prefix='预检查进度',
+                    prefix='获取链接',
                     suffix=f'({idx}/{total_products})'
                 )
                 
-                # 快速获取产品链接，检查MSKU
+                # 获取产品链接
                 links = self.get_product_links(product_id)
                 if links and links.get('code') == 1:
                     link_data = links.get('data', [])
-                    # 检查是否有新的MSKU
-                    has_new_msku = any(link.get('msku', '') not in existing_mskus for link in link_data)
-                    if has_new_msku:
+                    if link_data:
                         product['_links'] = link_data  # 缓存链接数据
                         products_to_process.append(product)
-                    else:
-                        skipped_products_count += 1
                 time.sleep(0.1)  # 避免请求过快
             
             print(f"\n  ✓ 需要处理: {len(products_to_process)} 个产品")
-            print(f"  ⊗ 跳过(全部MSKU已存在): {skipped_products_count} 个产品")
             
             stats = {
                 'total': len(products),
                 'processed': 0,
                 'inserted': 0,
-                'skipped': 0,  # 这里记录跳过的MSKU数量，不是产品数量
+                'updated': 0,
+                'unchanged': 0,
                 'errors': 0,
-                'msku_count': 0,
-                'skipped_products': skipped_products_count  # 新增：跳过的产品数量
+                'msku_count': 0
             }
             
             if not products_to_process:
-                print("\n✓ 所有产品的MSKU都已存在，无需同步")
+                print("\n✓ 没有产品需要处理")
                 return stats
             
-            # 步骤3: 处理产品并收集待插入文档
+            # 步骤3: 处理产品并收集待插入/更新的数据
             print(f"\n[步骤3] 开始处理 {len(products_to_process)} 个产品...")
             documents_to_insert = []
+            updates_to_apply = []  # [(msku, updates), ...]
             
             if use_concurrent and len(products_to_process) > 1:
                 # 并发处理
@@ -512,7 +690,7 @@ class ERPProductSync:
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # 提交所有任务
                     future_to_product = {
-                        executor.submit(self.process_single_product_cached, product, existing_mskus): product
+                        executor.submit(self.process_single_product_sync, product, existing_data): product
                         for product in products_to_process
                     }
                     
@@ -526,17 +704,20 @@ class ERPProductSync:
                         try:
                             result = future.result()
                             if result['success']:
-                                documents_to_insert.extend(result['documents'])
+                                documents_to_insert.extend(result['new_documents'])
+                                updates_to_apply.extend(result['updates_list'])
                                 stats['processed'] += 1
-                                stats['msku_count'] += len(result['new_mskus']) + len(result['skipped_mskus'])
-                                stats['skipped'] += len(result['skipped_mskus'])
+                                stats['msku_count'] += len(result['new_mskus']) + len(result['updated_mskus']) + len(result['unchanged_mskus'])
                                 
                                 # 显示进度条
+                                new_count = len(result['new_mskus'])
+                                update_count = len(result['updated_mskus'])
+                                unchanged_count = len(result['unchanged_mskus'])
                                 self.print_progress_bar(
                                     completed,
                                     total_to_process,
                                     prefix='处理进度',
-                                    suffix=f'{sku} ✓ 新增{len(result["new_mskus"])}个MSKU'
+                                    suffix=f'{sku} ✓ 新增{new_count}/更新{update_count}/无变化{unchanged_count}'
                                 )
                             else:
                                 stats['errors'] += 1
@@ -555,19 +736,19 @@ class ERPProductSync:
                                 suffix=f'{sku} ✗ {str(e)}'
                             )
             else:
-                # 串行处理（原逻辑）
+                # 串行处理
                 for idx, product in enumerate(products_to_process, 1):
                     sku = product.get('sku', 'Unknown')
                     print(f"\n--- [{idx}/{len(products_to_process)}] 处理产品: {sku} ---")
                     
                     try:
-                        result = self.process_single_product_cached(product, existing_mskus)
+                        result = self.process_single_product_sync(product, existing_data)
                         if result['success']:
-                            documents_to_insert.extend(result['documents'])
+                            documents_to_insert.extend(result['new_documents'])
+                            updates_to_apply.extend(result['updates_list'])
                             stats['processed'] += 1
-                            stats['msku_count'] += len(result['new_mskus']) + len(result['skipped_mskus'])
-                            stats['skipped'] += len(result['skipped_mskus'])
-                            print(f"  ✓ 新增{len(result['new_mskus'])}个MSKU, 跳过{len(result['skipped_mskus'])}个")
+                            stats['msku_count'] += len(result['new_mskus']) + len(result['updated_mskus']) + len(result['unchanged_mskus'])
+                            print(f"  ✓ 新增{len(result['new_mskus'])}个, 更新{len(result['updated_mskus'])}个, 无变化{len(result['unchanged_mskus'])}个")
                         else:
                             stats['errors'] += 1
                             print(f"  ✗ {result['error']}")
@@ -577,26 +758,39 @@ class ERPProductSync:
                     
                     time.sleep(0.3)
             
-            # 步骤4: 批量插入数据
-            print(f"\n[步骤4] 批量插入数据...")
+            # 步骤4: 批量插入新数据
+            print(f"\n[步骤4] 批量插入新数据...")
             if documents_to_insert:
-                print(f"  准备插入 {len(documents_to_insert)} 条记录...")
+                print(f"  准备插入 {len(documents_to_insert)} 条新记录...")
                 inserted_count = self.batch_insert_documents(documents_to_insert)
                 stats['inserted'] = inserted_count
                 print(f"  ✓ 成功插入 {inserted_count} 条记录")
             else:
                 print(f"  没有新数据需要插入")
             
-            # 步骤5: 输出统计信息
+            # 步骤5: 批量更新现有数据
+            print(f"\n[步骤5] 批量更新现有数据...")
+            if updates_to_apply:
+                print(f"  准备更新 {len(updates_to_apply)} 条记录...")
+                updated_count = self.batch_update_documents(updates_to_apply)
+                stats['updated'] = updated_count
+                print(f"  ✓ 成功更新 {updated_count} 条记录")
+            else:
+                print(f"  没有数据需要更新")
+            
+            # 计算无变化的数量
+            stats['unchanged'] = stats['msku_count'] - stats['inserted'] - stats['updated']
+            
+            # 步骤6: 输出统计信息
             print("\n" + "=" * 70)
             print("同步完成！统计信息：")
             print("=" * 70)
             print(f"总产品数:       {stats['total']}")
-            print(f"跳过产品数:     {stats.get('skipped_products', 0)} (全部MSKU已存在)")
             print(f"处理产品数:     {stats['processed']}")
             print(f"总MSKU数:       {stats['msku_count']}")
-            print(f"新增MSKU:       {stats['inserted']}")
-            print(f"跳过MSKU:       {stats['skipped']} (已存在)")
+            print(f"  - 新增:       {stats['inserted']}")
+            print(f"  - 更新:       {stats['updated']}")
+            print(f"  - 无变化:     {stats['unchanged']}")
             print(f"错误数量:       {stats['errors']}")
             print("=" * 70)
             
