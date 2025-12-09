@@ -313,8 +313,8 @@ class ERPProductSync:
             "useEn": use_en,
             "useZh": use_zh,
             "weight": weight,
-            "X_ROW_K": "",
-            "created_at": ""
+            "X_ROW_K": ""
+            # created_at 和 updated_at 在插入/更新时自动设置
         }
         
         return document
@@ -669,6 +669,7 @@ class ERPProductSync:
                 'inserted': 0,
                 'updated': 0,
                 'unchanged': 0,
+                'skipped': 0,  # 兼容旧版调用（web_ticket.py需要此字段）
                 'errors': 0,
                 'msku_count': 0
             }
@@ -780,6 +781,7 @@ class ERPProductSync:
             
             # 计算无变化的数量
             stats['unchanged'] = stats['msku_count'] - stats['inserted'] - stats['updated']
+            stats['skipped'] = stats['unchanged']  # 兼容旧版调用
             
             # 步骤6: 输出统计信息
             print("\n" + "=" * 70)
