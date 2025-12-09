@@ -357,6 +357,7 @@ class ERPProductSync:
             dict: 需要更新的字段，如果没有差异返回空字典
         """
         updates = {}
+        msku = erp_doc.get('msku', 'Unknown')
         
         for field in self.ERP_SYNC_FIELDS:
             erp_value = erp_doc.get(field, '')
@@ -367,6 +368,16 @@ class ERPProductSync:
                 erp_value = ''
             if existing_value is None:
                 existing_value = ''
+            
+            # 调试：专门追踪 productNameEn 字段
+            if field == 'productNameEn':
+                print(f"\n  [DEBUG] MSKU: {msku}")
+                print(f"  [DEBUG] productNameEn 对比:")
+                print(f"    ERP值: '{erp_value}' (类型: {type(erp_value).__name__})")
+                print(f"    DB值:  '{existing_value}' (类型: {type(existing_value).__name__})")
+                print(f"    strip后 ERP: '{str(erp_value).strip()}'")
+                print(f"    strip后 DB:  '{str(existing_value).strip()}'")
+                print(f"    是否相等: {str(erp_value).strip() == str(existing_value).strip()}")
             
             # 数值类型特殊处理
             if field == 'weight':
@@ -391,6 +402,16 @@ class ERPProductSync:
                 # 字符串比较
                 if str(erp_value).strip() != str(existing_value).strip():
                     updates[field] = erp_value
+                    # 调试：显示哪些字段有差异
+                    if field == 'productNameEn':
+                        print(f"    ✓ productNameEn 有差异，将更新")
+        
+        # 调试：显示最终更新结果
+        if 'productNameEn' in updates:
+            print(f"  [DEBUG] 最终更新字段: {list(updates.keys())}")
+        elif msku and any(field == 'productNameEn' for field in self.ERP_SYNC_FIELDS):
+            # 如果检查了productNameEn但没有更新
+            print(f"  [DEBUG] productNameEn 无差异，不更新")
         
         return updates
     
@@ -434,13 +455,26 @@ class ERPProductSync:
         with db_operation_lock:
             for msku, updates in updates_list:
                 if updates:
+                    # 复制updates避免修改原始字典
+                    update_data = dict(updates)
                     # 添加updated_at时间戳
-                    updates['updated_at'] = now
+                    update_data['updated_at'] = now
+                    
+                    # 调试：打印更新信息
+                    print(f"\n  [DEBUG] 更新 MSKU: {msku}")
+                    print(f"  [DEBUG] 更新字段: {list(update_data.keys())}")
+                    
                     result = self.collection.update_one(
                         {'msku': msku},
-                        {'$set': updates}
+                        {'$set': update_data}
                     )
-                    if result.modified_count > 0:
+                    
+                    # 调试：打印更新结果
+                    print(f"  [DEBUG] matched: {result.matched_count}, modified: {result.modified_count}")
+                    
+                    # 使用matched_count而不是modified_count
+                    # matched_count表示找到了文档，modified_count表示实际修改了值
+                    if result.matched_count > 0:
                         updated_count += 1
         
         return updated_count
