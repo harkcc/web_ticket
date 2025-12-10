@@ -135,16 +135,16 @@ class ERPProductSync:
             
             time.sleep(0.5)
         
-        print(f"  共获取 {len(all_data)} 条产品")
+        print(f"  ✓ 共获取 {len(all_data)} 条产品")
         
-        # 验证：确保所有产品都是已配对的 (is_related=1)
-        matched_count = sum(1 for p in all_data if p.get('is_related') == 1)
-        unmatched_count = len(all_data) - matched_count
-        print(f"  ✓ 已配对产品: {matched_count} 个")
-        if unmatched_count > 0:
-            print(f"  ⚠ 未配对产品: {unmatched_count} 个 (将被过滤)")
-            # 过滤掉未配对的产品
-            all_data = [p for p in all_data if p.get('is_related') == 1]
+        # 【临时注释】验证：确保所有产品都是已配对的 (is_related=1)
+        # matched_count = sum(1 for p in all_data if p.get('is_related') == 1)
+        # unmatched_count = len(all_data) - matched_count
+        # print(f"  ✓ 已配对产品: {matched_count} 个")
+        # if unmatched_count > 0:
+        #     print(f"  ⚠ 未配对产品: {unmatched_count} 个 (将被过滤)")
+        #     # 过滤掉未配对的产品
+        #     all_data = [p for p in all_data if p.get('is_related') == 1]
         
         return all_data
     
@@ -693,6 +693,13 @@ class ERPProductSync:
                     if link_data:
                         product['_links'] = link_data  # 缓存链接数据
                         products_to_process.append(product)
+                    else:
+                        # 【调试】记录没有MSKU链接的产品
+                        print(f"\n  [DEBUG] SKU: {product.get('sku')} (ID: {product_id}) - 没有MSKU链接")
+                else:
+                    # 【调试】记录获取链接失败的产品
+                    code = links.get('code') if links else 'None'
+                    print(f"\n  [DEBUG] SKU: {product.get('sku')} (ID: {product_id}) - 获取链接失败 (code: {code})")
                 time.sleep(0.1)  # 避免请求过快
             
             print(f"\n  ✓ 需要处理: {len(products_to_process)} 个产品")
