@@ -70,7 +70,7 @@ class ERPProductSync:
         if hasattr(self, 'db_client'):
             self.db_client.close()
     
-    def get_product_list(self, limit=None, months=3):
+    def get_product_list(self, limit=None, months=2):
         """获取产品列表（筛选已配对的产品，限制update_time在近N个月内）
         
         Args:
@@ -98,8 +98,8 @@ class ERPProductSync:
         
         json_data = {
             'search_field_time': 'update_time',  # 使用update_time进行时间筛选
-            'start_time': start_time_str,        # 起始时间
-            'end_time': end_time_str,            # 结束时间
+            'start_date': start_time_str,        # 起始时间
+            'end_date': end_time_str,            # 结束时间
             'sort_field': 'update_time',
             'sort_type': 'desc',
             'search_field': 'sku',
