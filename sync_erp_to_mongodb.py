@@ -9,7 +9,7 @@ import requests
 import login
 from db_utils import MongoDBClient  # 使用web_ticket相同的连接器
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -70,8 +70,13 @@ class ERPProductSync:
         if hasattr(self, 'db_client'):
             self.db_client.close()
     
-    def get_product_list(self, limit=None):
-        """获取产品列表（筛选已配对的产品）"""
+    def get_product_list(self, limit=None, months=3):
+        """获取产品列表（筛选已配对的产品，限制update_time在近N个月内）
+        
+        Args:
+            limit: 限制获取的产品数量
+            months: 限制update_time在近N个月内，默认3个月
+        """
         headers = {
             'AK-Client-Type': 'web',
             'AK-Origin': 'https://erp.lingxing.com',
@@ -84,9 +89,18 @@ class ERPProductSync:
             'auth-token': self.token,
         }
         
+        # 计算时间范围：近N个月
+        end_time = datetime.now()
+        start_time = end_time - timedelta(days=months * 30)
+        start_time_str = start_time.strftime('%Y-%m-%d')
+        end_time_str = end_time.strftime('%Y-%m-%d')
+        print(f"  时间过滤: update_time 从 {start_time_str} 到 {end_time_str} (近{months}个月)")
+        
         json_data = {
-            'search_field_time': 'create_time',
-            'sort_field': 'create_time',
+            'search_field_time': 'update_time',  # 使用update_time进行时间筛选
+            'start_time': start_time_str,        # 起始时间
+            'end_time': end_time_str,            # 结束时间
+            'sort_field': 'update_time',
             'sort_type': 'desc',
             'search_field': 'sku',
             'status': [1],              # 在售状态
@@ -133,7 +147,7 @@ class ERPProductSync:
                 print(f"  获取产品列表失败: {str(e)}")
                 break
             
-            time.sleep(0.5)
+            time.sleep(0.2)
         
         print(f"  ✓ 共获取 {len(all_data)} 条产品")
         
