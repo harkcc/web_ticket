@@ -4760,7 +4760,7 @@ class InvoiceGenerator:
                     code_suffix = f"{code}" if code is not None else ""
 
                     country_name = address_info["seller_info"]["country_name"] if address_info and address_info.get("seller_info") else ''
-                    output_filename = f'{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单.xlsx'
+                    output_filename = f'{code_suffix}-{time}-{logistics}票-{number}件-{country_name}-发票装箱单(报关件).xlsx'
                     # 替换任何可能导致路径问题的字符
                     output_filename = "".join(c for c in output_filename if c not in r'<>:"/\|?*')
                     output_path = os.path.join(self.output_folder, output_filename)

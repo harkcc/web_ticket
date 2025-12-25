@@ -147,7 +147,7 @@ class ERPProductSync:
                 print(f"  获取产品列表失败: {str(e)}")
                 break
             
-            time.sleep(0.2)
+            time.sleep(0.1)
         
         print(f"  ✓ 共获取 {len(all_data)} 条产品")
         
