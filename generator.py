@@ -2021,10 +2021,15 @@ class InvoiceGenerator:
                         name = f"{db_product_info.get('en_name', '')}({db_product_info.get('cn_name', '')})"
                         quantity = product_info.box_quantities.get(box_number, 0)
                         price = db_product_info.get('price', 0)
+                        
+                        try:
+                            price_float = float(price) if price else 0.0
+                        except (ValueError, TypeError):
+                            price_float = 0.0
 
                         # 累计总数和总金额
                         total_quantity = quantity
-                        total_amount = float(price) * quantity
+                        total_amount = price_float * quantity
 
                         # 设置单元格值
                         cell_values = [
