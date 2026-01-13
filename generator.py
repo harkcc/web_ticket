@@ -334,7 +334,11 @@ class InvoiceGenerator:
             if product_info:
                 box_qty = item.box_quantities.get(box_number, 0)
                 price = product_info.get('price', 0)
-                total_price = box_qty * float(price) if price else 0
+                try:
+                    price_val = float(price) if price else 0.0
+                except (ValueError, TypeError):
+                    price_val = 0.0
+                total_price = box_qty * price_val
                 return f"{total_price:.2f}" if total_price > 0 else "0.00"
             else:
                 return "0.00"
@@ -1860,7 +1864,11 @@ class InvoiceGenerator:
                             total_price = 0
                         else:
                             price = product_info.get('price', 0)
-                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
+                            try:
+                                unit_price_val = float(price) if price else 0.0
+                            except (ValueError, TypeError):
+                                unit_price_val = 0.0
+                            total_price = unit_price_val * item.box_quantities.get(box_number, 0)
                             item.product_name = product_info.get('cn_name', item.product_name)
 
                         
@@ -2037,10 +2045,10 @@ class InvoiceGenerator:
                             (2, quantity), 
                             (3, price), 
                             (4, quantity * price),
-                            ('CN', 5)
+                            (5, 'CN')
                         ]
                         
-                        for value, col in cell_values:
+                        for col, value in cell_values:
                             cell = sheet.cell(row=num_row, column=col, value=value)
                             cell.font = cell_font
                             cell.alignment = cell_alignment
@@ -2320,7 +2328,10 @@ class InvoiceGenerator:
                                 end_row=end_row,
                                 end_column=end_col
                             )
-                    total_weight += box.weight
+                    try:
+                        total_weight += float(box.weight) if box.weight else 0.0
+                    except (ValueError, TypeError):
+                        pass # 忽略无效重量
 
                 # 合并最后一列
 
