@@ -3818,7 +3818,7 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                sheet = wb['2025.3.12 最新发票模板']  # 获取模板工作表
+                sheet = wb['发票']  # 获取模板工作表
 
                   # 可选：应用产品合并
                 merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
@@ -3852,7 +3852,7 @@ class InvoiceGenerator:
 
                 Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
                 if Reference_id:
-                    cell = sheet.cell(row=12, column=6)  #填充箱数
+                    cell = sheet.cell(row=13, column=6)  #填充箱数
                     cell.value = Reference_id
                     cell.font = Font(name='Arial', size=11)
 
