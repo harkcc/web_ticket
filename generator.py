@@ -3335,10 +3335,183 @@ class InvoiceGenerator:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
     
+    def _get_processed_box_data(self, box_data, address_info=None):
+        """按模板规则获取最终要写入的箱子数据。"""
+        if self.should_enable_merge(address_info):
+            return self.merge_items_by_product_name(box_data, debug=True)
+        return box_data
+
+    def _clear_sheet_range(self, sheet, start_row, end_row, start_col, end_col):
+        """清空指定区域的单元格值，保留原有样式。"""
+        for row in range(start_row, end_row + 1):
+            for column in range(start_col, end_col + 1):
+                sheet.cell(row=row, column=column).value = None
+
+    def _combine_bilingual_text(self, product_info, en_key, cn_key):
+        """将中英文资料合并为 `英文/中文` 的展示格式。"""
+        if not product_info:
+            return ''
+
+        en_value = str(product_info.get(en_key, '') or '').strip()
+        cn_value = str(product_info.get(cn_key, '') or '').strip()
+
+        if en_value and cn_value:
+            return f"{en_value}/{cn_value}"
+        return en_value or cn_value
+
+    def _get_goods_attribute(self, product_info):
+        """根据电磁属性返回模板要求的货物属性描述。"""
+        if not product_info:
+            return '普货'
+
+        attrs = []
+        if str(product_info.get('electrified', '')).strip() == '是':
+            attrs.append('带电')
+        if str(product_info.get('magnetic', '')).strip() == '是':
+            attrs.append('带磁')
+
+        return ''.join(attrs) if attrs else '普货'
+
+    def _clear_layout_cells(self, sheet, layout, layout_keys):
+        """按 layout 中定义的位置清空指定单元格。"""
+        cleared_cells = set()
+        for layout_key in layout_keys:
+            cell_pos = layout.get(layout_key)
+            if not cell_pos or cell_pos in cleared_cells:
+                continue
+            row, column = cell_pos
+            sheet.cell(row=row, column=column).value = None
+            cleared_cells.add(cell_pos)
+
+    def _get_declaration_currency(self, address_info=None, output_style='code'):
+        """根据目的国返回申报币种。"""
+        seller_info = address_info.get('seller_info') if address_info else {}
+        address_info_detail = address_info.get('address_info') if address_info else {}
+
+        country_code = str(
+            (seller_info or {}).get('country_code') or
+            (address_info_detail or {}).get('countryCode') or
+            ''
+        ).strip().upper()
+        country_name = str((seller_info or {}).get('country_name') or '').strip()
+
+        uk_codes = {'GB', 'UK'}
+        europe_codes = {
+            'AL', 'AD', 'AT', 'AX', 'BA', 'BE', 'BG', 'BY', 'CH', 'CY', 'CZ', 'DE',
+            'DK', 'EE', 'ES', 'FI', 'FO', 'FR', 'GG', 'GI', 'GR', 'HR', 'HU', 'IE',
+            'IM', 'IS', 'IT', 'JE', 'LI', 'LT', 'LU', 'LV', 'MC', 'MD', 'ME', 'MK',
+            'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'RS', 'SE', 'SI', 'SK', 'SM', 'UA',
+            'VA'
+        }
+        europe_keywords = (
+            '欧洲', '欧盟', '德国', '法国', '意大利', '西班牙', '荷兰', '比利时', '卢森堡',
+            '爱尔兰', '奥地利', '葡萄牙', '希腊', '芬兰', '瑞典', '丹麦', '波兰', '捷克',
+            '匈牙利', '罗马尼亚', '保加利亚', '克罗地亚', '斯洛伐克', '斯洛文尼亚',
+            '爱沙尼亚', '拉脱维亚', '立陶宛', '塞浦路斯', '马耳他', '挪威', '瑞士'
+        )
+
+        if country_code in uk_codes or '英国' in country_name:
+            currency_code = 'GBP'
+        elif country_code in europe_codes or any(keyword in country_name for keyword in europe_keywords):
+            currency_code = 'EUR'
+        else:
+            currency_code = 'USD'
+
+        if output_style == 'cn':
+            return {
+                'USD': '美金',
+                'GBP': '英镑',
+                'EUR': '欧元'
+            }[currency_code]
+        return currency_code
+
+    def _fill_common_address_fields(self, sheet, address_info=None, layout=None):
+        """按坐标配置写入地址信息，便于同类模板复用。"""
+        address_info_detail = {}
+        if not layout:
+            return address_info_detail
+
+        self._clear_layout_cells(
+            sheet,
+            layout,
+            (
+                'address_type_cell',
+                'warehouse_cell',
+                'company_cell',
+                'recipient_cell',
+                'phone_cell',
+                'postal_cell',
+                'state_cell',
+                'city_cell',
+                'country_cell',
+                'destination_country_cell',
+                'address_cell'
+            )
+        )
+
+        if not address_info:
+            return address_info_detail
+
+        address_info_detail = address_info.get('address_info') or {}
+        seller_info = address_info.get('seller_info') or {}
+
+        try:
+            address_type = address_info_detail.get('addressType') or '亚马逊地址'
+            warehouse_id = str(address_info_detail.get('warehouseId', '') or '').strip()
+            name = str(address_info_detail.get('name', '') or '').strip()
+            phone_number = str(
+                address_info_detail.get('phoneNumber', '') or
+                address_info_detail.get('phone', '') or
+                ''
+            ).strip()
+            postal_code = str(address_info_detail.get('postalCode', '') or '').strip()
+            state = str(address_info_detail.get('stateOrProvinceCode', '') or '').strip()
+            city = str(address_info_detail.get('city', '') or '').strip()
+            address_line1 = str(address_info_detail.get('addressLine1', '') or '').strip()
+            address_line2 = str(address_info_detail.get('addressLine2', '') or '').strip()
+            country_code = str(address_info_detail.get('countryCode', '') or '').strip()
+            destination_country = str(seller_info.get('country_name', '') or country_code).strip()
+
+            def set_cell(layout_key, value):
+                if not value:
+                    return
+                cell_pos = layout.get(layout_key)
+                if not cell_pos:
+                    return
+                row, column = cell_pos
+                sheet.cell(row=row, column=column).value = value
+
+            set_cell('address_type_cell', address_type)
+            set_cell('warehouse_cell', warehouse_id)
+            set_cell('company_cell', name)
+            set_cell('recipient_cell', name)
+            set_cell('phone_cell', phone_number)
+            set_cell('postal_cell', postal_code)
+            set_cell('state_cell', state)
+            set_cell('city_cell', city)
+            set_cell('country_cell', country_code)
+            set_cell('destination_country_cell', destination_country)
+
+            address_parts = []
+            for value in [warehouse_id, address_line1, address_line2, city, state, postal_code]:
+                if value and value.lower() != 'null' and value not in address_parts:
+                    address_parts.append(value)
+
+            if layout.get('full_address_include_country', True) and country_code and country_code not in address_parts:
+                address_parts.append(country_code)
+
+            if address_parts:
+                set_cell('address_cell', ', '.join(address_parts))
+
+        except Exception as e:
+            print(f"填充地址信息时发生错误: {str(e)}")
+
+        return address_info_detail
+
     @template_handler("一八供应链")
     def _fill_yiba_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
-        填充运达通模板
+        填充一八供应链模板，兼容旧版和新版表格。
         :param wb: 工作簿对象
         :param box_data: 箱子数据
         :param code: 编码（可选）
@@ -3347,19 +3520,11 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
+                processed_data = self._get_processed_box_data(box_data, address_info)
+                sheet = wb['专线箱单 ']
 
-                 # 根据国家判断是否启用产品合并（只有美国才启用）
-                if self.should_enable_merge(address_info):
-                    merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                    processed_data = merged_box_data
-                else:
-                    processed_data = box_data
-
-                sheet = wb['专线箱单 ']  # 获取模板工作表
-               
                 print("开始写入模版信息")
 
-                # 定义样式信息
                 style_info = {
                     'font': Font(name='Arial', size=12),
                     'border': Border(left=Side(border_style='thin'),
@@ -3369,197 +3534,103 @@ class InvoiceGenerator:
                     'alignment': Alignment(horizontal='center', vertical='center')
                 }
 
-                # 在第一行B列填充编码
+                is_new_layout = str(sheet.cell(row=18, column=1).value or '').strip() == '总件数（必填）'
+                layout = {
+                    'address_type_cell': (8, 2) if is_new_layout else (7, 2),
+                    'warehouse_cell': (9, 2) if is_new_layout else (8, 2),
+                    'company_cell': (10, 2) if is_new_layout else (9, 2),
+                    'recipient_cell': (11, 2) if is_new_layout else (10, 2),
+                    'phone_cell': (12, 2) if is_new_layout else (11, 2),
+                    'postal_cell': (13, 2) if is_new_layout else (12, 2),
+                    'state_cell': (14, 2) if is_new_layout else (13, 2),
+                    'city_cell': (15, 2) if is_new_layout else (14, 2),
+                    'address_cell': (16, 2) if is_new_layout else (15, 2),
+                    'destination_country_cell': (7, 2) if is_new_layout else (6, 2),
+                    'total_boxes_cell': (18, 2) if is_new_layout else (17, 2),
+                    'data_start_row': 20 if is_new_layout else 19,
+                    'row_height_source_row': 20 if is_new_layout else 19
+                }
+
                 if code:
-                    cell = sheet.cell(row=1, column=2)  # B列是第2列
-                    cell.value = code
-                    cell.font = Font(name='Arial', size=12,color="FF0000")
+                    code_cells = [
+                        (1, 2, Font(name='Arial', size=12, color='FF0000')),
+                        (2, 4, Font(name='Arial', size=12))
+                    ]
+                    for row, column, font in code_cells:
+                        cell = sheet.cell(row=row, column=column)
+                        cell.value = code
+                        cell.font = font
 
-                    cell = sheet.cell(row=2, column=4)  # B列是第2列
-                    cell.value = code
-                    cell.font = Font(name='Arial', size=12)
-
-                    cell = sheet.cell(row=7, column=4)  # B列是第2列
-                    cell.value = "亚马逊地址"
-                    cell.font = Font(name='Arial', size=12)
-
-
-                # 如果有地址信息，填充到相应的单元格
-                if address_info:
-                    address_info_detail = address_info['address_info'] if address_info and address_info.get('address_info') else {}
-                    print("地址信息:", address_info_detail)
-                    try:
-                       
-                        # 填充地址信息
-                        address_parts = []
-                        if 'name' in address_info_detail:
-                            # cell = sheet.cell(row=7, column=2)  # B2单元格
-                            # cell.value = address_info_detail['name'] 
-
-                            # cell = sheet.cell(row=3, column=2)  # B2单元格
-                            # cell.value = address_info_detail['name']
-                            address_parts.append(address_info_detail['name'])
-
-                        if 'addressLine1' in address_info_detail:
-                            address_parts.append(address_info_detail['addressLine1'])
-                        if ('addressLine2' in address_info_detail and 
-                            address_info_detail['addressLine2'] is not None and 
-                            str(address_info_detail['addressLine2']).strip() != '' and 
-                            str(address_info_detail['addressLine2']).strip().lower() != 'null'): 
-                            address_parts.append(address_info_detail['addressLine2'])
-                        if 'city' in address_info_detail:
-                            address_parts.append(address_info_detail['city'])
-                        if 'stateOrProvinceCode' in address_info_detail:
-                            address_parts.append(address_info_detail['stateOrProvinceCode'])
-                        if 'postalCode' in address_info_detail:
-                            address_parts.append(address_info_detail['postalCode'])
-                        if 'countryCode' in address_info_detail:
-                            address_parts.append(address_info_detail['countryCode'])
-
-                        # # 填充名字信息
-                        # if 'name' in address_info_detail:
-                        #     cell = sheet.cell(row=8, column=2)  # B2单元格
-                        #     cell.value = address_info_detail['name']
-                            
-                        # 填充地址信息
-                        if 'addressLine1' in address_info_detail:
-                            cell = sheet.cell(row=15, column=2)  # B3单元格
-                            cell.value = address_info_detail['addressLine1']
-
-                        # 城市
-                        if 'city' in address_info_detail:
-                            cell = sheet.cell(row=14, column=2)  # B4单元格
-                            cell.value = address_info_detail['city']
-
-                        #邮政编码
-                        if 'postalCode' in address_info_detail:
-                            cell = sheet.cell(row=12, column=2)  # B6单元格
-                            cell.value = address_info_detail['postalCode']
-
-                        #国家代码
-                        if 'countryCode' in address_info_detail:
-                            cell = sheet.cell(row=13, column=2)  # B7单元格
-                            cell.value = address_info_detail['countryCode']
-
-                        #省份
-                        if 'stateOrProvinceCode' in address_info_detail:
-                            cell = sheet.cell(row=13, column=2)  # B8单元格
-                            cell.value = address_info_detail['stateOrProvinceCode']
-
-                        if address_parts:
-                            # 准备地址部分
-                            final_address_parts = address_parts.copy()
-                            
-                            if 'warehouseId' in address_info_detail:
-                                warehouse_id = str(address_info_detail['warehouseId'])
-                                
-                                # 设置第8行B列的warehouse_id
-                                cell_warehouse_8 = sheet.cell(row=8, column=2)  # 第8行B列
-                                cell_warehouse_8.value = warehouse_id
-
-                                # 设置第10行B列的warehouse_id
-                                cell_warehouse_10 = sheet.cell(row=10, column=2)  # 第10行B列
-                                cell_warehouse_10.value = warehouse_id
-
-                                # 设置公司名称
-                                if 'cell_company' in locals() and warehouse_id not in address_info_detail['name']:
-                                    cell_result_value = str(address_info_detail['name'])+','+str(warehouse_id)
-                                    cell_company.value = cell_result_value
-                                elif 'cell_company' in locals():
-                                    cell_company.value = address_info_detail['name']
-
-                                # 如果地址部分中没有warehouse_id，则添加
-                                if warehouse_id not in address_parts:
-                                    final_address_parts.insert(0, warehouse_id)
-                            
-                            # 设置完整地址
-                            # 注意：原代码中没有明确指定地址单元格，使用第15行B列作为默认
-                            cell_address = sheet.cell(row=15, column=2)  # 第15行B列
-                            cell_address.value = ', '.join(final_address_parts)
-                    except Exception as e:
-                        print(f"填充地址信息时发生错误: {str(e)}")
+                address_info_detail = self._fill_common_address_fields(sheet, address_info, layout)
 
                 try:
                     total_boxes = len(box_data.keys())
-                    cell = sheet.cell(row=17, column=2)  # 在第7行B列填充箱数
+                    row, column = layout['total_boxes_cell']
+                    cell = sheet.cell(row=row, column=column)
                     cell.value = str(total_boxes)
-
-                    cell.font = Font(name='Arial', size=20, bold=True, color="FF0000") 
+                    cell.font = Font(name='Arial', size=20, bold=True, color='FF0000')
                 except Exception as e:
-                    
                     print(f"填充箱数时发生错误: {str(e)}")
 
-                # 填充数据
-                row_num = 19  # 从第18行开始填充
-                index = 1    # 添加序号计数器，从1开始
-
-                # 遍历每个箱子
-
-                # sorted_boxes = sorted(box_data.items(), key=lambda x: int(x[0]))
-                 # 将processed_data按箱号排序（使用合并后的数据）
+                row_num = layout['data_start_row']
+                row_height = sheet.row_dimensions[layout['row_height_source_row']].height
+                reference_id = address_info_detail.get('amazonReferenceId', '')
+                declaration_currency = self._get_declaration_currency(address_info, output_style='cn')
                 sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
 
-                row_height = sheet.row_dimensions[19].height
-                Reference_id = ''
-                
-                # 遍历排序后的箱子
                 for box_number, box in sorted_boxes:
                     self._log_debug(f"处理箱子 {box_number}")
 
-                    # 遍历箱子中的每个产品
                     for item in box.items:
-                        # 从数据库获取产品信息
                         product_info = self._get_product_info(item.msku, db)
-                        # 处理产品信息为None的情况
                         if product_info is None:
-                            self._log_missing_product(item.msku)
-                            price = 0
-                            total_price = 0
+                            self._log_missing_product(item.msku, '一八供应链')
                         else:
-                            price = product_info.get('price', 0)
-                            total_price = float(price) * item.box_quantities.get(box_number, 0) if price else 0
                             item.product_name = product_info.get('cn_name', item.product_name)
-                        
-                        # 根据箱子编号进行进位，格式为U000001, U000002等
-                        box_number_str = str(code) + "U" + str(int(box_number)).zfill(6) if code is not None else "U" + str(int(box_number)).zfill(6)
-                        Reference_id = address_info['address_info'].get('amazonReferenceId','') if address_info and address_info.get('address_info') else ''
-                        # 设置单元格值和样式
+
+                        cn_name = (
+                            product_info.get('cn_name', '') if product_info else ''
+                        ) or item.product_name or ''
+                        en_name = product_info.get('en_name', '') if product_info else ''
+                        brand = (product_info.get('brand', '') if product_info else '') or '无'
+                        model = (product_info.get('model', '') if product_info else '') or '无'
+                        link = product_info.get('link', '') if product_info else ''
+                        quantity = item.box_quantities.get(box_number, 0)
+                        box_number_str = (
+                            f"{code}U{int(box_number):06d}" if code is not None else f"U{int(box_number):06d}"
+                        )
+
                         cell_data = [
-                            (1, box_number_str),                    # 货箱编号 (A列)
-                            (2,Reference_id),
-                            (9,item.box_quantities.get(box_number, 0)),
-                            (10,'1'),
-                            (13, box.weight if box.weight is not None else ""),  # 重量 (B列)
-                            (4,product_info.get('en_name', '') if product_info else ''),  
-                            (3, product_info.get('cn_name', '') if product_info else ''),  
-                            (12, product_info.get('price', '') if product_info else ''),   # 仅在总价格大于0时填入
-                            (19, item.box_quantities.get(box_number, 0)),  # 数量 (F列)
-                            (20,''),
-                            (5, str((product_info.get('material_en') or '')+'/'+(product_info.get('material_cn') or '')) if product_info else ''),  # 材料 (D列) 
-                            (7, product_info.get('hs_code', '') if product_info else ''),  # HS编码 (G列)
-                            (8,''),
-                            (14,''),
-                            (6, str((product_info.get('usage_en') or '')+'/'+(product_info.get('usage_cn') or '' ))if product_info else ''),    # 用途 (H列)
-                            (15, product_info.get('brand', '') if product_info else ''),    # 品牌 (I列)
-                            (17, product_info.get('model', '') if product_info else ''),   # 型号 (J列)
-                            (18, product_info.get('link', '') if product_info else ''),
-                            (11,'美金'),
-                            
+                            (1, box_number_str),
+                            (2, reference_id),
+                            (3, cn_name),
+                            (4, en_name),
+                            (5, self._combine_bilingual_text(product_info, 'material_en', 'material_cn')),
+                            (6, self._combine_bilingual_text(product_info, 'usage_en', 'usage_cn')),
+                            (7, product_info.get('hs_code', '') if product_info else ''),
+                            (8, self._get_goods_attribute(product_info)),
+                            (9, quantity),
+                            (10, '1'),
+                            (11, declaration_currency),
+                            (12, product_info.get('price', '') if product_info else ''),
+                            (13, box.weight if box.weight is not None else ''),
+                            (14, ''),
+                            (15, brand),
+                            (16, '无'),
+                            (17, model),
+                            (18, link),
+                            (19, quantity)
                         ]
 
-                        # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
-                        sheet.row_dimensions[row_num].height = row_height
 
                         self._set_cell_value(sheet, row_num, 20, f"=L{row_num}*S{row_num}", style_info)
+                        sheet.row_dimensions[row_num].height = row_height
 
-                        # 插入产品图片
                         if item.msku and hasattr(self, 'image_folder'):
                             try:
-                                image_cell = f"N{row_num}"  # 图片列
-                                # self.insert_product_image(sheet, image_cell, item.msku, self.image_folder)
-                                self.insert_original_product_image(sheet, image_cell, item.msku, self.image_folder)
+                                self.insert_original_product_image(sheet, f"N{row_num}", item.msku, self.image_folder)
                             except Exception as e:
                                 print(f"插入图片时发生错误: {str(e)}")
 
@@ -3568,7 +3639,161 @@ class InvoiceGenerator:
             except Exception as e:
                 print(f"填充模板时发生错误: {str(e)}")
                 raise
-    
+
+    @template_handler("快驿通")
+    def _fill_kuaiyitong_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
+        """
+        填充快驿通模板。
+        :param wb: 工作簿对象
+        :param box_data: 箱子数据
+        :param code: 编码（可选）
+        :param address_info: 地址信息（可选）
+        :param shipment_id: Shipment ID（可选）
+        """
+        with self.db_connector as db:
+            try:
+                processed_data = self._get_processed_box_data(box_data, address_info)
+                sheet = wb['发票箱单']
+
+                print("开始写入模版信息")
+
+                style_info = {
+                    'font': Font(name='Arial', size=12),
+                    'border': Border(left=Side(border_style='thin'),
+                                     right=Side(border_style='thin'),
+                                     top=Side(border_style='thin'),
+                                     bottom=Side(border_style='thin')),
+                    'alignment': Alignment(horizontal='center', vertical='center')
+                }
+
+                if code:
+                    code_cells = [
+                        (1, 2, Font(name='Arial', size=12, color='FF0000')),
+                        (1, 4, Font(name='Arial', size=12))
+                    ]
+                    for row, column, font in code_cells:
+                        cell = sheet.cell(row=row, column=column)
+                        cell.value = code
+                        cell.font = font
+
+                layout = {
+                    'address_type_cell': (7, 2),
+                    'warehouse_cell': (8, 2),
+                    'company_cell': (9, 2),
+                    'recipient_cell': (10, 2),
+                    'phone_cell': (11, 2),
+                    'postal_cell': (12, 2),
+                    'state_cell': (13, 2),
+                    'city_cell': (14, 2),
+                    'address_cell': (15, 2),
+                    'destination_country_cell': (6, 2),
+                    'total_boxes_cell': (16, 2),
+                    'data_start_row': 18,
+                    'row_height_source_row': 18
+                }
+
+                address_info_detail = self._fill_common_address_fields(sheet, address_info, layout)
+
+                try:
+                    total_boxes = len(box_data.keys())
+                    row, column = layout['total_boxes_cell']
+                    cell = sheet.cell(row=row, column=column)
+                    cell.value = str(total_boxes)
+                    cell.font = Font(name='Arial', size=12)
+                except Exception as e:
+                    print(f"填充箱数时发生错误: {str(e)}")
+
+                # 模板自带了示例数据，先清空再写入，避免示例内容残留。
+                self._clear_sheet_range(sheet, 18, 21, 1, 22)
+
+                row_num = layout['data_start_row']
+                row_height = sheet.row_dimensions[layout['row_height_source_row']].height
+                reference_id = address_info_detail.get('amazonReferenceId', '')
+                declaration_currency = self._get_declaration_currency(address_info, output_style='code')
+                sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
+
+                for box_number, box in sorted_boxes:
+                    self._log_debug(f"处理箱子 {box_number}")
+
+                    for item in box.items:
+                        product_info = self._get_product_info(item.msku, db)
+                        if product_info is None:
+                            self._log_missing_product(item.msku, '快驿通')
+                        else:
+                            item.product_name = product_info.get('cn_name', item.product_name)
+
+                        cn_name = (
+                            product_info.get('cn_name', '') if product_info else ''
+                        ) or item.product_name or ''
+                        en_name = product_info.get('en_name', '') if product_info else ''
+                        brand = (product_info.get('brand', '') if product_info else '') or '无'
+                        model = (product_info.get('model', '') if product_info else '') or '无'
+                        link = product_info.get('link', '') if product_info else ''
+                        quantity = item.box_quantities.get(box_number, 0)
+                        box_number_str = (
+                            f"{code}U{int(box_number):06d}" if code is not None else f"U{int(box_number):06d}"
+                        )
+
+                        cell_data = [
+                            (1, box_number_str),
+                            (2, reference_id),
+                            (3, cn_name),
+                            (4, en_name),
+                            (5, self._combine_bilingual_text(product_info, 'material_en', 'material_cn')),
+                            (6, self._combine_bilingual_text(product_info, 'usage_en', 'usage_cn')),
+                            (7, product_info.get('hs_code', '') if product_info else ''),
+                            (8, self._get_goods_attribute(product_info)),
+                            (9, quantity),
+                            (10, '1'),
+                            (11, declaration_currency),
+                            (12, product_info.get('price', '') if product_info else ''),
+                            (13, box.weight if box.weight is not None else ''),
+                            (14, ''),
+                            (15, brand),
+                            (16, '无'),
+                            (17, model),
+                            (18, link),
+                            (19, '')
+                        ]
+
+                        for column, value in cell_data:
+                            self._set_cell_value(sheet, row_num, column, value, style_info)
+
+                        self._set_cell_value(sheet, row_num, 20, f"=I{row_num}*J{row_num}", style_info)
+                        self._set_cell_value(sheet, row_num, 21, f"=T{row_num}*L{row_num}", style_info)
+                        self._set_cell_value(sheet, row_num, 22, '', style_info)
+                        sheet.row_dimensions[row_num].height = row_height
+
+                        if item.msku and hasattr(self, 'image_folder'):
+                            try:
+                                self.insert_original_product_image(sheet, f"N{row_num}", item.msku, self.image_folder)
+                            except Exception as e:
+                                print(f"插入图片时发生错误: {str(e)}")
+
+                        row_num += 1
+
+                if row_num > layout['data_start_row']:
+                    total_row = row_num
+                    sheet.row_dimensions[total_row].height = row_height
+                    self._set_cell_value(
+                        sheet,
+                        total_row,
+                        20,
+                        f"=SUM(T{layout['data_start_row']}:T{row_num - 1})",
+                        style_info
+                    )
+                    self._set_cell_value(
+                        sheet,
+                        total_row,
+                        21,
+                        f"=SUM(U{layout['data_start_row']}:U{row_num - 1})",
+                        style_info
+                    )
+
+            except Exception as e:
+                print(f"填充模板时发生错误: {str(e)}")
+                raise
+
     @template_handler("德邦澳大利亚")
     def _fill_debang_australia_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
