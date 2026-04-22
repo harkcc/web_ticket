@@ -1903,7 +1903,7 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
-                        self._set_cell_value(sheet, row_num, 19, item.fnsku if item.fnsku else '', style_info)  # FNSKU
+                        self._set_cell_value(sheet, row_num, 23, item.fnsku if item.fnsku else '', style_info)  # FNSKU (模板第23列=产品FNSKU)
                         sheet.row_dimensions[row_num].height = row_height
                         sheet.column_dimensions['R'].width = row_height
                         # 插入产品图片
@@ -2899,7 +2899,7 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 17, product_info.get('magnetic', ''), style_info)
 
                         # FNSKU
-                        self._set_cell_value(sheet, row_num, 18, item.fnsku if item.fnsku else '', style_info)
+                        self._set_cell_value(sheet, row_num, 19, item.fnsku if item.fnsku else '', style_info)
 
                         # 插入产品图片
                         # self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
@@ -3709,7 +3709,7 @@ class InvoiceGenerator:
                     print(f"填充箱数时发生错误: {str(e)}")
 
                 # 模板自带了示例数据，先清空再写入，避免示例内容残留。
-                self._clear_sheet_range(sheet, 18, 21, 1, 22)
+                self._clear_sheet_range(sheet, 18, 21, 1, 27)
 
                 row_num = layout['data_start_row']
                 row_height = sheet.row_dimensions[layout['row_height_source_row']].height
@@ -3767,7 +3767,11 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 20, f"=I{row_num}*J{row_num}", style_info)
                         self._set_cell_value(sheet, row_num, 21, f"=T{row_num}*L{row_num}", style_info)
                         self._set_cell_value(sheet, row_num, 22, '', style_info)
-                        self._set_cell_value(sheet, row_num, 23, item.fnsku if item.fnsku else '', style_info)  # FNSKU
+                        self._set_cell_value(sheet, row_num, 23, box.weight if box.weight is not None else '', style_info)  # 实重
+                        self._set_cell_value(sheet, row_num, 24, box.length if box.length is not None else '', style_info)  # 长
+                        self._set_cell_value(sheet, row_num, 25, box.width if box.width is not None else '', style_info)  # 宽
+                        self._set_cell_value(sheet, row_num, 26, box.height if box.height is not None else '', style_info)  # 高
+                        self._set_cell_value(sheet, row_num, 27, item.fnsku if item.fnsku else '', style_info)  # FNSKU
                         sheet.row_dimensions[row_num].height = row_height
 
                         if item.msku and hasattr(self, 'image_folder'):
