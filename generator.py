@@ -1903,6 +1903,7 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
+                        self._set_cell_value(sheet, row_num, 19, item.fnsku if item.fnsku else '', style_info)  # FNSKU
                         sheet.row_dimensions[row_num].height = row_height
                         sheet.column_dimensions['R'].width = row_height
                         # 插入产品图片
@@ -2591,6 +2592,7 @@ class InvoiceGenerator:
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
+                        self._set_cell_value(sheet, row_num, 22, item.fnsku if item.fnsku else '', style_info)  # FNSKU
                         sheet.row_dimensions[row_num].height = row_height
                         self._set_cell_value(sheet, row_num, 9, f"=G{row_num}*H{row_num}", style_info)
                         
@@ -2896,7 +2898,8 @@ class InvoiceGenerator:
                         # 磁性
                         self._set_cell_value(sheet, row_num, 17, product_info.get('magnetic', ''), style_info)
 
-                        # self._set_cell_value(sheet, row_num, 18, product_info.get('link', ''), style_info)
+                        # FNSKU
+                        self._set_cell_value(sheet, row_num, 18, item.fnsku if item.fnsku else '', style_info)
 
                         # 插入产品图片
                         # self.insert_product_image(sheet, f'P{row_num}', item.msku, self.image_folder)
@@ -3308,6 +3311,7 @@ class InvoiceGenerator:
                         # 批量设置单元格值和样式
                         for column, value in cell_data:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
+                        self._set_cell_value(sheet, row_num, 19, item.fnsku if item.fnsku else '', style_info)  # FNSKU
                         sheet.row_dimensions[row_num].height = row_height
 
                         # 插入产品图片
@@ -3626,6 +3630,7 @@ class InvoiceGenerator:
                             self._set_cell_value(sheet, row_num, column, value, style_info)
 
                         self._set_cell_value(sheet, row_num, 20, f"=L{row_num}*S{row_num}", style_info)
+                        self._set_cell_value(sheet, row_num, 21, item.fnsku if item.fnsku else '', style_info)  # FNSKU
                         sheet.row_dimensions[row_num].height = row_height
 
                         if item.msku and hasattr(self, 'image_folder'):
@@ -3762,6 +3767,7 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 20, f"=I{row_num}*J{row_num}", style_info)
                         self._set_cell_value(sheet, row_num, 21, f"=T{row_num}*L{row_num}", style_info)
                         self._set_cell_value(sheet, row_num, 22, '', style_info)
+                        self._set_cell_value(sheet, row_num, 23, item.fnsku if item.fnsku else '', style_info)  # FNSKU
                         sheet.row_dimensions[row_num].height = row_height
 
                         if item.msku and hasattr(self, 'image_folder'):
@@ -4045,11 +4051,8 @@ class InvoiceGenerator:
             try:
                 sheet = wb['发票']  # 获取模板工作表
 
-                  # 可选：应用产品合并
-                merged_box_data = self.merge_items_by_product_name(box_data, debug=True)
-                
-                # 使用合并后的数据替代原始数据
-                processed_data = merged_box_data  # 或者直接使用 box_data 跳过合并
+                # 英欧站点不需要合品名，直接使用原始数据
+                processed_data = box_data
             
                 print("开始写入模版信息")
 
