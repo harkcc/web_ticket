@@ -99,6 +99,10 @@ def request_sta_data_amz(sid, inboundPlanId):
             
             print(f"DEBUG: 处理第 {i+1} 个地址 - shipmentName: {shipmentName}")
             
+            # 去掉收件人名里的分拨中心后缀，例如 "Amazon Services BER8/IXD1" -> "Amazon Services BER8"
+            # 只在第一个 "/" 处切断，避免误伤正常收件人名（那些通常不含 "/"）
+            raw_name = address.get('name', '') or ''
+            clean_name = raw_name.split('/')[0].rstrip()
             address_info = {
                 'type': 'amz',
                 'addressLine1': address.get('addressLine1', ''),
@@ -106,7 +110,7 @@ def request_sta_data_amz(sid, inboundPlanId):
                 'city': address.get('city', ''),
                 'companyName': address.get('companyName', ''),
                 'countryCode': address.get('countryCode', ''),
-                'name': address.get('name', ''),
+                'name': clean_name,
                 'postalCode': address.get('postalCode', ''),
                 'stateOrProvinceCode': address.get('stateOrProvinceCode', ''),
                 'phoneNumber': address.get('phoneNumber', ''),
