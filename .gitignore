@@ -34,3 +34,12 @@ history.json/
 # 允许所有Excel文件
 # *.xlsx
 # !template*.xlsx
+
+# 运行时数据
+history.json
+*.bak.*
+*.bak2.*
+
+# 产品图片目录
+产品图片(1)/
+产品图片/

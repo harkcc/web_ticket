@@ -4053,7 +4053,7 @@ class InvoiceGenerator:
         """
         with self.db_connector as db:
             try:
-                sheet = wb['发票']  # 获取模板工作表
+                sheet = wb['单票下单-填写表']  # 获取模板工作表
 
                 # 英欧站点不需要合品名，直接使用原始数据
                 processed_data = box_data
@@ -4200,7 +4200,7 @@ class InvoiceGenerator:
                 #     cell.font = Font(name='Arial', size=9)
 
                 # 填充数据
-                row_num = 18  # 从第18行开始填充
+                row_num = 19  # 从第18行开始填充
                 index = 1    # 添加序号计数器，从1开始
                 row_height = sheet.row_dimensions[18].height
                 sheet.column_dimensions['Q'].width = row_height/4
