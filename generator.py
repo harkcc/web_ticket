@@ -4256,6 +4256,7 @@ class InvoiceGenerator:
                             (16, product_info.get('link', '') if product_info else ''),
                             (17, ''),  # 图片列 (N列)
                             (6, total_price if total_price > 0 else ""),  # 仅在总价格大于0时填入
+                            (21, item.fnsku if item.fnsku else ''),  # FNSKU辅助列 (U列)
                           
                         ]
 
