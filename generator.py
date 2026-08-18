@@ -13,7 +13,9 @@ from openpyxl.utils import get_column_letter
 import re
 from openpyxl.packaging import manifest
 from openpyxl.workbook.views import BookView
+from contextlib import contextmanager
 from copy import copy
+from threading import local
 
 
 
@@ -60,6 +62,9 @@ class InvoiceGenerator:
         # 图片信息缓存机制
         self.image_cache = {}  # 图片路径缓存字典 {msku: image_path or None}
         self.image_cache_enabled = True  # 图片缓存开关
+
+        # 每个生成线程独立保存目的国，避免并发任务串用价格策略。
+        self._generation_context = local()
         
         # 定义模板配置，只列出不需要编码的模板
         self.template_config = {
@@ -93,6 +98,61 @@ class InvoiceGenerator:
     def _log_info(self, message):
         """重要信息输出"""
         print(f"[INFO] {message}")
+
+    def _is_us_or_canada_destination(self, address_info=None):
+        """判断当前目的国是否为美国或加拿大。"""
+        if not isinstance(address_info, dict):
+            return False
+
+        seller_info = address_info.get('seller_info') or {}
+        address_info_detail = address_info.get('address_info') or {}
+        country_code = str(
+            seller_info.get('country_code') or
+            address_info_detail.get('countryCode') or
+            address_info.get('countryCode') or
+            ''
+        ).strip().upper()
+        country_name = str(seller_info.get('country_name') or '').strip()
+        country_name_key = country_name.casefold()
+
+        return (
+            country_code in {'US', 'USA', 'CA', 'CAN'} or
+            '美国' in country_name or
+            '加拿大' in country_name or
+            country_name_key in {'united states', 'united states of america', 'canada'}
+        )
+
+    def _is_auto_price_suppressed(self):
+        """返回当前生成任务是否禁止自动填写产品价格。"""
+        address_info = getattr(self._generation_context, 'address_info', None)
+        return self._is_us_or_canada_destination(address_info)
+
+    @contextmanager
+    def _destination_price_context(self, address_info=None):
+        """为一次模板生成设置线程隔离的目的国价格策略。"""
+        missing_context = object()
+        previous_address_info = getattr(
+            self._generation_context,
+            'address_info',
+            missing_context,
+        )
+        self._generation_context.address_info = address_info
+        try:
+            yield
+        finally:
+            if previous_address_info is missing_context:
+                del self._generation_context.address_info
+            else:
+                self._generation_context.address_info = previous_address_info
+
+    def _apply_destination_price_policy(self, product_info):
+        """美国和加拿大生成任务返回不含自动单价的产品信息副本。"""
+        if not product_info or not self._is_auto_price_suppressed():
+            return product_info
+
+        product_info_without_price = dict(product_info)
+        product_info_without_price['price'] = ''
+        return product_info_without_price
     
     def should_enable_merge(self, address_info=None):
         """
@@ -315,6 +375,9 @@ class InvoiceGenerator:
     
     def _get_display_price(self, item, product_info):
         """获取显示用的单价"""
+        if self._is_auto_price_suppressed():
+            return ''
+
         if hasattr(item, '_weighted_avg_price'):
             # 合并商品或单个商品都显示加权平均单价
             avg_price = getattr(item, '_weighted_avg_price', 0)
@@ -325,6 +388,9 @@ class InvoiceGenerator:
     
     def _get_total_price(self, item, box_number, product_info):
         """获取该箱子中该商品的总价格"""
+        if self._is_auto_price_suppressed():
+            return ''
+
         if hasattr(item, '_weighted_avg_price'):
             # 合并商品或单个商品：使用加权平均单价 × 该箱子数量
             box_qty = item.box_quantities.get(box_number, 0)
@@ -2853,9 +2919,9 @@ class InvoiceGenerator:
                             }
 
                         # 定义price变量
-                        price_value = product_info.get('price', 0)
-                        # 确保price是浮点数
-                        price = float(price_value) if price_value else 0
+                        price_value = product_info.get('price', '')
+                        # 美国、加拿大的价格策略会返回空值；不要再格式化成“$0”。
+                        price = float(price_value) if price_value else None
 
                         # # 序号
                         # self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
@@ -2875,10 +2941,16 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 6, quantity, style_info)
 
                         self._set_cell_value(sheet,row_num,16,'',style_info)  
-                        self._set_cell_value(sheet, row_num, 7, f"${price}", style_info)
+                        self._set_cell_value(
+                            sheet,
+                            row_num,
+                            7,
+                            f"${price}" if price is not None else '',
+                            style_info,
+                        )
                         
                         # 总价
-                        total = round(float(quantity) * price, 2)
+                        total = round(float(quantity) * price, 2) if price is not None else 0
                         # self._set_cell_value(sheet, row_num, 8, f"${total}", style_info)
                         self._set_cell_value(sheet, row_num, 8, f"=F{row_num}*G{row_num}", style_info)
                         
@@ -3820,18 +3892,6 @@ class InvoiceGenerator:
                         cell.font = font
 
                 address_info_detail = self._fill_common_address_fields(sheet, address_info, layout)
-                seller_info = (address_info or {}).get('seller_info') or {}
-                destination_country_code = str(
-                    seller_info.get('country_code') or
-                    address_info_detail.get('countryCode') or
-                    (address_info or {}).get('countryCode') or
-                    ''
-                ).strip().upper()
-                destination_country_name = str(seller_info.get('country_name') or '').strip()
-                suppress_auto_price = (
-                    destination_country_code in {'US', 'CA'} or
-                    destination_country_name in {'美国', '加拿大'}
-                )
 
                 try:
                     total_boxes = len(box_data.keys())
@@ -3882,9 +3942,7 @@ class InvoiceGenerator:
                             (9, quantity),
                             (10, '1'),
                             (11, declaration_currency),
-                            (12, None if suppress_auto_price else (
-                                product_info.get('price', '') if product_info else ''
-                            )),
+                            (12, product_info.get('price', '') if product_info else ''),
                             (13, box.weight if box.weight is not None else ''),
                             (14, ''),
                             (15, brand),
@@ -5502,8 +5560,9 @@ class InvoiceGenerator:
             if template_handler is None:
                 raise ProcessingError(f"未找到对应的模板处理方法: {template_path}")
 
-            # 处理模板
-            template_handler(wb, box_data, code, address_info, shipment_id)
+            # 处理模板；美国和加拿大在所有模板中统一禁用自动产品单价。
+            with self._destination_price_context(address_info):
+                template_handler(wb, box_data, code, address_info, shipment_id)
 
             # 注册webp MIME类型，防止出现KeyError: '.webp'错误
             import mimetypes
@@ -5554,7 +5613,7 @@ class InvoiceGenerator:
             # 优先从缓存获取
             if self.cache_enabled and msku in self.product_cache:
                 self._log_debug(f"从缓存获取产品信息: {msku}")
-                return self.product_cache[msku]
+                return self._apply_destination_price_policy(self.product_cache[msku])
             
             # 缓存中没有，从数据库获取
             self._log_debug(f"从数据库获取产品信息: {msku}")
@@ -5562,9 +5621,11 @@ class InvoiceGenerator:
             if db is None:
                 # 如果没有传入db连接，创建新的连接
                 with self.db_connector as database:
-                    return self._get_product_info_from_db(msku, database)
+                    product_info = self._get_product_info_from_db(msku, database)
             else:
-                return self._get_product_info_from_db(msku, db)
+                product_info = self._get_product_info_from_db(msku, db)
+
+            return self._apply_destination_price_policy(product_info)
                 
         except Exception as e:
             print(f"Error fetching product info for MSKU {msku}: {str(e)}")

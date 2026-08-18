@@ -1,4 +1,4 @@
-"""Focused regression tests for the Kaiqi US/EU invoice handlers.
+"""Focused regression tests for template generation and destination price policy.
 
 These tests intentionally exercise the handler with synthetic packing-list objects and
 cached product data.  They do not connect to MongoDB, fetch product images, or mutate
@@ -278,13 +278,14 @@ class KaiqiHandlerTests(unittest.TestCase):
         template_path = TEMPLATE_DIR / template_name
         handler = invoice_generator._get_template_handler(str(template_path))
         self.assertIsNotNone(handler)
-        handler(
-            workbook,
-            _synthetic_boxes(),
-            code="ADDRESS-CODE",
-            address_info=address,
-            shipment_id="FBA-TEST",
-        )
+        with invoice_generator._destination_price_context(address):
+            handler(
+                workbook,
+                _synthetic_boxes(),
+                code="ADDRESS-CODE",
+                address_info=address,
+                shipment_id="FBA-TEST",
+            )
         return workbook, invoice_generator, target_sheet
 
     def test_kaiqi_us_routes_rows_to_us_sheet_and_writes_fnsku_x(self):
@@ -312,6 +313,12 @@ class KaiqiHandlerTests(unittest.TestCase):
         self.assertEqual(sheet["B5"].value, 2)
         self.assertEqual(sheet["B6"].value, "美国")
         self.assertEqual(sheet["B7"].value, "911专线")
+        self.assertTrue(all(
+            sheet.cell(row, 8).value in (None, '') for row in range(16, 19)
+        ))
+        self.assertTrue(all(
+            sheet.cell(row, 11).value in (None, '') for row in range(16, 19)
+        ))
         self.assertIsNone(sheet["A19"].value)
         self.assertEqual(len(invoice_generator.image_calls), 3)
 
@@ -342,6 +349,8 @@ class KaiqiHandlerTests(unittest.TestCase):
         self.assertEqual([sheet.cell(row, 23).value for row in range(16, 19)], [30, 30, 25])
         self.assertEqual(sheet["B6"].value, "德国")
         self.assertEqual(sheet["B7"].value, "T07空派")
+        self.assertEqual([sheet.cell(row, 8).value for row in range(16, 19)], [4.25, 3.5, 2.0])
+        self.assertEqual([sheet.cell(row, 11).value for row in range(16, 19)], [8.5, 3.5, 6.0])
         self.assertEqual(len(invoice_generator.image_calls), 3)
 
     def test_handler_clears_samples_and_does_not_touch_legacy_sheet(self):
@@ -379,14 +388,22 @@ class KaiqiHandlerTests(unittest.TestCase):
     def test_generated_workbook_can_be_saved_and_reopened(self):
         """Verify a handler result remains a real downloadable xlsx artifact."""
         cases = (
-            ("凯琦美线.xlsx", "美线+加线-发票导入", _address_info()),
+            (
+                "凯琦美线.xlsx",
+                "美线+加线-发票导入",
+                _address_info(),
+                [None, None, None],
+                [None, None, None],
+            ),
             (
                 "凯琦欧线.xlsx",
                 "欧线+空派-发票导入",
                 _address_info(country_code="DE", country_name="德国"),
+                [4.25, 3.5, 2.0],
+                [8.5, 3.5, 6.0],
             ),
         )
-        for template_name, sheet_name, address in cases:
+        for template_name, sheet_name, address, expected_prices, expected_totals in cases:
             with self.subTest(template=template_name), tempfile.TemporaryDirectory() as temp_dir:
                 workbook, _, _ = self._run_handler(template_name, sheet_name, address)
                 output_path = Path(temp_dir) / template_name
@@ -395,6 +412,65 @@ class KaiqiHandlerTests(unittest.TestCase):
                 self.assertEqual(reopened.active.title, sheet_name)
                 self.assertEqual(reopened[sheet_name]["X16"].value, "X00-FNSKU-A")
                 self.assertEqual(reopened[sheet_name]["X18"].value, "X00-FNSKU-C")
+                self.assertEqual([
+                    reopened[sheet_name].cell(row, 8).value for row in range(16, 19)
+                ], expected_prices)
+                self.assertEqual([
+                    reopened[sheet_name].cell(row, 11).value for row in range(16, 19)
+                ], expected_totals)
+
+
+class DestinationPricePolicyTests(unittest.TestCase):
+    def test_us_and_canada_price_policy_does_not_mutate_product_cache(self):
+        invoice_generator = _build_generator()
+
+        for country_code, country_name in (("US", "美国"), ("CA", "加拿大")):
+            with self.subTest(country=country_code):
+                address = _address_info(
+                    country_code=country_code,
+                    country_name=country_name,
+                )
+                with invoice_generator._destination_price_context(address):
+                    self.assertEqual(
+                        invoice_generator._get_product_info("MSKU-A")["price"],
+                        "",
+                    )
+
+        self.assertEqual(invoice_generator.product_cache["MSKU-A"]["price"], "4.25")
+        with invoice_generator._destination_price_context(
+            _address_info(country_code="DE", country_name="德国")
+        ):
+            self.assertEqual(
+                invoice_generator._get_product_info("MSKU-A")["price"],
+                "4.25",
+            )
+
+    def test_formatted_unit_price_does_not_fall_back_to_zero(self):
+        template_path = TEMPLATE_DIR / "德邦空派.xlsx"
+        workbook = load_workbook(template_path, data_only=False)
+        invoice_generator = _build_generator()
+        handler = invoice_generator._get_template_handler(str(template_path))
+        address = _address_info()
+
+        with invoice_generator._destination_price_context(address):
+            handler(
+                workbook,
+                _synthetic_boxes(),
+                code="ADDRESS-CODE",
+                address_info=address,
+                shipment_id="FBA-TEST",
+            )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "德邦空派-US.xlsx"
+            workbook.save(output_path)
+            sheet = load_workbook(output_path, data_only=False)["箱单发票"]
+            self.assertEqual([sheet.cell(row, 7).value for row in range(9, 12)], [
+                None, None, None,
+            ])
+            self.assertEqual([sheet.cell(row, 8).value for row in range(9, 12)], [
+                "=F9*G9", "=F10*G10", "=F11*G11",
+            ])
 
 
 class YibaAddressLibraryTests(unittest.TestCase):
@@ -453,13 +529,15 @@ class YibaAddressLibraryTests(unittest.TestCase):
             workbook = load_workbook(self.template_path, data_only=False)
             invoice_generator = _build_generator()
             handler = invoice_generator._get_template_handler(str(self.template_path))
-            handler(
-                workbook,
-                _synthetic_boxes(),
-                code="ADDRESS-CODE",
-                address_info=_address_info(),
-                shipment_id="FBA-TEST",
-            )
+            address = _address_info()
+            with invoice_generator._destination_price_context(address):
+                handler(
+                    workbook,
+                    _synthetic_boxes(),
+                    code="ADDRESS-CODE",
+                    address_info=address,
+                    shipment_id="FBA-TEST",
+                )
             output_path = Path(temp_dir) / "一八供应链new-output.xlsx"
             workbook.save(output_path)
 
@@ -479,16 +557,18 @@ class YibaAddressLibraryTests(unittest.TestCase):
                 workbook = load_workbook(self.template_path, data_only=False)
                 invoice_generator = _build_generator()
                 handler = invoice_generator._get_template_handler(str(self.template_path))
-                handler(
-                    workbook,
-                    _synthetic_boxes(),
-                    code="ADDRESS-CODE",
-                    address_info=_address_info(
-                        country_code=country_code,
-                        country_name=country_name,
-                    ),
-                    shipment_id="FBA-TEST",
+                address = _address_info(
+                    country_code=country_code,
+                    country_name=country_name,
                 )
+                with invoice_generator._destination_price_context(address):
+                    handler(
+                        workbook,
+                        _synthetic_boxes(),
+                        code="ADDRESS-CODE",
+                        address_info=address,
+                        shipment_id="FBA-TEST",
+                    )
                 output_path = Path(temp_dir) / f"一八供应链-{country_code}.xlsx"
                 workbook.save(output_path)
 
@@ -501,13 +581,15 @@ class YibaAddressLibraryTests(unittest.TestCase):
         workbook = load_workbook(self.template_path, data_only=False)
         invoice_generator = _build_generator()
         handler = invoice_generator._get_template_handler(str(self.template_path))
-        handler(
-            workbook,
-            _synthetic_boxes(),
-            code="ADDRESS-CODE",
-            address_info=_address_info(country_code="DE", country_name="德国"),
-            shipment_id="FBA-TEST",
-        )
+        address = _address_info(country_code="DE", country_name="德国")
+        with invoice_generator._destination_price_context(address):
+            handler(
+                workbook,
+                _synthetic_boxes(),
+                code="ADDRESS-CODE",
+                address_info=address,
+                shipment_id="FBA-TEST",
+            )
 
         main = workbook["专线箱单 "]
         self.assertEqual([main.cell(row=row, column=12).value for row in range(20, 23)], [
