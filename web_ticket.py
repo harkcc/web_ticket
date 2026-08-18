@@ -382,7 +382,7 @@ def process_task(task_info):
         else:
             processor = PackingListProcessor(task_info['files'])
             box_data = processor.process()
-            shipment_id = None
+            shipment_id = processor.shipment_id
 
         if not box_data:
             raise ProcessingError("处理装箱单失败")

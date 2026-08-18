@@ -553,6 +553,115 @@
         .log-container::-webkit-scrollbar-thumb:hover {
             background: #4a5f7f;
         }
+
+        /* 轻量布局优化：保留原版视觉和操作顺序 */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            display: block;
+            overflow-x: hidden;
+        }
+
+        .main-content {
+            width: 100%;
+            max-width: 840px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        input[type="datetime-local"],
+        select,
+        textarea,
+        .form-control {
+            max-width: 100%;
+        }
+
+        .history-table {
+            display: table;
+            min-width: 100%;
+        }
+
+        .history-container {
+            overflow-x: auto;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            height: 100vh;
+            transform: translateX(0);
+        }
+
+        .sidebar.hidden {
+            transform: translateX(100%);
+        }
+
+        @media (max-width: 720px) {
+            .main-content {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 20px;
+                border-radius: 10px;
+            }
+
+            h1 {
+                margin-bottom: 22px;
+                font-size: 22px;
+            }
+
+            .container:first-child > h1 + div {
+                display: grid !important;
+                grid-template-columns: 1fr 1.35fr .9fr;
+                gap: 8px !important;
+            }
+
+            .container:first-child > h1 + div > * {
+                width: 100% !important;
+                min-width: 0;
+                margin: 0;
+                padding: 6px 8px !important;
+                white-space: nowrap;
+                text-align: center;
+                font-size: 13px !important;
+            }
+
+            .filter-group,
+            .button-group {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .filter-item,
+            .button-group button {
+                width: 100%;
+            }
+
+            .filter-buttons {
+                justify-content: stretch;
+            }
+
+            .filter-buttons button {
+                width: 100%;
+            }
+
+            .notification {
+                right: 12px;
+                left: 12px;
+                min-width: 0;
+                max-width: none;
+            }
+        }
     </style>
 </head>
 
@@ -588,6 +697,8 @@
                         <option value="表格模版/一八供应链.xlsx">一八供应链</option>
                         <option value="表格模版/一八供应链new.xlsx">一八供应链new</option>
                         <option value="表格模版/快驿通.xlsx">快驿通</option>
+                        <option value="表格模版/凯琦美线.xlsx">凯琦美线</option>
+                        <option value="表格模版/凯琦欧线.xlsx">凯琦欧线</option>
                         <option value="表格模版/德邦英欧.xlsx">德邦英欧</option>
                         <option value="表格模版/德邦澳大利亚.xlsx">德邦澳大利亚</option>
                         <option value="表格模版/递信日本空派.xlsx">递信日本贴标</option>
@@ -830,8 +941,8 @@
                             <td>
                                 ${item.status === 'completed' ?
                                 (item.result_file.includes('多地址发票') ?
-                                    `<a href="/download/${item.result_file}" class="download-link">下载文件夹 (ZIP)</a>` :
-                                    `<a href="/download/${item.result_file}" class="download-link">下载</a>`) :
+                                    `<a href="/download/${item.result_file}" class="download-link" onclick="event.preventDefault();multiThreadDownload('/download/${item.result_file}', '${item.result_file}.zip')">下载文件夹 (ZIP)</a>` :
+                                    `<a href="/download/${item.result_file}" class="download-link" onclick="event.preventDefault();multiThreadDownload('/download/${item.result_file}', '${item.result_file}')">下载</a>`) :
                                 (item.status === 'processing' ?
                                     `<button onclick="checkStatus('${item.task_id}')" class="check-status-btn">检查状态</button>` :
                                     '')}
@@ -1031,7 +1142,7 @@
                         });
                         loadHistory();
                         setTimeout(() => {
-                            window.location.href = data.download_url;
+                            multiThreadDownload(data.download_url, extractFilename(data.download_url));
                         }, 500);
                     } else if (data.status === 'failed' || data.status === 'error' || data.error) {
                         const code = document.getElementById('codeInput').value;
@@ -1624,6 +1735,149 @@
                 btn.textContent = '隐藏日志';
                 localStorage.setItem('sidebarHidden', 'false');
             }
+        }
+
+        // ========== 多线程/分段下载 ==========
+        // 背景:服务器在美国,跨境单连接被限速且丢包严重(实测2KB/s~1.5MB/s抖动)
+        // 方案:用HTTP Range把文件拆成多段,6线程并行下载后合并,绕过单连接限速
+        // 阈值:小于1MB的文件直接普通下载(多线程开销大于收益)
+        const MT_DOWNLOAD_THRESHOLD = 1024 * 1024; // 1MB
+        const MT_DOWNLOAD_THREADS = 6;             // 社区共识:4-6线程最佳
+
+        // 多线程下载主函数
+        async function multiThreadDownload(url, filename) {
+            try {
+                // 1. 先HEAD拿到文件大小
+                const headResp = await fetch(url, { method: 'HEAD' });
+                const totalSize = parseInt(headResp.headers.get('Content-Length') || '0', 10);
+
+                // 文件太小 或 服务器不支持Range,回退普通下载
+                const acceptRanges = headResp.headers.get('Accept-Ranges');
+                if (!totalSize || totalSize < MT_DOWNLOAD_THRESHOLD || acceptRanges !== 'bytes') {
+                    console.log(`[多线程] 文件${totalSize}B过小或不支持Range,普通下载`);
+                    triggerNormalDownload(url);
+                    return;
+                }
+
+                console.log(`[多线程] 开始下载 ${filename},总大小 ${(totalSize/1024/1024).toFixed(2)}MB,分${MT_DOWNLOAD_THREADS}线程`);
+                showDownloadProgress(filename, 0, totalSize);
+
+                // 2. 切分范围
+                const chunkSize = Math.ceil(totalSize / MT_DOWNLOAD_THREADS);
+                const chunks = [];
+                for (let i = 0; i < MT_DOWNLOAD_THREADS; i++) {
+                    const start = i * chunkSize;
+                    const end = Math.min(start + chunkSize - 1, totalSize - 1);
+                    chunks.push({ index: i, start, end, downloaded: 0, blob: null, retries: 0 });
+                }
+
+                // 3. 下载单个分片(带失败重试,抗跨境丢包)
+                async function downloadChunk(chunk) {
+                    const MAX_RETRIES = 3;
+                    while (chunk.retries <= MAX_RETRIES) {
+                        try {
+                            const resp = await fetch(url, {
+                                headers: { 'Range': `bytes=${chunk.start}-${chunk.end}` }
+                            });
+                            if (resp.status !== 206 && resp.status !== 200) {
+                                throw new Error(`分片${chunk.index}状态码${resp.status}`);
+                            }
+                            chunk.blob = await resp.blob();
+                            chunk.downloaded = (chunk.end - chunk.start + 1);
+                            updateDownloadProgress(chunks, totalSize);
+                            return;
+                        } catch (e) {
+                            chunk.retries++;
+                            console.warn(`[多线程] 分片${chunk.index}第${chunk.retries}次失败: ${e.message}`);
+                            if (chunk.retries > MAX_RETRIES) throw e;
+                            // 指数退避,等500ms/1s/2s再重试
+                            await new Promise(r => setTimeout(r, 500 * Math.pow(2, chunk.retries - 1)));
+                        }
+                    }
+                }
+
+                // 4. 6线程并行下载所有分片
+                await Promise.all(chunks.map(c => downloadChunk(c)));
+
+                // 5. 按顺序合并分片
+                const mergedBlob = new Blob(chunks.map(c => c.blob), { type: 'application/octet-stream' });
+
+                // 6. 触发浏览器下载
+                const blobUrl = URL.createObjectURL(mergedBlob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+                hideDownloadProgress();
+                console.log(`[多线程] 下载完成: ${filename}`);
+            } catch (e) {
+                console.error('[多线程] 失败,回退普通下载:', e);
+                hideDownloadProgress();
+                triggerNormalDownload(url);
+            }
+        }
+
+        // 普通下载(回退方案)
+        function triggerNormalDownload(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // 下载进度浮窗
+        function showDownloadProgress(filename, loaded, total) {
+            let box = document.getElementById('mt-download-box');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'mt-download-box';
+                box.style.cssText = 'position:fixed;top:20px;right:20px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px 20px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:99999;min-width:320px;font-family:sans-serif;';
+                document.body.appendChild(box);
+            }
+            const pct = total ? Math.round(loaded / total * 100) : 0;
+            const speedText = box.dataset.startTime ? '' : '';
+            box.innerHTML = `
+                <div style="font-weight:bold;margin-bottom:8px;color:#333;">📥 多线程下载中</div>
+                <div style="font-size:12px;color:#666;margin-bottom:8px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${filename}</div>
+                <div style="background:#eee;border-radius:4px;height:18px;overflow:hidden;">
+                    <div id="mt-progress-bar" style="background:#4CAF50;height:100%;width:${pct}%;transition:width 0.2s;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-top:4px;">
+                    <span>${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB</span>
+                    <span>${pct}%</span>
+                </div>
+            `;
+        }
+
+        function updateDownloadProgress(chunks, total) {
+            const loaded = chunks.reduce((sum, c) => sum + c.downloaded, 0);
+            const bar = document.getElementById('mt-progress-bar');
+            const box = document.getElementById('mt-download-box');
+            if (!bar || !box) return;
+            const pct = Math.round(loaded / total * 100);
+            bar.style.width = pct + '%';
+            box.children[3].children[0].children[1].textContent = `${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB`;
+            box.children[3].children[1].textContent = `${pct}%`;
+        }
+
+        function hideDownloadProgress() {
+            const box = document.getElementById('mt-download-box');
+            if (box) {
+                setTimeout(() => box.remove(), 800);
+            }
+        }
+
+        // 从URL提取文件名
+        function extractFilename(url) {
+            const decoded = decodeURIComponent(url);
+            const parts = decoded.split('/');
+            return parts[parts.length - 1];
         }
     </script>
 </body>
