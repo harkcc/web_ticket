@@ -616,6 +616,14 @@ def download_file(filename):
         
         # 检查是否为文件夹（多地址情况）
         if os.path.isdir(file_path):
+            # 多地址 ZIP 是按请求临时生成的，不能让浏览器并发 Range 请求
+            # 同时重写和删除同一个 ZIP。分片下载探测时明确要求前端回退
+            # 为单连接，普通 GET 仍沿用原有 ZIP 下载流程。
+            if request.headers.get('X-WebTicket-Range-Probe') == '1':
+                response = make_response('', 204)
+                response.headers['X-WebTicket-Download-Mode'] = 'single'
+                return response
+
             print(f"检测到多地址文件夹，开始创建ZIP")
             # 列出文件夹内容
             try:

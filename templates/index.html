@@ -1738,23 +1738,82 @@
         }
 
         // ========== 多线程/分段下载 ==========
-        // 背景:服务器在美国,跨境单连接被限速且丢包严重(实测2KB/s~1.5MB/s抖动)
-        // 方案:用HTTP Range把文件拆成多段,6线程并行下载后合并,绕过单连接限速
+        // 背景:海外服务器到用户的单连接吞吐可能受高延迟和丢包影响
+        // 方案:用HTTP Range把文件拆成多段,6线程并行下载后合并
         // 阈值:小于1MB的文件直接普通下载(多线程开销大于收益)
         const MT_DOWNLOAD_THRESHOLD = 1024 * 1024; // 1MB
-        const MT_DOWNLOAD_THREADS = 6;             // 社区共识:4-6线程最佳
+        const MT_DOWNLOAD_THREADS = 6;
+        const MT_RANGE_PROBE_HEADER = 'X-WebTicket-Range-Probe';
+        const MT_SINGLE_MODE_HEADER = 'X-WebTicket-Download-Mode';
+
+        function parseContentRange(value) {
+            const match = /^bytes\s+(\d+)-(\d+)\/(\d+)$/.exec(value || '');
+            if (!match) return null;
+
+            const parsed = {
+                start: Number(match[1]),
+                end: Number(match[2]),
+                total: Number(match[3])
+            };
+            if (!Number.isSafeInteger(parsed.start) ||
+                !Number.isSafeInteger(parsed.end) ||
+                !Number.isSafeInteger(parsed.total) ||
+                parsed.start < 0 || parsed.end < parsed.start || parsed.total <= parsed.end) {
+                return null;
+            }
+            return parsed;
+        }
+
+        async function cancelResponseBody(response) {
+            try {
+                if (response.body) await response.body.cancel();
+            } catch (_) {
+                // 回退下载不应被取消响应体失败阻断
+            }
+        }
 
         // 多线程下载主函数
         async function multiThreadDownload(url, filename) {
             try {
-                // 1. 先HEAD拿到文件大小
-                const headResp = await fetch(url, { method: 'HEAD' });
-                const totalSize = parseInt(headResp.headers.get('Content-Length') || '0', 10);
+                // 1. 用真实的 1 字节 Range 请求探测能力和总长度。
+                // Flask 只在 Range GET 上返回 Accept-Ranges，HEAD 不能作为判断依据。
+                const probeResp = await fetch(url, {
+                    headers: {
+                        'Range': 'bytes=0-0',
+                        [MT_RANGE_PROBE_HEADER]: '1'
+                    },
+                    cache: 'no-store'
+                });
 
-                // 文件太小 或 服务器不支持Range,回退普通下载
-                const acceptRanges = headResp.headers.get('Accept-Ranges');
-                if (!totalSize || totalSize < MT_DOWNLOAD_THRESHOLD || acceptRanges !== 'bytes') {
-                    console.log(`[多线程] 文件${totalSize}B过小或不支持Range,普通下载`);
+                // 动态 ZIP 会在每次请求时创建临时文件，必须保持单连接。
+                if (probeResp.headers.get(MT_SINGLE_MODE_HEADER) === 'single') {
+                    await cancelResponseBody(probeResp);
+                    console.log('[多线程] 动态ZIP使用普通下载');
+                    triggerNormalDownload(url);
+                    return;
+                }
+
+                if (probeResp.status !== 206) {
+                    await cancelResponseBody(probeResp);
+                    console.log(`[多线程] 服务器未返回206(${probeResp.status}),普通下载`);
+                    triggerNormalDownload(url);
+                    return;
+                }
+
+                const probeRange = parseContentRange(probeResp.headers.get('Content-Range'));
+                if (!probeRange || probeRange.start !== 0 || probeRange.end !== 0) {
+                    await cancelResponseBody(probeResp);
+                    throw new Error('Range探测返回了无效的Content-Range');
+                }
+
+                const probeBytes = await probeResp.arrayBuffer();
+                if (probeBytes.byteLength !== 1) {
+                    throw new Error(`Range探测长度异常:${probeBytes.byteLength}`);
+                }
+
+                const totalSize = probeRange.total;
+                if (totalSize < MT_DOWNLOAD_THRESHOLD) {
+                    console.log(`[多线程] 文件${totalSize}B过小,普通下载`);
                     triggerNormalDownload(url);
                     return;
                 }
@@ -1777,13 +1836,27 @@
                     while (chunk.retries <= MAX_RETRIES) {
                         try {
                             const resp = await fetch(url, {
-                                headers: { 'Range': `bytes=${chunk.start}-${chunk.end}` }
+                                headers: { 'Range': `bytes=${chunk.start}-${chunk.end}` },
+                                cache: 'no-store'
                             });
-                            if (resp.status !== 206 && resp.status !== 200) {
-                                throw new Error(`分片${chunk.index}状态码${resp.status}`);
+
+                            const contentRange = parseContentRange(resp.headers.get('Content-Range'));
+                            if (resp.status !== 206 || !contentRange ||
+                                contentRange.start !== chunk.start ||
+                                contentRange.end !== chunk.end ||
+                                contentRange.total !== totalSize) {
+                                await cancelResponseBody(resp);
+                                throw new Error(`分片${chunk.index}响应范围无效(HTTP ${resp.status})`);
                             }
-                            chunk.blob = await resp.blob();
-                            chunk.downloaded = (chunk.end - chunk.start + 1);
+
+                            const expectedSize = chunk.end - chunk.start + 1;
+                            const blob = await resp.blob();
+                            if (blob.size !== expectedSize) {
+                                throw new Error(`分片${chunk.index}长度异常:${blob.size}/${expectedSize}`);
+                            }
+
+                            chunk.blob = blob;
+                            chunk.downloaded = blob.size;
                             updateDownloadProgress(chunks, totalSize);
                             return;
                         } catch (e) {
@@ -1800,7 +1873,12 @@
                 await Promise.all(chunks.map(c => downloadChunk(c)));
 
                 // 5. 按顺序合并分片
-                const mergedBlob = new Blob(chunks.map(c => c.blob), { type: 'application/octet-stream' });
+                const mergedBlob = new Blob(chunks.map(c => c.blob), {
+                    type: chunks[0].blob.type || 'application/octet-stream'
+                });
+                if (mergedBlob.size !== totalSize) {
+                    throw new Error(`合并文件长度异常:${mergedBlob.size}/${totalSize}`);
+                }
 
                 // 6. 触发浏览器下载
                 const blobUrl = URL.createObjectURL(mergedBlob);
@@ -1849,8 +1927,8 @@
                     <div id="mt-progress-bar" style="background:#4CAF50;height:100%;width:${pct}%;transition:width 0.2s;"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-top:4px;">
-                    <span>${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB</span>
-                    <span>${pct}%</span>
+                    <span id="mt-progress-size">${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB</span>
+                    <span id="mt-progress-percent">${pct}%</span>
                 </div>
             `;
         }
@@ -1859,11 +1937,13 @@
             const loaded = chunks.reduce((sum, c) => sum + c.downloaded, 0);
             const bar = document.getElementById('mt-progress-bar');
             const box = document.getElementById('mt-download-box');
-            if (!bar || !box) return;
+            const size = document.getElementById('mt-progress-size');
+            const percent = document.getElementById('mt-progress-percent');
+            if (!bar || !box || !size || !percent) return;
             const pct = Math.round(loaded / total * 100);
             bar.style.width = pct + '%';
-            box.children[3].children[0].children[1].textContent = `${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB`;
-            box.children[3].children[1].textContent = `${pct}%`;
+            size.textContent = `${(loaded/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB`;
+            percent.textContent = `${pct}%`;
         }
 
         function hideDownloadProgress() {
