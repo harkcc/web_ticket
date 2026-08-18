@@ -12,7 +12,9 @@ import sys
 import tempfile
 import types
 import unittest
+from hashlib import sha256
 from pathlib import Path
+from zipfile import ZipFile
 
 
 WEB_TICKET_ROOT = Path(__file__).resolve().parents[1]
@@ -393,6 +395,79 @@ class KaiqiHandlerTests(unittest.TestCase):
                 self.assertEqual(reopened.active.title, sheet_name)
                 self.assertEqual(reopened[sheet_name]["X16"].value, "X00-FNSKU-A")
                 self.assertEqual(reopened[sheet_name]["X18"].value, "X00-FNSKU-C")
+
+
+class YibaAddressLibraryTests(unittest.TestCase):
+    template_path = TEMPLATE_DIR / "一八供应链new.xlsx"
+    protected_parts = {
+        "xl/worksheets/sheet1.xml": "b0a94767c1bddf35b338e1128bfe5b7e72146b6ebe41e7f6c42fc3da697ff6b6",
+        "xl/worksheets/sheet2.xml": "732ca51eb4632e3e105d0720c4f07ceb9d6735f62760e3e8452c2ec34d51dda5",
+        "xl/worksheets/sheet4.xml": "3c4c2d7beb79b290d6d56bcdbd5cf5432c855a092e7df2859b8ab8c78a05fb8f",
+        "xl/worksheets/sheet5.xml": "5d091c2724982d59ad566b8fdd2bd275ef8f31dbe079a40b609777f64139b218",
+        "xl/styles.xml": "ee9b3b98f2a6943727f9bdf07ce6ab7ceea368f0b6560178b01a6cb335253f6e",
+        "xl/drawings/drawing1.xml": "08a3bc68dee040df0847f1eb492bee85b3fc9f89df0c7aeb8a2b34dda613ee97",
+        "xl/cellimages.xml": "422a762190b51fdb92daaa8b4a4f13e5717e8dd3b18d90e1eff59c9b19258933",
+        "xl/_rels/cellimages.xml.rels": "e4e2c298d367e82277d66b5d8ed144d1b001c65f3f7bd6c66cea31f474549d81",
+        "xl/media/image1.png": "8ae4aea3635d409a8081cdc98b25466cbc0df59cee3c712ba264d72a3aac4799",
+        "xl/media/image2.jpeg": "de6e594fa3cea78f4583cd55901809dd1f60c2fa089de472ad99b67d0f2824ff",
+    }
+
+    def test_latest_address_library_rows_are_present(self):
+        workbook = load_workbook(self.template_path, data_only=False)
+        sheet = workbook["地址库编码表"]
+        rows = list(sheet.iter_rows(min_row=2, max_col=14, values_only=True))
+        rows_by_code = {}
+        for row in rows:
+            code = str(row[0] or "").strip()
+            if code:
+                rows_by_code.setdefault(code, []).append(row)
+
+        expected_new_codes = {
+            "PSP3-UPS", "HEA2-UPS", "QXY8", "AWD仓-IUSJ", "XPB2",
+            "TOL3", "TOL3-UPS", "XLX6", "MCI4", "MCI4-UPS",
+            "BJC1", "QZZ7", "XSE6", "XOR4",
+        }
+        self.assertEqual(sum(len(items) for items in rows_by_code.values()), 2210)
+        self.assertEqual(len(rows_by_code), 2205)
+        self.assertTrue(expected_new_codes.issubset(rows_by_code))
+        self.assertEqual(rows_by_code["沃尔玛ORD1S"][0][1], "沃尔玛地址")
+        self.assertEqual(rows_by_code["LBA8"][0][8], "Moor Way")
+        self.assertEqual(rows_by_code["LBA8"][0][10], "Leeds")
+        self.assertEqual(str(rows_by_code["LBA8"][0][13]), "LS15 0BF")
+        self.assertEqual(
+            {str(row[13]) for row in rows_by_code["FTW2"]},
+            {"75019", "75261"},
+        )
+
+    def test_non_address_sheets_and_images_remain_original(self):
+        with ZipFile(self.template_path) as workbook_zip:
+            for part_name, expected_digest in self.protected_parts.items():
+                with self.subTest(part=part_name):
+                    self.assertEqual(
+                        sha256(workbook_zip.read(part_name)).hexdigest(),
+                        expected_digest,
+                    )
+
+    def test_address_only_template_still_generates_and_reopens(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workbook = load_workbook(self.template_path, data_only=False)
+            invoice_generator = _build_generator()
+            handler = invoice_generator._get_template_handler(str(self.template_path))
+            handler(
+                workbook,
+                _synthetic_boxes(),
+                code="ADDRESS-CODE",
+                address_info=_address_info(),
+                shipment_id="FBA-TEST",
+            )
+            output_path = Path(temp_dir) / "一八供应链new-output.xlsx"
+            workbook.save(output_path)
+
+            reopened = load_workbook(output_path, data_only=False)
+            main = reopened["专线箱单 "]
+            self.assertEqual(main["B10"].value, "=VLOOKUP($B$9,地址库编码表!1:1048576,5,0)")
+            self.assertEqual(main["U20"].value, "X00-FNSKU-A")
+            self.assertEqual(main["U22"].value, "X00-FNSKU-C")
 
 
 if __name__ == "__main__":
