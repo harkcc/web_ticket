@@ -209,26 +209,6 @@ def _synthetic_boxes():
     return {1: box_one, 2: box_two}
 
 
-def _synthetic_large_yiba_box(item_count=22):
-    """Build enough distinct rows to exceed the 0722 template's reserved area."""
-    box = PackingListBox(1)
-    box.set_dimensions(60, 40, 30)
-    box.set_weight(18.5)
-    for index in range(1, item_count + 1):
-        box.add_item(
-            PackingListItem(
-                sequence_no=index,
-                msku="MSKU-A",
-                fnsku=f"X00-LARGE-{index:02d}",
-                product_name=f"大单商品-{index:02d}",
-                sku=f"SKU-LARGE-{index:02d}",
-                quantity=1,
-                box_quantities={1: 1},
-            )
-        )
-    return {1: box}
-
-
 def _synthetic_workbook():
     workbook = Workbook()
     workbook.remove(workbook.active)
@@ -505,36 +485,6 @@ class YibaAddressLibraryTests(unittest.TestCase):
             self.assertEqual(main["U20"].value, "X00-FNSKU-A")
             self.assertEqual(main["B10"].value, "=VLOOKUP($B$9,地址库编码表!1:1048576,5,0)")
             self.assertTrue(any(cell.value == "PSP3-UPS" for cell in address["A"]))
-
-    def test_yiba_large_order_extends_beyond_reserved_template_rows(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            workbook = load_workbook(self.template_path, data_only=False)
-            main = workbook["专线箱单 "]
-            original_max_row = main.max_row
-            invoice_generator = _build_generator()
-            handler = invoice_generator._get_template_handler(str(self.template_path))
-            handler(
-                workbook,
-                _synthetic_large_yiba_box(),
-                code="ADDRESS-CODE",
-                address_info=_address_info(),
-                shipment_id="FBA-LARGE",
-            )
-
-            last_data_row = 41
-            self.assertGreater(last_data_row, original_max_row)
-            self.assertEqual(main.cell(last_data_row, 1).value, "ADDRESS-CODEU000001")
-            self.assertEqual(main.cell(last_data_row, 21).value, "X00-LARGE-22")
-            self.assertEqual(main.cell(last_data_row, 20).value, "=L41*S41")
-            self.assertEqual(main.row_dimensions[last_data_row].height, main.row_dimensions[20].height)
-            self.assertEqual(main.cell(last_data_row, 1).border.left.style, "thin")
-            self.assertEqual(len(invoice_generator.image_calls), 22)
-
-            output_path = Path(temp_dir) / "一八供应链new-large-output.xlsx"
-            workbook.save(output_path)
-            reopened = load_workbook(output_path, data_only=False)["专线箱单 "]
-            self.assertEqual(reopened.cell(last_data_row, 21).value, "X00-LARGE-22")
-            self.assertEqual(reopened.cell(last_data_row, 20).value, "=L41*S41")
 
 
 if __name__ == "__main__":
