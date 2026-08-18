@@ -395,5 +395,97 @@ class KaiqiHandlerTests(unittest.TestCase):
                 self.assertEqual(reopened[sheet_name]["X18"].value, "X00-FNSKU-C")
 
 
+class YibaAddressLibraryTests(unittest.TestCase):
+    template_path = TEMPLATE_DIR / "一八供应链new.xlsx"
+
+    def test_latest_address_library_rows_are_present(self):
+        workbook = load_workbook(self.template_path, data_only=False)
+        sheet = workbook["地址库编码表"]
+        rows = list(sheet.iter_rows(min_row=2, max_col=14, values_only=True))
+        rows_by_code = {}
+        for row in rows:
+            code = str(row[0] or "").strip()
+            if code:
+                rows_by_code.setdefault(code, []).append(row)
+
+        expected_new_codes = {
+            "PSP3-UPS", "HEA2-UPS", "QXY8", "AWD仓-IUSJ", "XPB2",
+            "TOL3", "TOL3-UPS", "XLX6", "MCI4", "MCI4-UPS",
+            "BJC1", "QZZ7", "XSE6", "XOR4",
+        }
+        self.assertTrue(expected_new_codes.issubset(rows_by_code))
+        self.assertEqual(rows_by_code["沃尔玛ORD1S"][0][1], "沃尔玛地址")
+        self.assertEqual(rows_by_code["LBA8"][0][8], "Moor Way")
+        self.assertEqual(rows_by_code["LBA8"][0][10], "Leeds")
+        self.assertEqual(str(rows_by_code["LBA8"][0][13]), "LS15 0BF")
+        self.assertEqual(
+            {str(row[13]) for row in rows_by_code["FTW2"]},
+            {"75019", "75261"},
+        )
+
+    def test_yiba_handler_removes_supplier_sample_rows_and_images(self):
+        workbook = load_workbook(self.template_path, data_only=False)
+        sheet = workbook["专线箱单 "]
+        self.assertGreaterEqual(sheet.max_row, 25)
+        self.assertGreaterEqual(len(sheet._images), 2)
+
+        invoice_generator = _build_generator()
+        handler = invoice_generator._get_template_handler(str(self.template_path))
+        handler(
+            workbook,
+            _synthetic_boxes(),
+            code="ADDRESS-CODE",
+            address_info=_address_info(),
+            shipment_id="FBA-TEST",
+        )
+
+        self.assertEqual(
+            [sheet.cell(row, 1).value for row in range(20, 23)],
+            ["ADDRESS-CODEU000001", "ADDRESS-CODEU000001", "ADDRESS-CODEU000002"],
+        )
+        self.assertEqual(
+            [sheet.cell(row, 21).value for row in range(20, 23)],
+            ["X00-FNSKU-A", "X00-FNSKU-B", "X00-FNSKU-C"],
+        )
+        for row in range(23, 26):
+            self.assertTrue(
+                all(sheet.cell(row, column).value is None for column in range(1, 22)),
+                f"supplier sample data leaked at row {row}",
+            )
+        self.assertTrue(
+            all(
+                getattr(getattr(image.anchor, '_from', None), 'row', -1) < 19
+                for image in sheet._images
+            )
+        )
+        self.assertEqual(
+            sheet["B10"].value,
+            "=VLOOKUP($B$9,地址库编码表!1:1048576,5,0)",
+        )
+        self.assertEqual(sheet["B9"].value, "FC-TEST")
+
+    def test_updated_yiba_workbook_saves_and_reopens(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workbook = load_workbook(self.template_path, data_only=False)
+            invoice_generator = _build_generator()
+            handler = invoice_generator._get_template_handler(str(self.template_path))
+            handler(
+                workbook,
+                _synthetic_boxes(),
+                code="ADDRESS-CODE",
+                address_info=_address_info(),
+                shipment_id="FBA-TEST",
+            )
+            output_path = Path(temp_dir) / "一八供应链new-output.xlsx"
+            workbook.save(output_path)
+
+            reopened = load_workbook(output_path, data_only=False)
+            main = reopened["专线箱单 "]
+            address = reopened["地址库编码表"]
+            self.assertEqual(main["U20"].value, "X00-FNSKU-A")
+            self.assertEqual(main["B10"].value, "=VLOOKUP($B$9,地址库编码表!1:1048576,5,0)")
+            self.assertTrue(any(cell.value == "PSP3-UPS" for cell in address["A"]))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -3836,6 +3836,39 @@ class InvoiceGenerator:
                 declaration_currency = self._get_declaration_currency(address_info, output_style='cn')
                 sorted_boxes = sorted(processed_data.items(), key=lambda x: int(x[0]))
 
+                # 0722供应商模板预填了多行示例商品和示例图片。生成文件前只清理
+                # 数据区，保留上方填写说明、地址公式和示例说明图，避免样例商品
+                # 混入用户下载的正式发票。
+                template_last_row = sheet.max_row
+                if template_last_row >= row_num:
+                    for sample_row in sheet.iter_rows(
+                        min_row=row_num,
+                        max_row=template_last_row,
+                        min_col=1,
+                        max_col=max(sheet.max_column, 21),
+                    ):
+                        for cell in sample_row:
+                            cell.value = None
+
+                    if hasattr(sheet, '_images'):
+                        retained_images = []
+                        for image in sheet._images:
+                            anchor = getattr(image, 'anchor', None)
+                            marker = getattr(anchor, '_from', None)
+                            anchor_row = getattr(marker, 'row', None)
+                            if anchor_row is None or anchor_row < row_num - 1:
+                                retained_images.append(image)
+                        sheet._images = retained_images
+
+                    item_count = sum(len(box.items) for _, box in sorted_boxes)
+                    reserved_rows = max(item_count, 1)
+                    first_unused_row = row_num + reserved_rows
+                    if first_unused_row <= template_last_row:
+                        sheet.delete_rows(
+                            first_unused_row,
+                            template_last_row - first_unused_row + 1,
+                        )
+
                 for box_number, box in sorted_boxes:
                     self._log_debug(f"处理箱子 {box_number}")
 
