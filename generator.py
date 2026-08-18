@@ -3820,6 +3820,18 @@ class InvoiceGenerator:
                         cell.font = font
 
                 address_info_detail = self._fill_common_address_fields(sheet, address_info, layout)
+                seller_info = (address_info or {}).get('seller_info') or {}
+                destination_country_code = str(
+                    seller_info.get('country_code') or
+                    address_info_detail.get('countryCode') or
+                    (address_info or {}).get('countryCode') or
+                    ''
+                ).strip().upper()
+                destination_country_name = str(seller_info.get('country_name') or '').strip()
+                suppress_auto_price = (
+                    destination_country_code in {'US', 'CA'} or
+                    destination_country_name in {'美国', '加拿大'}
+                )
 
                 try:
                     total_boxes = len(box_data.keys())
@@ -3870,7 +3882,9 @@ class InvoiceGenerator:
                             (9, quantity),
                             (10, '1'),
                             (11, declaration_currency),
-                            (12, product_info.get('price', '') if product_info else ''),
+                            (12, None if suppress_auto_price else (
+                                product_info.get('price', '') if product_info else ''
+                            )),
                             (13, box.weight if box.weight is not None else ''),
                             (14, ''),
                             (15, brand),

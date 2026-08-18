@@ -469,6 +469,51 @@ class YibaAddressLibraryTests(unittest.TestCase):
             self.assertEqual(main["U20"].value, "X00-FNSKU-A")
             self.assertEqual(main["U22"].value, "X00-FNSKU-C")
 
+    def test_us_and_canada_leave_declaration_unit_price_blank(self):
+        cases = (
+            ("US", "美国"),
+            ("CA", "加拿大"),
+        )
+        for country_code, country_name in cases:
+            with self.subTest(country=country_code), tempfile.TemporaryDirectory() as temp_dir:
+                workbook = load_workbook(self.template_path, data_only=False)
+                invoice_generator = _build_generator()
+                handler = invoice_generator._get_template_handler(str(self.template_path))
+                handler(
+                    workbook,
+                    _synthetic_boxes(),
+                    code="ADDRESS-CODE",
+                    address_info=_address_info(
+                        country_code=country_code,
+                        country_name=country_name,
+                    ),
+                    shipment_id="FBA-TEST",
+                )
+                output_path = Path(temp_dir) / f"一八供应链-{country_code}.xlsx"
+                workbook.save(output_path)
+
+                main = load_workbook(output_path, data_only=False)["专线箱单 "]
+                for row in range(20, 23):
+                    self.assertIsNone(main.cell(row=row, column=12).value)
+                    self.assertEqual(main.cell(row=row, column=20).value, f"=L{row}*S{row}")
+
+    def test_other_countries_keep_declaration_unit_price(self):
+        workbook = load_workbook(self.template_path, data_only=False)
+        invoice_generator = _build_generator()
+        handler = invoice_generator._get_template_handler(str(self.template_path))
+        handler(
+            workbook,
+            _synthetic_boxes(),
+            code="ADDRESS-CODE",
+            address_info=_address_info(country_code="DE", country_name="德国"),
+            shipment_id="FBA-TEST",
+        )
+
+        main = workbook["专线箱单 "]
+        self.assertEqual([main.cell(row=row, column=12).value for row in range(20, 23)], [
+            "4.25", 3.5, 2.0,
+        ])
+
 
 if __name__ == "__main__":
     unittest.main()
