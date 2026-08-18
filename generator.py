@@ -12,6 +12,10 @@ from io import BytesIO
 from openpyxl.utils import get_column_letter
 import re
 from openpyxl.packaging import manifest
+from openpyxl.workbook.views import BookView
+from contextlib import contextmanager
+from copy import copy
+from threading import local
 
 
 
@@ -58,6 +62,9 @@ class InvoiceGenerator:
         # 图片信息缓存机制
         self.image_cache = {}  # 图片路径缓存字典 {msku: image_path or None}
         self.image_cache_enabled = True  # 图片缓存开关
+
+        # 每个生成线程独立保存目的国，避免并发任务串用价格策略。
+        self._generation_context = local()
         
         # 定义模板配置，只列出不需要编码的模板
         self.template_config = {
@@ -91,6 +98,61 @@ class InvoiceGenerator:
     def _log_info(self, message):
         """重要信息输出"""
         print(f"[INFO] {message}")
+
+    def _is_us_or_canada_destination(self, address_info=None):
+        """判断当前目的国是否为美国或加拿大。"""
+        if not isinstance(address_info, dict):
+            return False
+
+        seller_info = address_info.get('seller_info') or {}
+        address_info_detail = address_info.get('address_info') or {}
+        country_code = str(
+            seller_info.get('country_code') or
+            address_info_detail.get('countryCode') or
+            address_info.get('countryCode') or
+            ''
+        ).strip().upper()
+        country_name = str(seller_info.get('country_name') or '').strip()
+        country_name_key = country_name.casefold()
+
+        return (
+            country_code in {'US', 'USA', 'CA', 'CAN'} or
+            '美国' in country_name or
+            '加拿大' in country_name or
+            country_name_key in {'united states', 'united states of america', 'canada'}
+        )
+
+    def _is_auto_price_suppressed(self):
+        """返回当前生成任务是否禁止自动填写产品价格。"""
+        address_info = getattr(self._generation_context, 'address_info', None)
+        return self._is_us_or_canada_destination(address_info)
+
+    @contextmanager
+    def _destination_price_context(self, address_info=None):
+        """为一次模板生成设置线程隔离的目的国价格策略。"""
+        missing_context = object()
+        previous_address_info = getattr(
+            self._generation_context,
+            'address_info',
+            missing_context,
+        )
+        self._generation_context.address_info = address_info
+        try:
+            yield
+        finally:
+            if previous_address_info is missing_context:
+                del self._generation_context.address_info
+            else:
+                self._generation_context.address_info = previous_address_info
+
+    def _apply_destination_price_policy(self, product_info):
+        """美国和加拿大生成任务返回不含自动单价的产品信息副本。"""
+        if not product_info or not self._is_auto_price_suppressed():
+            return product_info
+
+        product_info_without_price = dict(product_info)
+        product_info_without_price['price'] = ''
+        return product_info_without_price
     
     def should_enable_merge(self, address_info=None):
         """
@@ -313,6 +375,9 @@ class InvoiceGenerator:
     
     def _get_display_price(self, item, product_info):
         """获取显示用的单价"""
+        if self._is_auto_price_suppressed():
+            return ''
+
         if hasattr(item, '_weighted_avg_price'):
             # 合并商品或单个商品都显示加权平均单价
             avg_price = getattr(item, '_weighted_avg_price', 0)
@@ -323,6 +388,9 @@ class InvoiceGenerator:
     
     def _get_total_price(self, item, box_number, product_info):
         """获取该箱子中该商品的总价格"""
+        if self._is_auto_price_suppressed():
+            return ''
+
         if hasattr(item, '_weighted_avg_price'):
             # 合并商品或单个商品：使用加权平均单价 × 该箱子数量
             box_qty = item.box_quantities.get(box_number, 0)
@@ -448,7 +516,12 @@ class InvoiceGenerator:
                             'brand': product.get('brand', ''),
                             'model': product.get('model', ''),
                             'link': product.get('productLink', ''),
-                            'price': product.get('askprice', ''),
+                            'asin': product.get('asin', ''),
+                            'price': (
+                                product.get('askprice')
+                                if product.get('askprice') not in (None, '')
+                                else product.get('price', '')
+                            ),
                             'electrified': product.get('electrified', ''),
                             'magnetic': product.get('magnetic', ''),
                             'weight': product.get('weight', ''),
@@ -2846,9 +2919,9 @@ class InvoiceGenerator:
                             }
 
                         # 定义price变量
-                        price_value = product_info.get('price', 0)
-                        # 确保price是浮点数
-                        price = float(price_value) if price_value else 0
+                        price_value = product_info.get('price', '')
+                        # 美国、加拿大的价格策略会返回空值；不要再格式化成“$0”。
+                        price = float(price_value) if price_value else None
 
                         # # 序号
                         # self._set_cell_value(sheet, row_num, 1, row_num - 8, style_info)
@@ -2868,10 +2941,16 @@ class InvoiceGenerator:
                         self._set_cell_value(sheet, row_num, 6, quantity, style_info)
 
                         self._set_cell_value(sheet,row_num,16,'',style_info)  
-                        self._set_cell_value(sheet, row_num, 7, f"${price}", style_info)
+                        self._set_cell_value(
+                            sheet,
+                            row_num,
+                            7,
+                            f"${price}" if price is not None else '',
+                            style_info,
+                        )
                         
                         # 总价
-                        total = round(float(quantity) * price, 2)
+                        total = round(float(quantity) * price, 2) if price is not None else 0
                         # self._set_cell_value(sheet, row_num, 8, f"${total}", style_info)
                         self._set_cell_value(sheet, row_num, 8, f"=F{row_num}*G{row_num}", style_info)
                         
@@ -3512,6 +3591,243 @@ class InvoiceGenerator:
 
         return address_info_detail
 
+    def _copy_row_format(self, sheet, source_row, target_row, start_col=1, end_col=24):
+        """Copy a template row's formatting without copying its sample values."""
+        for column in range(start_col, end_col + 1):
+            source = sheet.cell(row=source_row, column=column)
+            target = sheet.cell(row=target_row, column=column)
+            target.font = copy(source.font)
+            target.fill = copy(source.fill)
+            target.border = copy(source.border)
+            target.alignment = copy(source.alignment)
+            target.number_format = source.number_format
+            target.protection = copy(source.protection)
+
+        sheet.row_dimensions[target_row].height = sheet.row_dimensions[source_row].height
+
+    def _clean_excel_text(self, value):
+        """Normalize identifiers imported by pandas without emitting literal `nan`."""
+        if value is None:
+            return ''
+
+        text = str(value).strip()
+        if text.lower() in {'nan', 'none', 'null'}:
+            return ''
+        return text
+
+    def _coerce_excel_number(self, value):
+        """Return a numeric Excel value when possible, otherwise None."""
+        if value in (None, ''):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _get_kaiqi_brand_type(self, product_info):
+        """Map the product brand to the carrier template's brand classification."""
+        brand = self._clean_excel_text(product_info.get('brand', '') if product_info else '')
+        if not brand or brand.lower() in {'无', '无品牌', 'none', 'n/a'}:
+            return '无品牌'
+        return '境内自主品牌'
+
+    def _fill_kaiqi_template(
+        self,
+        wb,
+        box_data,
+        code=None,
+        address_info=None,
+        shipment_id=None,
+        *,
+        sheet_name,
+        is_europe,
+    ):
+        """Fill the shared Kaiqi layout while preserving route-specific columns."""
+        with self.db_connector as db:
+            sheet = wb[sheet_name]
+
+            # Keep the output focused on the selected route while retaining hidden
+            # lookup sheets so the carrier workbook remains self-contained.
+            for worksheet in wb.worksheets:
+                worksheet.sheet_state = 'visible' if worksheet.title == sheet_name else 'hidden'
+                worksheet.sheet_view.tabSelected = worksheet.title == sheet_name
+            wb.active = sheet
+            active_index = wb.index(sheet)
+            if wb.views:
+                wb.views[0].activeTab = active_index
+                wb.views[0].firstSheet = active_index
+            else:
+                wb.views.append(BookView(activeTab=active_index, firstSheet=active_index))
+
+            address_detail = (address_info or {}).get('address_info') or {}
+            seller_info = (address_info or {}).get('seller_info') or {}
+            reference_id = self._clean_excel_text(address_detail.get('amazonReferenceId', ''))
+            fba_id = self._clean_excel_text(shipment_id or code)
+            box_prefix = fba_id
+
+            # Replace sample order/address values with the actual shipment data.
+            sheet.cell(row=3, column=2).value = fba_id
+            sheet.cell(row=4, column=2).value = reference_id
+            sheet.cell(row=5, column=2).value = len(box_data)
+            sheet.cell(row=6, column=2).value = self._clean_excel_text(
+                seller_info.get('country_name') or address_detail.get('countryCode', '')
+            )
+
+            channel_name = ''
+            shipment_name = self._clean_excel_text(address_detail.get('shipmentName', ''))
+            if shipment_name:
+                try:
+                    _, channel_name, _ = self.extract_data(shipment_name)
+                except Exception:
+                    channel_name = shipment_name
+            sheet.cell(row=7, column=2).value = self._clean_excel_text(channel_name)
+
+            for row in range(3, 12):
+                sheet.cell(row=row, column=4).value = None
+
+            name = self._clean_excel_text(address_detail.get('name', ''))
+            sheet.cell(row=3, column=4).value = self._clean_excel_text(address_detail.get('warehouseId', ''))
+            sheet.cell(row=4, column=4).value = self._clean_excel_text(address_detail.get('postalCode', ''))
+            sheet.cell(row=5, column=4).value = name
+            sheet.cell(row=6, column=4).value = self._clean_excel_text(
+                address_detail.get('phoneNumber') or address_detail.get('phone', '')
+            )
+            sheet.cell(row=7, column=4).value = self._clean_excel_text(address_detail.get('city', ''))
+            sheet.cell(row=8, column=4).value = self._clean_excel_text(
+                address_detail.get('stateOrProvinceCode', '')
+            )
+            sheet.cell(row=9, column=4).value = self._clean_excel_text(address_detail.get('addressLine1', ''))
+            sheet.cell(row=10, column=4).value = self._clean_excel_text(address_detail.get('addressLine2', ''))
+            sheet.cell(row=11, column=4).value = name
+
+            # Remove all carrier examples and their embedded images before writing.
+            source_row = 16
+            original_last_row = max(sheet.max_row, source_row)
+            self._clear_sheet_range(sheet, source_row, original_last_row, 1, 24)
+            if hasattr(sheet, '_images'):
+                sheet._images = []
+
+            row_num = source_row
+            has_electric = False
+            has_magnetic = False
+            sorted_boxes = sorted(box_data.items(), key=lambda item: int(item[0]))
+
+            for box_number, box in sorted_boxes:
+                for item in box.items:
+                    if row_num > source_row:
+                        self._copy_row_format(sheet, source_row, row_num)
+
+                    product_info = self._get_product_info(item.msku, db)
+                    if product_info is None:
+                        self._log_missing_product(item.msku, '凯琦欧线' if is_europe else '凯琦美线')
+                        product_info = {}
+
+                    has_electric = has_electric or self._clean_excel_text(
+                        product_info.get('electrified', '')
+                    ) == '是'
+                    has_magnetic = has_magnetic or self._clean_excel_text(
+                        product_info.get('magnetic', '')
+                    ) == '是'
+
+                    quantity = item.box_quantities.get(box_number, 0)
+                    price = self._coerce_excel_number(product_info.get('price', ''))
+                    unit_weight = self._coerce_excel_number(product_info.get('weight', ''))
+                    total_price = round(price * quantity, 2) if price is not None else ''
+                    net_weight = round(unit_weight * quantity, 3) if unit_weight is not None else ''
+                    box_number_text = (
+                        f"{box_prefix}U{int(box_number):06d}"
+                        if box_prefix
+                        else f"U{int(box_number):06d}"
+                    )
+
+                    link = self._clean_excel_text(product_info.get('link', ''))
+                    asin = self._clean_excel_text(product_info.get('asin', '')) or self._extract_asin_from_link(link)
+                    brand = self._clean_excel_text(product_info.get('brand', '')) or '无'
+                    model = self._clean_excel_text(product_info.get('model', '')) or '无'
+
+                    common_values = {
+                        1: int(box_number),
+                        2: box_number_text,
+                        3: fba_id,
+                        4: reference_id,
+                        5: self._clean_excel_text(product_info.get('cn_name', ''))
+                           or self._clean_excel_text(item.product_name),
+                        6: self._clean_excel_text(product_info.get('en_name', '')),
+                        7: self._clean_excel_text(product_info.get('hs_code', '')),
+                        8: price if price is not None else '',
+                        9: quantity,
+                        10: quantity,
+                        11: total_price,
+                        12: brand,
+                        13: self._get_kaiqi_brand_type(product_info),
+                        14: model,
+                        15: self._combine_bilingual_text(product_info, 'material_en', 'material_cn'),
+                        16: self._combine_bilingual_text(product_info, 'usage_en', 'usage_cn'),
+                        17: '',
+                    }
+
+                    if is_europe:
+                        route_values = {
+                            18: link,
+                            19: asin,
+                            20: box.weight if box.weight is not None else '',
+                            21: box.length if box.length is not None else '',
+                            22: box.width if box.width is not None else '',
+                            23: box.height if box.height is not None else '',
+                            24: self._clean_excel_text(item.fnsku),
+                        }
+                    else:
+                        route_values = {
+                            18: 1,
+                            19: net_weight,
+                            20: box.weight if box.weight is not None else '',
+                            21: box.length if box.length is not None else '',
+                            22: box.width if box.width is not None else '',
+                            23: box.height if box.height is not None else '',
+                            24: self._clean_excel_text(item.fnsku),
+                        }
+
+                    for column, value in {**common_values, **route_values}.items():
+                        sheet.cell(row=row_num, column=column).value = value
+
+                    sheet.cell(row=row_num, column=24).number_format = '@'
+
+                    if item.msku and hasattr(self, 'image_folder'):
+                        try:
+                            self.insert_original_product_image(sheet, f"Q{row_num}", item.msku, self.image_folder)
+                        except Exception as exc:
+                            print(f"插入图片时发生错误: {str(exc)}")
+
+                    row_num += 1
+
+            sheet.cell(row=12, column=2).value = '带电' if has_electric else '不带电'
+            sheet.cell(row=13, column=2).value = '带磁' if has_magnetic else '不带磁'
+            sheet.column_dimensions['X'].width = max(sheet.column_dimensions['X'].width or 0, 16)
+
+    @template_handler("凯琦美线")
+    def _fill_kaiqi_us_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
+        self._fill_kaiqi_template(
+            wb,
+            box_data,
+            code,
+            address_info,
+            shipment_id,
+            sheet_name='美线+加线-发票导入',
+            is_europe=False,
+        )
+
+    @template_handler("凯琦欧线")
+    def _fill_kaiqi_eu_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
+        self._fill_kaiqi_template(
+            wb,
+            box_data,
+            code,
+            address_info,
+            shipment_id,
+            sheet_name='欧线+空派-发票导入',
+            is_europe=True,
+        )
+
     @template_handler("一八供应链")
     def _fill_yiba_template(self, wb, box_data, code=None, address_info=None, shipment_id=None):
         """
@@ -3539,16 +3855,26 @@ class InvoiceGenerator:
                 }
 
                 is_new_layout = str(sheet.cell(row=18, column=1).value or '').strip() == '总件数（必填）'
+                # 0629最新模板: B10-B16是VLOOKUP公式(填B9仓库代码自动带出地址)
+                # 检测B10是否为公式,若是则跳过B10-B16填充以保留公式
+                b10_is_formula = False
+                try:
+                    b10_val = sheet.cell(row=10, column=2).value
+                    b10_is_formula = is_new_layout and isinstance(b10_val, str) and b10_val.startswith('=')
+                except Exception:
+                    pass
+                # 地址字段: 新模板带公式的置None跳过,由VLOOKUP自动带出
+                addr_skip = None if b10_is_formula else 1
                 layout = {
                     'address_type_cell': (8, 2) if is_new_layout else (7, 2),
                     'warehouse_cell': (9, 2) if is_new_layout else (8, 2),
-                    'company_cell': (10, 2) if is_new_layout else (9, 2),
-                    'recipient_cell': (11, 2) if is_new_layout else (10, 2),
-                    'phone_cell': (12, 2) if is_new_layout else (11, 2),
-                    'postal_cell': (13, 2) if is_new_layout else (12, 2),
-                    'state_cell': (14, 2) if is_new_layout else (13, 2),
-                    'city_cell': (15, 2) if is_new_layout else (14, 2),
-                    'address_cell': (16, 2) if is_new_layout else (15, 2),
+                    'company_cell': (10, 2) if (is_new_layout and not b10_is_formula) else ((9, 2) if not is_new_layout else None),
+                    'recipient_cell': (11, 2) if (is_new_layout and not b10_is_formula) else ((10, 2) if not is_new_layout else None),
+                    'phone_cell': (12, 2) if (is_new_layout and not b10_is_formula) else ((11, 2) if not is_new_layout else None),
+                    'postal_cell': (13, 2) if (is_new_layout and not b10_is_formula) else ((12, 2) if not is_new_layout else None),
+                    'state_cell': (14, 2) if (is_new_layout and not b10_is_formula) else ((13, 2) if not is_new_layout else None),
+                    'city_cell': (15, 2) if (is_new_layout and not b10_is_formula) else ((14, 2) if not is_new_layout else None),
+                    'address_cell': (16, 2) if (is_new_layout and not b10_is_formula) else ((15, 2) if not is_new_layout else None),
                     'destination_country_cell': (7, 2) if is_new_layout else (6, 2),
                     'total_boxes_cell': (18, 2) if is_new_layout else (17, 2),
                     'data_start_row': 20 if is_new_layout else 19,
@@ -5234,8 +5560,9 @@ class InvoiceGenerator:
             if template_handler is None:
                 raise ProcessingError(f"未找到对应的模板处理方法: {template_path}")
 
-            # 处理模板
-            template_handler(wb, box_data, code, address_info, shipment_id)
+            # 处理模板；美国和加拿大在所有模板中统一禁用自动产品单价。
+            with self._destination_price_context(address_info):
+                template_handler(wb, box_data, code, address_info, shipment_id)
 
             # 注册webp MIME类型，防止出现KeyError: '.webp'错误
             import mimetypes
@@ -5286,7 +5613,7 @@ class InvoiceGenerator:
             # 优先从缓存获取
             if self.cache_enabled and msku in self.product_cache:
                 self._log_debug(f"从缓存获取产品信息: {msku}")
-                return self.product_cache[msku]
+                return self._apply_destination_price_policy(self.product_cache[msku])
             
             # 缓存中没有，从数据库获取
             self._log_debug(f"从数据库获取产品信息: {msku}")
@@ -5294,9 +5621,11 @@ class InvoiceGenerator:
             if db is None:
                 # 如果没有传入db连接，创建新的连接
                 with self.db_connector as database:
-                    return self._get_product_info_from_db(msku, database)
+                    product_info = self._get_product_info_from_db(msku, database)
             else:
-                return self._get_product_info_from_db(msku, db)
+                product_info = self._get_product_info_from_db(msku, db)
+
+            return self._apply_destination_price_policy(product_info)
                 
         except Exception as e:
             print(f"Error fetching product info for MSKU {msku}: {str(e)}")
@@ -5333,7 +5662,12 @@ class InvoiceGenerator:
                     'brand': product.get('brand', ''),
                     'model': product.get('model', ''),
                     'link': product.get('productLink', ''),
-                    'price': product.get('askprice', ''),
+                    'asin': product.get('asin', ''),
+                    'price': (
+                        product.get('askprice')
+                        if product.get('askprice') not in (None, '')
+                        else product.get('price', '')
+                    ),
                     'electrified': product.get('electrified', ''),
                     'magnetic': product.get('magnetic', ''),
                     'weight': product.get('weight', ''),
